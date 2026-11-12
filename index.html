@@ -247,6 +247,7 @@
     .mega-form > p { margin: 8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
     .mega-field { display: block; margin: 13px 0; color: var(--nav-text); font-size: 11px; font-weight: 650; }
     .mega-field input { width: 100%; margin-top: 6px; padding: 10px 11px; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; outline: 0; background: var(--paper); }
+    .mega-field .select { width: 100%; margin-top: 6px; }
     .mega-field input:focus { border-color: #9eb9a3; box-shadow: 0 0 0 3px var(--field-focus); }
     .mega-warning { padding: 11px; margin: 15px 0; color: var(--warning-text); border: 1px solid var(--warning-border); border-radius: 8px; background: var(--warning-background); font-size: 10px; line-height: 1.5; }
     .mega-error { min-height: 16px; margin: 8px 0; color: #b64646; font-size: 11px; }
@@ -386,7 +387,7 @@
   <dialog class="mega-dialog" id="mega-dialog">
     <form class="mega-form" id="mega-login-form">
       <h2>Connexion à MEGA</h2>
-      <p>Cette première intégration sert uniquement à parcourir les dossiers et médias du compte.</p>
+      <p>Parcourez vos dossiers MEGA et déplacez vos photos depuis leur menu contextuel.</p>
       <label class="mega-field">Adresse e-mail<input id="mega-email" type="email" autocomplete="username" required></label>
       <label class="mega-field">Mot de passe<input id="mega-password" type="password" autocomplete="current-password" required></label>
       <label class="mega-field">Code 2FA <span style="font-weight:400;color:var(--muted)">(si activé)</span><input id="mega-2fa" type="text" inputmode="numeric" autocomplete="one-time-code"></label>
@@ -394,7 +395,24 @@
       <div class="mega-error" id="mega-error" role="alert"></div>
       <div class="mega-form-actions">
         <button class="button secondary" type="button" id="mega-cancel">Annuler</button>
-        <button class="button" type="submit" id="mega-submit">Connexion en lecture seule</button>
+        <button class="button" type="submit" id="mega-submit">Connexion à MEGA</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog class="mega-dialog" id="move-dialog">
+    <form class="mega-form" id="move-form">
+      <h2>Déplacer le média</h2>
+      <p id="move-description">Choisissez le dossier de destination dans votre compte MEGA.</p>
+      <label class="mega-field" for="move-target">Dossier de destination
+        <select class="select" id="move-target" required>
+          <option value="" selected disabled>Choisir un dossier…</option>
+        </select>
+      </label>
+      <div class="mega-warning">Le déplacement modifiera directement l’emplacement du fichier dans MEGA.</div>
+      <div class="mega-error" id="move-error" role="alert"></div>
+      <div class="mega-form-actions">
+        <button class="button secondary" type="button" id="move-cancel">Annuler</button>
+        <button class="button" type="submit" id="move-submit">Déplacer dans MEGA</button>
       </div>
     </form>
   </dialog>
@@ -602,20 +620,79 @@
       showToast("Diaporama lancé — cliquez sur × pour arrêter.");
     }
     function closeMenu() { $("#menu-root").innerHTML = ""; }
-    function openMenu(id, button) {
+    function openMoveDialog(item) {
+      if (!megaConnected) return;
+      const dialog = $("#move-dialog");
+      const select = $("#move-target");
+      $("#move-form").dataset.fileId = item.id;
+      $("#move-description").textContent = `Choisissez où déplacer « ${item.title} » dans votre compte MEGA.`;
+      $("#move-error").textContent = "";
+      $("#move-submit").disabled = false;
+      $("#move-submit").textContent = "Déplacer dans MEGA";
+      select.innerHTML = `<option value="" selected disabled>Choisir un dossier…</option>
+        <option value="__root__" ${item.folderPath ? "" : "disabled"}>Mon Drive / Racine</option>
+        ${folders.slice().sort((a, b) => a.displayPath.localeCompare(b.displayPath, "fr")).map((folder) => `
+          <option value="${escapeHtml(folder.path)}" ${folder.path === item.folderPath ? "disabled" : ""}>${escapeHtml(folder.displayPath)}</option>
+        `).join("")}`;
+      dialog.showModal();
+      select.focus();
+    }
+
+    $("#move-cancel").addEventListener("click", () => $("#move-dialog").close());
+    $("#move-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = Number(event.currentTarget.dataset.fileId);
+      const item = media.find((entry) => entry.id === id);
+      const destinationPath = $("#move-target").value;
+      if (!item || !destinationPath) return;
+      const destinationName = destinationPath === "__root__"
+        ? "Mon Drive / Racine"
+        : folders.find((folder) => folder.path === destinationPath)?.displayPath;
+      if (!destinationName) {
+        $("#move-error").textContent = "Le dossier sélectionné n’est plus disponible.";
+        return;
+      }
+      if (!window.confirm(`Déplacer « ${item.title} » vers « ${destinationName} » dans MEGA ?`)) return;
+
+      const submit = $("#move-submit");
+      submit.disabled = true;
+      submit.textContent = "Déplacement…";
+      $("#move-error").textContent = "";
+      try {
+        await window.megaConnector.moveFile(id, destinationPath);
+        $("#move-dialog").close();
+        showToast(`« ${item.title} » déplacé dans « ${destinationName} » sur MEGA.`);
+      } catch (error) {
+        $("#move-error").textContent = error instanceof Error ? error.message : "Le déplacement MEGA a échoué.";
+        console.error("Échec du déplacement d’un média dans MEGA.", error);
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "Déplacer dans MEGA";
+      }
+    });
+
+    function openMenu(id, button, position) {
       closeMenu();
-      if (megaConnected) { showToast("La gestion MEGA est désactivée dans cette version en lecture seule."); return; }
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
-      const rect = button.getBoundingClientRect();
+      const rect = position ? null : button.getBoundingClientRect();
       const menu = document.createElement("div");
       menu.className = "context-menu";
-      menu.style.top = `${Math.min(rect.bottom, window.innerHeight - 130)}px`;
-      menu.style.left = `${Math.max(8, Math.min(rect.right - 145, window.innerWidth - 153))}px`;
-      menu.innerHTML = `<button data-action="rename">Renommer</button><button data-action="move">Déplacer vers…</button><button class="danger" data-action="delete">Supprimer</button>`;
+      const top = position?.y ?? rect.bottom;
+      const left = position?.x ?? rect.right - 145;
+      menu.style.top = `${Math.max(8, Math.min(top, window.innerHeight - 130))}px`;
+      menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 153))}px`;
+      menu.innerHTML = megaConnected
+        ? `<button data-action="move">Déplacer vers un dossier MEGA…</button>`
+        : `<button data-action="rename">Renommer</button><button data-action="move">Déplacer vers…</button><button class="danger" data-action="delete">Supprimer</button>`;
       menu.addEventListener("click", (event) => {
         const action = event.target.dataset.action;
         if (!action) return;
+        if (megaConnected && action === "move") {
+          closeMenu();
+          openMoveDialog(item);
+          return;
+        }
         if (action === "rename") {
           const title = window.prompt("Nouveau nom :", item.title);
           if (title?.trim()) { item.title = title.trim(); persist(); render(); showToast("Renommage enregistré localement."); }
@@ -634,6 +711,15 @@
       });
       $("#menu-root").append(menu);
     }
+
+    $("#photo-grid").addEventListener("contextmenu", (event) => {
+      const cover = event.target.closest(".photo-cover[data-open]");
+      if (!cover) return;
+      const item = media.find((entry) => entry.id === Number(cover.dataset.open));
+      if (!item) return;
+      event.preventDefault();
+      openMenu(item.id, null, { x: event.clientX, y: event.clientY });
+    });
 
     function updateThemeButton() {
       const isDark = document.documentElement.dataset.theme === "dark";
@@ -726,7 +812,13 @@
         $("#connection").className = "connection connected";
         $("#connection-label").textContent = "MEGA connecté";
         $("#mega-connect").textContent = "Déconnexion";
-        $(".demo-note").textContent = "Lecture seule : miniatures générées à la demande. Les GIF restent animés ; les vidéos utilisent une image d’aperçu. Limites de lecture indiquées si un fichier est trop volumineux ou incompatible.";
+        $(".demo-note").textContent = "Faites un clic droit sur une photo ou une vidéo pour la déplacer dans un dossier MEGA. Les autres actions restent en lecture seule.";
+        render();
+      },
+      refreshLibrary({ files, folders: remoteFolders }) {
+        window.megaConnector.releaseAllThumbnails();
+        media = files;
+        folders = remoteFolders;
         render();
       },
       clearLibrary() {

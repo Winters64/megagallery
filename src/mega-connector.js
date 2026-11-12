@@ -6,6 +6,7 @@ const submitButton = document.querySelector("#mega-submit");
 const errorOutput = document.querySelector("#mega-error");
 let storage = null;
 let filesById = new Map();
+let folderNodesByPath = new Map();
 let cacheKeysByFile = new WeakMap();
 
 const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp"]);
@@ -460,6 +461,7 @@ function buildLibrary(root) {
   const folders = [];
   const files = [];
   filesById = new Map();
+  folderNodesByPath = new Map([["__root__", root]]);
   cacheKeysByFile = new WeakMap();
   let nextFileId = 1;
   let nextFolderId = 1;
@@ -479,6 +481,7 @@ function buildLibrary(root) {
           color: "#e9f1e6",
           emoji: "▰"
         });
+        folderNodesByPath.set(path, node);
         visit(node, path, displayPath);
         continue;
       }
@@ -515,6 +518,7 @@ function closeStorage() {
   const previousStorage = storage;
   storage = null;
   filesById.clear();
+  folderNodesByPath.clear();
   if (previousStorage) {
     previousStorage.close().catch((error) => {
       console.error("La session MEGA n’a pas pu être fermée proprement.", error);
@@ -667,7 +671,7 @@ form.addEventListener("submit", async (event) => {
   } finally {
     passwordInput.value = "";
     submitButton.disabled = false;
-    submitButton.textContent = "Connexion en lecture seule";
+    submitButton.textContent = "Connexion à MEGA";
   }
 });
 
@@ -676,6 +680,26 @@ window.megaConnector = {
   releaseAllThumbnails,
   clearPersistentCache,
   updateCacheStatus,
+  async moveFile(id, destinationPath) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de déplacer un fichier.");
+    const file = filesById.get(Number(id));
+    if (!file) throw new Error("Ce fichier n’est plus disponible dans la session MEGA.");
+    const destination = folderNodesByPath.get(String(destinationPath));
+    if (!destination?.directory) throw new Error("Le dossier de destination n’existe plus dans MEGA.");
+    if (file.parent === destination) throw new Error("Ce fichier se trouve déjà dans ce dossier.");
+
+    const previousParent = file.parent;
+    await file.moveTo(destination);
+    if (file.parent !== destination) {
+      const previousIndex = previousParent?.children?.indexOf(file) ?? -1;
+      if (previousIndex >= 0) previousParent.children.splice(previousIndex, 1);
+      if (!destination.children.includes(file)) destination.children.push(file);
+      file.parent = destination;
+    }
+
+    window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    return { refreshed: true };
+  },
   async downloadPreview(id) {
     const file = filesById.get(Number(id));
     if (!file) throw new Error("Ce fichier n’est plus disponible dans la session MEGA.");
