@@ -496,6 +496,7 @@ function buildLibrary(root) {
         : null;
       const record = {
         id,
+        fileKey: String(node.nodeId || id),
         title: name,
         folder: parentDisplayPath || "Mon drive",
         folderPath: parentPath,
@@ -680,25 +681,115 @@ window.megaConnector = {
   releaseAllThumbnails,
   clearPersistentCache,
   updateCacheStatus,
-  async moveFile(id, destinationPath) {
+  async moveFiles(ids, destinationPath) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de déplacer un fichier.");
-    const file = filesById.get(Number(id));
-    if (!file) throw new Error("Ce fichier n’est plus disponible dans la session MEGA.");
     const destination = folderNodesByPath.get(String(destinationPath));
     if (!destination?.directory) throw new Error("Le dossier de destination n’existe plus dans MEGA.");
-    if (file.parent === destination) throw new Error("Ce fichier se trouve déjà dans ce dossier.");
+    const files = [...new Set(ids.map((id) => Number(id)))].map((id) => {
+      const file = filesById.get(id);
+      if (!file) throw new Error("Un ou plusieurs fichiers ne sont plus disponibles dans la session MEGA.");
+      return file;
+    });
+    const moved = [];
+    const failed = [];
 
-    const previousParent = file.parent;
-    await file.moveTo(destination);
-    if (file.parent !== destination) {
-      const previousIndex = previousParent?.children?.indexOf(file) ?? -1;
-      if (previousIndex >= 0) previousParent.children.splice(previousIndex, 1);
-      if (!destination.children.includes(file)) destination.children.push(file);
-      file.parent = destination;
+    for (const file of files) {
+      if (file.parent === destination) {
+        failed.push({ fileKey: String(file.nodeId), title: file.name, message: "Ce média se trouve déjà dans ce dossier." });
+        continue;
+      }
+      const previousParent = file.parent;
+      try {
+        await file.moveTo(destination);
+        if (previousParent && previousParent !== destination) {
+          let previousIndex;
+          while ((previousIndex = previousParent.children?.indexOf(file) ?? -1) >= 0) {
+            previousParent.children.splice(previousIndex, 1);
+          }
+        }
+        if (!destination.children.includes(file)) destination.children.push(file);
+        file.parent = destination;
+        moved.push({ fileKey: String(file.nodeId), title: file.name });
+      } catch (error) {
+        failed.push({
+          fileKey: String(file.nodeId),
+          title: file.name,
+          message: error instanceof Error ? error.message : "Le déplacement MEGA a échoué."
+        });
+      }
     }
 
-    window.megaGallery.refreshLibrary(buildLibrary(storage.root));
-    return { refreshed: true };
+    if (moved.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    return { moved, failed };
+  },
+  async moveFile(id, destinationPath) {
+    const result = await this.moveFiles([id], destinationPath);
+    if (result.failed.length) throw new Error(result.failed[0].message);
+    return result;
+  },
+  async setFavoriteFiles(ids, favorite) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de modifier les favoris.");
+    const files = [...new Set(ids.map((id) => Number(id)))].map((id) => {
+      const file = filesById.get(id);
+      if (!file) throw new Error("Un ou plusieurs fichiers ne sont plus disponibles dans la session MEGA.");
+      return file;
+    });
+    const succeeded = [];
+    const failed = [];
+
+    for (const file of files) {
+      const wasFavorite = Boolean(file.favorited);
+      try {
+        if (wasFavorite !== favorite) await file.setFavorite(favorite);
+        succeeded.push({ fileKey: String(file.nodeId), title: file.name });
+      } catch (error) {
+        file.attributes.fav = wasFavorite ? 1 : 0;
+        file.favorited = wasFavorite;
+        failed.push({
+          fileKey: String(file.nodeId),
+          title: file.name,
+          message: error instanceof Error ? error.message : "La mise à jour des favoris MEGA a échoué."
+        });
+      }
+    }
+
+    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    return { succeeded, failed };
+  },
+  async deleteFiles(ids) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de supprimer des médias.");
+    const files = [...new Set(ids.map((id) => Number(id)))].map((id) => {
+      const file = filesById.get(id);
+      if (!file) throw new Error("Un ou plusieurs fichiers ne sont plus disponibles dans la session MEGA.");
+      return file;
+    });
+    const succeeded = [];
+    const failed = [];
+
+    for (const file of files) {
+      const previousParent = file.parent;
+      try {
+        await file.delete(false);
+        if (previousParent && previousParent !== storage.trash) {
+          let previousIndex;
+          while ((previousIndex = previousParent.children?.indexOf(file) ?? -1) >= 0) {
+            previousParent.children.splice(previousIndex, 1);
+          }
+        }
+        if (storage.trash?.children && !storage.trash.children.includes(file)) storage.trash.children.push(file);
+        file.parent = storage.trash;
+        succeeded.push({ fileKey: String(file.nodeId), title: file.name });
+      } catch (error) {
+        failed.push({
+          fileKey: String(file.nodeId),
+          title: file.name,
+          message: error instanceof Error ? error.message : "La suppression MEGA a échoué."
+        });
+      }
+    }
+
+    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    return { succeeded, failed };
   },
   async downloadPreview(id) {
     const file = filesById.get(Number(id));
