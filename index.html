@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f5">
+  <title>MEGA Galerie — Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20231f;
+      --muted: #898d86;
+      --line: #e9ebe7;
+      --canvas: #f6f7f5;
+      --paper: #fff;
+      --green: #2f704b;
+      --green-dark: #22583a;
+      --green-soft: #e9f2eb;
+      --shadow: 0 16px 42px #23301f0b;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 246px; flex: 0 0 246px; display: flex; flex-direction: column;
+      padding: 27px 17px 18px; background: #fff; border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; margin-bottom: 34px; }
+    .brand-mark {
+      width: 36px; height: 36px; display: grid; place-items: center; color: white;
+      background: var(--green); border-radius: 12px;
+    }
+    .icon { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .svg-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .brand-mark .icon { width: 22px; height: 22px; stroke-width: 2; }
+    .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.5px; }
+    .brand-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .nav-label { padding: 0 12px; margin: 23px 0 9px; color: #a0a49d; font-size: 10px; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+    .nav-item {
+      width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin: 2px 0;
+      color: #646a62; border: 0; border-radius: 9px; background: transparent; text-align: left;
+      cursor: pointer; font-size: 13px; transition: background .16s, color .16s;
+    }
+    .nav-item:hover { background: #f5f7f4; color: var(--ink); }
+    .nav-item.active { color: var(--green-dark); background: var(--green-soft); font-weight: 650; }
+    .nav-icon { width: 18px; flex: 0 0 18px; opacity: .82; }
+    .nav-count { margin-left: auto; color: #a0a49d; font-size: 11px; }
+    .folder-icon { width: 17px; height: 17px; flex: 0 0 17px; margin-left: 1px; color: #829987; }
+    .folder-tree-row { display: flex; align-items: center; }
+    .folder-toggle, .folder-toggle-placeholder { width: 24px; flex: 0 0 24px; }
+    .folder-toggle { display: grid; place-items: center; padding: 8px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; transition: color .16s; }
+    .folder-toggle:hover { color: var(--green-dark); }
+    .folder-toggle[aria-expanded="true"] { transform: rotate(90deg); }
+    .folder-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; border-radius: 4px; }
+    .folder-tree-row .folder-nav-item { min-width: 0; flex: 1; }
+    .folder-children { padding-left: 12px; margin-left: 11px; border-left: 1px solid #e8ece6; }
+    .sidebar-bottom { margin-top: auto; }
+    .storage-card { padding: 14px; margin: 0 5px 15px; border: 1px solid var(--line); border-radius: 12px; }
+    .storage-top { display: flex; justify-content: space-between; font-size: 11px; font-weight: 650; }
+    .storage-top span:last-child { color: var(--muted); font-weight: 500; }
+    .meter { height: 5px; margin: 10px 0 7px; overflow: hidden; border-radius: 9px; background: #eff1ed; }
+    .meter-fill { width: 28%; height: 100%; background: #5d976c; border-radius: inherit; }
+    .storage-caption { color: var(--muted); font-size: 10px; }
+    .cache-clear { padding: 0; margin-top: 9px; color: var(--green-dark); border: 0; background: transparent; cursor: pointer; font-size: 10px; }
+    .cache-clear:hover { text-decoration: underline; }
+    .profile { display: flex; align-items: center; gap: 10px; padding: 12px 9px 2px; border-top: 1px solid var(--line); }
+    .avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; color: #76563f; background: #f0dfd0; font-size: 11px; font-weight: 700; }
+    .profile-name { font-size: 12px; font-weight: 650; }
+    .profile-caption { color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    main { min-width: 0; flex: 1; padding: 0 44px 50px; }
+    .topbar { height: 82px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+    .breadcrumb { color: var(--muted); font-size: 12px; }
+    .breadcrumb strong { color: var(--ink); font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .connection {
+      display: flex; align-items: center; gap: 7px; padding: 7px 10px; color: #467454;
+      border: 1px solid #dce9dd; border-radius: 20px; background: #f7fbf7; font-size: 11px;
+    }
+    .connection.offline { color: #a56d29; border-color: #f0dfc5; background: #fffaf3; }
+    .connection.disconnected { color: #787d76; border-color: var(--line); background: #fff; }
+    .connection.connected { color: #467454; border-color: #dce9dd; background: #f7fbf7; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #61a36c; }
+    .offline .status-dot { background: #d29a43; }
+    .disconnected .status-dot { background: #a5aaa3; }
+    .connected .status-dot { background: #61a36c; }
+    .icon-button, .mobile-menu {
+      width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid var(--line);
+      border-radius: 9px; background: #fff; cursor: pointer;
+    }
+    .icon-button .icon, .mobile-menu .icon { width: 18px; height: 18px; }
+    .search > .icon { width: 16px; height: 16px; flex: 0 0 16px; }
+    .mobile-menu { display: none; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 32px 0 23px; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 31px); letter-spacing: -1.1px; }
+    .intro p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px;
+      color: white; border: 0; border-radius: 9px; background: var(--green); cursor: pointer;
+      font-size: 12px; font-weight: 620; transition: background .15s, transform .15s;
+    }
+    .button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .button.secondary { color: #4a5149; border: 1px solid var(--line); background: white; }
+    .button.secondary:hover { background: #f8f9f7; }
+    .button.small { padding: 8px 11px; font-size: 11px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-bottom: 27px; }
+    .stat {
+      display: flex; align-items: center; gap: 13px; min-height: 75px; padding: 14px 16px;
+      border: 1px solid var(--line); border-radius: 12px; background: var(--paper);
+    }
+    .stat-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: #f1f5ef; font-size: 16px; }
+    .stat-label { color: var(--muted); font-size: 11px; }
+    .stat-value { margin-top: 3px; font-size: 17px; font-weight: 700; letter-spacing: -.4px; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 25px 0 13px; }
+    .section-heading h2 { margin: 0; font-size: 15px; letter-spacing: -.3px; }
+    .section-heading .subtle { color: var(--muted); font-size: 11px; }
+    .folder-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 670; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 14px; }
+    .toolbar h2 { margin: 0; font-size: 15px; }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .search {
+      width: min(230px, 28vw); display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--muted);
+    }
+    .search input { width: 100%; min-width: 0; padding: 0; outline: 0; border: 0; background: transparent; color: var(--ink); font-size: 11px; }
+    .search input::placeholder { color: #a1a59f; }
+    .select {
+      padding: 8px 25px 8px 10px; color: #525850; border: 1px solid var(--line); border-radius: 8px;
+      outline: 0; background: white; font-size: 11px; cursor: pointer;
+    }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 126px) / 10)), 1fr)); gap: 14px; }
+    .photo-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; transition: transform .18s, box-shadow .18s; }
+    .photo-card:hover { transform: translateY(-3px); box-shadow: 0 13px 30px #23301f13; }
+    .photo-cover { position: relative; overflow: hidden; aspect-ratio: 1.27; background: #e9ece7; cursor: pointer; }
+    .photo-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s; }
+    .photo-card:hover .photo-cover img { transform: scale(1.035); }
+    .photo-type {
+      position: absolute; left: 9px; bottom: 9px; display: flex; align-items: center; gap: 5px;
+      padding: 5px 7px; color: white; border: 1px solid #ffffff3b; border-radius: 6px;
+      background: #17201987; font-size: 9px; backdrop-filter: blur(7px);
+    }
+    .favorite {
+      position: absolute; top: 8px; right: 8px; width: 29px; height: 29px; display: grid; place-items: center;
+      color: #343a34; border: 1px solid #ffffff8a; border-radius: 50%; background: #ffffffdc; cursor: pointer; font-size: 15px;
+    }
+    .favorite .icon { width: 16px; height: 16px; }
+    .favorite.is-favorite { color: #c34e50; }
+    .favorite.is-favorite .icon { fill: currentColor; }
+    .photo-info { padding: 10px 11px 9px; }
+    .photo-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .photo-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; }
+    .more-button { width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 auto; color: #7d827b; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
+    .more-button .icon { width: 17px; height: 17px; }
+    .more-button:hover { background: #f2f4f1; }
+    .photo-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .empty-state { grid-column: 1 / -1; padding: 45px 15px; color: var(--muted); border: 1px dashed #dfe3dd; border-radius: 12px; text-align: center; font-size: 13px; }
+    .load-more { grid-column: 1 / -1; justify-self: center; padding: 9px 13px; color: var(--green-dark); border: 1px solid #dce9dd; border-radius: 8px; background: #f7fbf7; cursor: pointer; font-size: 11px; }
+    .demo-note { margin: 20px 0 0; color: #92978f; font-size: 10px; text-align: center; }
+    .context-menu {
+      position: fixed; z-index: 20; min-width: 145px; padding: 5px; border: 1px solid var(--line);
+      border-radius: 9px; background: white; box-shadow: 0 12px 32px #0002;
+    }
+    .context-menu button { width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; cursor: pointer; font-size: 11px; }
+    .context-menu button:hover { background: #f4f6f2; }
+    .context-menu .danger { color: #bd4d4d; }
+    .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: #141815df; backdrop-filter: blur(5px); }
+    .viewer { width: min(960px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ffffff29; border-radius: 14px; background: #171b18; }
+    .viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; color: white; }
+    .viewer-title { font-size: 12px; font-weight: 600; }
+    .viewer-close { width: 30px; height: 30px; color: white; border: 1px solid #ffffff25; border-radius: 8px; background: #ffffff10; cursor: pointer; }
+    .viewer-close .icon { width: 16px; height: 16px; margin: auto; }
+    .photo-type .icon { width: 13px; height: 13px; }
+    .viewer-video .icon { width: 38px; height: 38px; margin: auto; }
+    .viewer-media { min-height: 180px; max-height: calc(100vh - 120px); display: grid; place-items: center; overflow: hidden; }
+    .viewer-media img { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; }
+    .viewer-video { display: grid; place-items: center; padding: 70px; color: white; text-align: center; }
+    .viewer-video strong { display: block; margin: 10px 0; }
+    .viewer-video span { color: #b7beb8; font-size: 12px; }
+    .toast { position: fixed; z-index: 40; right: 22px; bottom: 22px; padding: 11px 15px; color: white; border-radius: 9px; background: #252c27; box-shadow: 0 8px 25px #0003; font-size: 12px; animation: toast-in .2s ease-out; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .mobile-scrim { display: none; }
+    .mega-dialog { width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 15px; box-shadow: 0 24px 80px #10151050; }
+    .mega-dialog::backdrop { background: #141815a8; backdrop-filter: blur(4px); }
+    .mega-form { padding: 24px; }
+    .mega-form h2 { margin: 0; font-size: 19px; letter-spacing: -.5px; }
+    .mega-form > p { margin: 8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .mega-field { display: block; margin: 13px 0; color: #4a5149; font-size: 11px; font-weight: 650; }
+    .mega-field input { width: 100%; margin-top: 6px; padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px; outline: 0; }
+    .mega-field input:focus { border-color: #9eb9a3; box-shadow: 0 0 0 3px #e9f2eb; }
+    .mega-warning { padding: 11px; margin: 15px 0; color: #735a30; border: 1px solid #f0e2c7; border-radius: 8px; background: #fffaf2; font-size: 10px; line-height: 1.5; }
+    .mega-error { min-height: 16px; margin: 8px 0; color: #b64646; font-size: 11px; }
+    .mega-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; }
+    .remote-file-placeholder { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 7px; padding: 10px; color: #66816b; background: linear-gradient(140deg, #e9f1e8, #e7ece8 55%, #f0eee7); font-size: 25px; text-align: center; }
+    .remote-file-placeholder span { max-width: 100%; color: #727a71; font-size: 9px; line-height: 1.35; }
+    .remote-thumbnail { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .remote-preview-message { padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
+    .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
+    .viewer-video-player { max-width: 100%; max-height: calc(100vh - 120px); }
+    @media (max-width: 1050px) {
+      main { padding-right: 28px; padding-left: 28px; }
+    }
+    @media (max-width: 720px) {
+      .sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; width: 260px; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 12px 0 35px #0001; }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-scrim.visible { position: fixed; z-index: 24; inset: 0; display: block; background: #10151055; }
+      main { padding: 0 17px 35px; }
+      .topbar { height: 63px; }
+      .mobile-menu { display: grid; margin-right: 9px; }
+      .topbar-left { display: flex; align-items: center; }
+      .connection { padding: 7px 8px; font-size: 0; }
+      .connection .status-dot { margin: 0; }
+      .top-actions { gap: 7px; }
+      .intro { align-items: flex-start; padding: 25px 0 19px; }
+      .intro .button { padding: 9px 10px; font-size: 11px; }
+      .intro p { max-width: 235px; line-height: 1.5; }
+      .stats { gap: 8px; margin-bottom: 21px; }
+      .stat { min-height: 67px; gap: 8px; padding: 10px 9px; }
+      .stat-icon { width: 29px; height: 29px; font-size: 14px; }
+      .stat-value { font-size: 14px; }
+      .stat-label { font-size: 9px; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-right { width: 100%; }
+      .search { width: 100%; flex: 1; }
+      .select { max-width: 120px; }
+      .photo-grid { row-gap: 9px; }
+      .photo-cover { aspect-ratio: 1.1; }
+      .photo-info { padding: 8px; }
+      .photo-meta { font-size: 8px; }
+    }
+    @media (max-width: 390px) {
+      .intro { gap: 8px; }
+      .intro .button { padding: 9px 8px; }
+      .folder-title { font-size: 10px; }
+      .photo-grid { row-gap: 7px; }
+      .photo-title { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="icon-brand" viewBox="0 0 24 24"><path d="M4 19V5l8 10 8-10v14M4 5l8 10 8-10"/></symbol>
+    <symbol id="icon-recent" viewBox="0 0 24 24"><path d="M4 7h10M4 12h7M4 17h6"/><circle cx="17" cy="15" r="4"/><path d="M17 13v2l1.5 1"/></symbol>
+    <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></symbol>
+    <symbol id="icon-photo" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="9.5" r="1.5"/><path d="m4.5 17 5-4.5 3.2 2.7 2.6-2.1 4.2 3.8"/></symbol>
+    <symbol id="icon-video" viewBox="0 0 24 24"><rect x="3.5" y="6" width="12" height="12" rx="2.5"/><path d="m15.5 10 5-3v10l-5-3"/><path d="m8.5 9.5 4 2.5-4 2.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M3.8 10h16.4"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+  </svg>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+      <div class="brand">
+        <div class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#icon-brand"></use></svg></div>
+        <div><div class="brand-name">MEGA Galerie</div><div class="brand-sub">Votre espace photo</div></div>
+      </div>
+      <nav>
+        <div class="nav-label">Bibliothèque</div>
+        <button class="nav-item active" data-view="all"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-recent"></use></svg></span>Récemment ajoutés<span class="nav-count" id="all-count"></span></button>
+        <button class="nav-item" data-view="favorites"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg></span>Favoris<span class="nav-count" id="favorite-count"></span></button>
+        <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
+        <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
+        <div class="nav-label" id="folder-nav-label">Dossiers (exemple)</div>
+        <div id="folder-nav" aria-label="Dossiers"></div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="storage-card">
+          <div class="storage-top"><span>Cache des aperçus</span><span id="cache-usage">—</span></div>
+          <div class="meter"><div class="meter-fill" id="cache-meter" style="width:0"></div></div>
+          <div class="storage-caption" id="cache-caption">Chargement du cache local…</div>
+          <button class="cache-clear" id="clear-thumbnail-cache" type="button">Vider le cache enregistré</button>
+        </div>
+        <div class="profile">
+          <div class="avatar">P</div>
+          <div><div class="profile-name">Espace personnel</div><div class="profile-caption">Prototype local</div></div>
+        </div>
+      </div>
+    </aside>
+    <div class="mobile-scrim" id="scrim"></div>
+    <main>
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir le menu"><svg class="icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
+          <div class="breadcrumb">Bibliothèque <span aria-hidden="true">/</span> <strong id="breadcrumb-current">Récemment ajoutés</strong></div>
+        </div>
+        <div class="top-actions">
+          <button class="connection disconnected" id="connection" title="État de la connexion MEGA"><span class="status-dot"></span><span id="connection-label">Mode démonstration</span></button>
+          <button class="button small secondary" id="mega-connect">Connexion MEGA</button>
+        </div>
+      </header>
+      <section>
+        <div class="toolbar">
+          <h2 id="media-heading">Récemment ajoutés</h2>
+          <div class="toolbar-right">
+            <label class="search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
+            <select class="select" id="sort" aria-label="Trier les médias">
+              <option value="recent">Plus récents</option>
+              <option value="name">Nom A–Z</option>
+              <option value="oldest">Plus anciens</option>
+            </select>
+          </div>
+        </div>
+        <div class="photo-grid" id="photo-grid"></div>
+      </section>
+      <p class="demo-note">Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.</p>
+    </main>
+  </div>
+  <div id="modal-root"></div>
+  <dialog class="mega-dialog" id="mega-dialog">
+    <form class="mega-form" id="mega-login-form">
+      <h2>Connexion à MEGA</h2>
+      <p>Cette première intégration sert uniquement à parcourir les dossiers et médias du compte.</p>
+      <label class="mega-field">Adresse e-mail<input id="mega-email" type="email" autocomplete="username" required></label>
+      <label class="mega-field">Mot de passe<input id="mega-password" type="password" autocomplete="current-password" required></label>
+      <label class="mega-field">Code 2FA <span style="font-weight:400;color:#898d86">(si activé)</span><input id="mega-2fa" type="text" inputmode="numeric" autocomplete="one-time-code"></label>
+      <div class="mega-warning">megajs est un SDK communautaire non officiel. Les identifiants ne sont pas enregistrés par cette application et ne sont envoyés qu’au SDK dans ton navigateur pour la connexion à MEGA. Utilise uniquement ton propre appareil.</div>
+      <div class="mega-error" id="mega-error" role="alert"></div>
+      <div class="mega-form-actions">
+        <button class="button secondary" type="button" id="mega-cancel">Annuler</button>
+        <button class="button" type="submit" id="mega-submit">Connexion en lecture seule</button>
+      </div>
+    </form>
+  </dialog>
+  <div id="menu-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <script>
+    const samplePhotos = [
+      { id: 1, title: "Lac au petit matin.jpg", folder: "Voyages", date: "2025-08-14", size: "4,2 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=900&q=82" },
+      { id: 2, title: "Falaises de la côte.jpg", folder: "Voyages", date: "2025-07-22", size: "3,8 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=900&q=82" },
+      { id: 3, title: "Week-end en montagne.mp4", folder: "Vidéos", date: "2025-06-03", size: "182 Mo", type: "video", duration: "02:34", favorite: false, image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=82" },
+      { id: 4, title: "Les rues de Lisbonne.jpg", folder: "Voyages", date: "2025-05-19", size: "3,1 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=82" },
+      { id: 5, title: "Jardin après la pluie.jpg", folder: "Nature", date: "2025-04-28", size: "5,0 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=900&q=82" },
+      { id: 6, title: "Lumière de fin de journée.jpg", folder: "Famille", date: "2025-03-11", size: "4,6 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=900&q=82" },
+      { id: 7, title: "Sur la route.mp4", folder: "Vidéos", date: "2025-02-15", size: "96 Mo", type: "video", duration: "01:18", favorite: false, image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=900&q=82" },
+      { id: 8, title: "Forêt de sapins.jpg", folder: "Nature", date: "2025-01-30", size: "3,5 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=900&q=82" },
+      { id: 9, title: "Pause au bord de l’eau.jpg", folder: "Famille", date: "2024-12-24", size: "4,1 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=82" },
+      { id: 10, title: "Sentier côtier.jpg", folder: "Voyages", date: "2024-11-09", size: "3,9 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=900&q=82" },
+      { id: 11, title: "Les couleurs de l’automne.jpg", folder: "Nature", date: "2024-10-17", size: "5,2 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=900&q=82" },
+      { id: 12, title: "Au bord du lac.mp4", folder: "Vidéos", date: "2024-09-04", size: "74 Mo", type: "video", duration: "00:52", favorite: false, image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=82" }
+    ];
+    const defaultFolders = [
+      { name: "Voyages" },
+      { name: "Famille" },
+      { name: "Nature" },
+      { name: "Vidéos" }
+    ];
+    const storeKey = "mega-gallery-poc-v1";
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(storeKey) || "null"); } catch (error) { console.warn("Les données locales du prototype n’ont pas pu être lues.", error); }
+    let media = saved?.media || samplePhotos;
+    let folders = saved?.folders || defaultFolders;
+    let expandedFolderPaths = new Set();
+    let currentView = "all";
+    let currentFolder = null;
+    let slideTimer = null;
+    let megaConnected = false;
+    let megaPreviewUrl = null;
+    let megaPreviewRequest = 0;
+    let mediaPageSize = 120;
+
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    const icon = (name, className = "icon") => `<svg class="${className}" aria-hidden="true"><use href="#icon-${name}"></use></svg>`;
+    function persist() {
+      try { localStorage.setItem(storeKey, JSON.stringify({ media, folders })); }
+      catch (error) { showToast("Impossible d’enregistrer les changements dans ce navigateur."); console.error("Échec de l’enregistrement local du prototype.", error); }
+    }
+    function showToast(message) {
+      const root = $("#toast-root");
+      root.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`;
+      window.setTimeout(() => { root.innerHTML = ""; }, 2600);
+    }
+    function formatCacheBytes(bytes) {
+      if (!bytes) return "0 o";
+      const units = ["o", "Ko", "Mo", "Go"];
+      let value = bytes;
+      let index = 0;
+      while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+      return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)} ${units[index]}`;
+    }
+    function updateCacheStatus({ bytes = 0, entries = 0, available = true, error = "", warning = "" } = {}) {
+      $("#cache-usage").textContent = available ? formatCacheBytes(bytes) : "Indisponible";
+      $("#cache-meter").style.width = `${Math.min(100, bytes / (200 * 1024 * 1024) * 100)}%`;
+      $("#cache-caption").textContent = available
+        ? (warning || `${entries} aperçu${entries === 1 ? "" : "s"} gardé${entries === 1 ? "" : "s"} sur cet appareil`)
+        : error || "Le navigateur n’a pas pu ouvrir le cache.";
+    }
+    function getFolderCount(folder) {
+      if (!megaConnected) return media.filter((item) => item.folder === folder.name).length;
+      return media.filter((item) => item.folderPath === folder.path).length;
+    }
+    function renderFolders() {
+      $("#folder-nav-label").textContent = megaConnected ? "Dossiers" : "Dossiers (exemple)";
+      const renderFolderTree = (folder, source = folders) => {
+        const children = megaConnected ? source.filter((entry) => entry.parentPath === folder.path) : [];
+        const key = megaConnected ? folder.path : folder.name;
+        const expanded = expandedFolderPaths.has(key);
+        return `
+          <div class="folder-tree-node">
+            <div class="folder-tree-row">
+              ${children.length
+                ? `<button class="folder-toggle" type="button" data-folder-toggle="${escapeHtml(key)}" aria-label="${expanded ? "Replier" : "Déplier"} le dossier ${escapeHtml(folder.name)}" aria-expanded="${expanded}">${icon("chevron")}</button>`
+                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
+              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === key ? "active" : ""}" data-folder="${escapeHtml(key)}">
+                ${icon("folder", "folder-icon")}<span class="folder-title">${escapeHtml(folder.name)}</span><span class="nav-count">${getFolderCount(folder)}</span>
+              </button>
+            </div>
+            ${expanded ? `<div class="folder-children">${children.map((child) => renderFolderTree(child, source)).join("")}</div>` : ""}
+          </div>`;
+      };
+      const rootFolders = folders.filter((folder) => !folder.parentPath);
+      $("#folder-nav").innerHTML = rootFolders.map((folder) => renderFolderTree(folder, folders)).join("");
+    }
+    function visibleMedia() {
+      const query = $("#search").value.trim().toLocaleLowerCase("fr");
+      const sort = $("#sort").value;
+      let items = media.filter((item) => {
+        const matchesView = currentView === "all" ||
+          (currentView === "favorites" && item.favorite) ||
+          (currentView === "photos" && item.type === "photo") ||
+          (currentView === "videos" && item.type === "video") ||
+          (currentView === "folder" && (megaConnected ? item.folderPath === currentFolder : item.folder === currentFolder));
+        return matchesView && (!query || `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query));
+      });
+      if (sort === "name") items.sort((a, b) => a.title.localeCompare(b.title, "fr"));
+      else items.sort((a, b) => sort === "oldest" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+      return items;
+    }
+    function renderMedia() {
+      const items = visibleMedia();
+      const grid = $("#photo-grid");
+      if (!items.length) {
+        grid.innerHTML = `<div class="empty-state">Aucun média trouvé. Essayez une autre recherche.</div>`;
+        if (megaConnected) window.megaGallery.observeThumbnails(grid);
+        return;
+      }
+      const visibleItems = items.slice(0, mediaPageSize);
+      grid.innerHTML = `${visibleItems.map((item) => `
+        <article class="photo-card" data-card="${item.id}">
+          <div class="photo-cover" data-open="${item.id}" role="button" tabindex="0" aria-label="Ouvrir ${escapeHtml(item.title)}">
+            ${megaConnected
+              ? `<img class="remote-thumbnail" data-thumbnail="${item.id}" alt="${escapeHtml(item.title)}" loading="lazy">`
+              : `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy">`}
+            ${item.type === "video" ? `<span class="photo-type">${icon("play")} ${escapeHtml(item.duration || "Vidéo")}</span>` : ""}
+            ${megaConnected ? "" : `<button class="favorite ${item.favorite ? "is-favorite" : ""}" data-favorite="${item.id}" aria-label="${item.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("heart")}</button>`}
+          </div>
+          <div class="photo-info">
+            <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? "" : `<button class="more-button" data-menu="${item.id}" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>`}</div>
+            <div class="photo-meta"><span>${escapeHtml(item.folder)}</span><span>${escapeHtml(item.size || "")}</span></div>
+          </div>
+        </article>`).join("")}${items.length > visibleItems.length ? `<button class="load-more" data-load-more>Afficher plus · ${items.length - visibleItems.length} restants</button>` : ""}`;
+      if (megaConnected) window.megaGallery.observeThumbnails(grid);
+    }
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
+    }
+    function render() {
+      const photos = media.filter((item) => item.type === "photo").length;
+      const videos = media.length - photos;
+      const favorites = media.filter((item) => item.favorite).length;
+      $("#favorite-count").textContent = favorites || "";
+      $("#photo-count").textContent = photos || "";
+      $("#video-count").textContent = videos || "";
+      $("#all-count").textContent = media.length;
+      renderFolders();
+      renderMedia();
+      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", folder: currentFolder };
+      const selectedFolder = folders.find((folder) => (
+        (megaConnected ? folder.path : folder.name) === currentFolder
+      ));
+      $("#breadcrumb-current").textContent = currentView === "folder"
+        ? (selectedFolder?.name || "Dossier")
+        : labels[currentView];
+      $("#media-heading").textContent = currentView === "folder"
+        ? (selectedFolder?.name || "Dossier")
+        : currentView === "all" ? "Récemment ajoutés" : labels[currentView];
+      document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === currentView));
+    }
+    function openViewer(id, launchSlideshow = false, keepSlideshow = false) {
+      const item = media.find((entry) => entry.id === Number(id));
+      if (!item) return;
+      closeViewer(keepSlideshow);
+      const previewRequest = megaPreviewRequest;
+      const content = megaConnected
+        ? `<div class="remote-preview-message" id="remote-preview-message"><strong>Chargement ${item.type === "video" ? "de la vidéo" : "de l’aperçu"}…</strong>Le fichier est téléchargé temporairement en mémoire.</div>`
+        : item.type === "photo"
+        ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">`
+        : `<div class="viewer-video"><div>${icon("play")}<strong>${escapeHtml(item.title)}</strong><span>Lecture vidéo disponible dans une version connectée à vos fichiers MEGA.</span></div></div>`;
+      $("#modal-root").innerHTML = `<div class="overlay" id="viewer-overlay"><div class="viewer" role="dialog" aria-modal="true" aria-label="${escapeHtml(item.title)}"><div class="viewer-top"><span class="viewer-title">${escapeHtml(item.title)} · ${escapeHtml(item.folder)}</span><div>${megaConnected ? "" : `<button class="viewer-close" id="slideshow" title="Lancer le diaporama">${icon("play")}</button>`} <button class="viewer-close" id="viewer-close" aria-label="Fermer">${icon("close")}</button></div></div><div class="viewer-media">${content}</div></div></div>`;
+      $("#viewer-close").addEventListener("click", closeViewer);
+      $("#viewer-overlay").addEventListener("click", (event) => { if (event.target.id === "viewer-overlay") closeViewer(); });
+      $("#slideshow")?.addEventListener("click", () => startSlideshow(item.id));
+      document.addEventListener("keydown", handleEscape, { once: true });
+      if (launchSlideshow) startSlideshow(item.id);
+      if (megaConnected) {
+        window.megaGallery.downloadPreview(item.id).then((url) => {
+          if (previewRequest !== megaPreviewRequest || !$("#remote-preview-message")) { URL.revokeObjectURL(url); return; }
+          megaPreviewUrl = url;
+          if (item.type === "video") {
+            $("#remote-preview-message").outerHTML = `<video class="viewer-video-player" src="${escapeHtml(url)}" controls playsinline autoplay></video>`;
+          } else {
+            $("#remote-preview-message").outerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}">`;
+          }
+        }).catch((error) => {
+          const message = $("#remote-preview-message");
+          if (previewRequest === megaPreviewRequest && message) message.innerHTML = `<strong>Aperçu indisponible</strong>${escapeHtml(error.message)}`;
+        });
+      }
+    }
+    function handleEscape(event) { if (event.key === "Escape") closeViewer(); }
+    function closeViewer(keepSlideshow = false) {
+      if (!keepSlideshow && slideTimer) { clearInterval(slideTimer); slideTimer = null; }
+      megaPreviewRequest += 1;
+      if (megaPreviewUrl) { URL.revokeObjectURL(megaPreviewUrl); megaPreviewUrl = null; }
+      $("#modal-root").innerHTML = "";
+    }
+    function startSlideshow(id) {
+      const photos = visibleMedia().filter((item) => item.type === "photo");
+      if (photos.length < 2) { showToast("Ajoutez au moins deux photos pour le diaporama."); return; }
+      let index = Math.max(0, photos.findIndex((item) => item.id === Number(id)));
+      closeViewer();
+      const showNext = () => { index = (index + 1) % photos.length; openViewer(photos[index].id, false, true); };
+      openViewer(photos[index].id, false, true);
+      slideTimer = window.setInterval(showNext, 2800);
+      showToast("Diaporama lancé — cliquez sur × pour arrêter.");
+    }
+    function closeMenu() { $("#menu-root").innerHTML = ""; }
+    function openMenu(id, button) {
+      closeMenu();
+      if (megaConnected) { showToast("La gestion MEGA est désactivée dans cette version en lecture seule."); return; }
+      const item = media.find((entry) => entry.id === Number(id));
+      if (!item) return;
+      const rect = button.getBoundingClientRect();
+      const menu = document.createElement("div");
+      menu.className = "context-menu";
+      menu.style.top = `${Math.min(rect.bottom, window.innerHeight - 130)}px`;
+      menu.style.left = `${Math.max(8, Math.min(rect.right - 145, window.innerWidth - 153))}px`;
+      menu.innerHTML = `<button data-action="rename">Renommer</button><button data-action="move">Déplacer vers…</button><button class="danger" data-action="delete">Supprimer</button>`;
+      menu.addEventListener("click", (event) => {
+        const action = event.target.dataset.action;
+        if (!action) return;
+        if (action === "rename") {
+          const title = window.prompt("Nouveau nom :", item.title);
+          if (title?.trim()) { item.title = title.trim(); persist(); render(); showToast("Renommage enregistré localement."); }
+        } else if (action === "move") {
+          const destination = window.prompt(`Dossier de destination (${folders.map((folder) => folder.name).join(", ")}) :`, item.folder);
+          const folder = folders.find((entry) => entry.name.toLocaleLowerCase("fr") === destination?.trim().toLocaleLowerCase("fr"));
+          if (folder) { item.folder = folder.name; persist(); render(); showToast(`Média déplacé vers « ${folder.name} » localement.`); }
+          else if (destination) showToast("Dossier inconnu.");
+        } else if (action === "delete") {
+          if (window.confirm(`Supprimer « ${item.title} » de la démonstration ?`)) {
+            media = media.filter((entry) => entry.id !== item.id);
+            persist(); render(); showToast("Média retiré de la démonstration.");
+          }
+        }
+        closeMenu();
+      });
+      $("#menu-root").append(menu);
+    }
+
+    document.addEventListener("click", (event) => {
+      const nav = event.target.closest("[data-view]");
+      if (nav) {
+        mediaPageSize = 120;
+        currentView = nav.dataset.view;
+        currentFolder = null;
+        render();
+        $("#sidebar").classList.remove("open");
+        $("#scrim").classList.remove("visible");
+        return;
+      }
+      const folderToggle = event.target.closest("[data-folder-toggle]");
+      if (folderToggle) {
+        const key = folderToggle.dataset.folderToggle;
+        if (expandedFolderPaths.has(key)) expandedFolderPaths.delete(key);
+        else expandedFolderPaths.add(key);
+        renderFolders();
+        return;
+      }
+      const folder = event.target.closest("[data-folder], [data-open-folder]");
+      if (folder) {
+        mediaPageSize = 120;
+        currentView = "folder";
+        currentFolder = folder.dataset.folder || folder.dataset.openFolder;
+        render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
+      }
+      if (event.target.closest("[data-load-more]")) {
+        mediaPageSize += 120;
+        renderMedia();
+        return;
+      }
+      const favorite = event.target.closest("[data-favorite]");
+      if (favorite) {
+        if (megaConnected) return;
+        event.stopPropagation();
+        const item = media.find((entry) => entry.id === Number(favorite.dataset.favorite));
+        item.favorite = !item.favorite; persist(); render();
+        showToast(item.favorite ? "Ajouté aux favoris." : "Retiré des favoris."); return;
+      }
+      const menu = event.target.closest("[data-menu]");
+      if (menu) { openMenu(menu.dataset.menu, menu); return; }
+      const open = event.target.closest("[data-open]");
+      if (open) { openViewer(open.dataset.open); return; }
+      if (!event.target.closest(".context-menu")) closeMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      const open = event.target.closest?.("[data-open]");
+      if (open && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openViewer(open.dataset.open); }
+    });
+    $("#search").addEventListener("input", () => { mediaPageSize = 120; renderMedia(); });
+    $("#sort").addEventListener("change", () => { mediaPageSize = 120; renderMedia(); });
+    $("#mobile-menu").addEventListener("click", () => { $("#sidebar").classList.add("open"); $("#scrim").classList.add("visible"); });
+    $("#scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); });
+    window.megaGallery = {
+      setLibrary({ files, folders: remoteFolders }) {
+        window.megaConnector.releaseAllThumbnails();
+        megaConnected = true;
+        media = files;
+        folders = remoteFolders;
+        expandedFolderPaths = new Set();
+        currentView = "all";
+        currentFolder = null;
+        mediaPageSize = 120;
+        $("#connection").className = "connection connected";
+        $("#connection-label").textContent = "MEGA connecté";
+        $("#mega-connect").textContent = "Déconnexion";
+        $(".demo-note").textContent = "Lecture seule : miniatures générées à la demande. Les GIF restent animés ; les vidéos utilisent une image d’aperçu. Limites de lecture indiquées si un fichier est trop volumineux ou incompatible.";
+        render();
+      },
+      clearLibrary() {
+        window.megaConnector.releaseAllThumbnails();
+        megaConnected = false;
+        media = saved?.media || samplePhotos;
+        folders = saved?.folders || defaultFolders;
+        expandedFolderPaths = new Set();
+        currentView = "all";
+        currentFolder = null;
+        $("#connection").className = "connection disconnected";
+        $("#connection-label").textContent = "Mode démonstration";
+        $("#mega-connect").textContent = "Connexion MEGA";
+        $(".demo-note").textContent = "Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.";
+        render();
+      },
+      isConnected() { return megaConnected; },
+      showToast,
+      setCacheStatus: updateCacheStatus,
+      observeThumbnails(root) { window.megaConnector.observeThumbnails(root); },
+      downloadPreview(id) { return window.megaConnector.downloadPreview(id); }
+    };
+    $("#clear-thumbnail-cache").addEventListener("click", async () => {
+      try {
+        await window.megaConnector.clearPersistentCache();
+        await window.megaConnector.updateCacheStatus();
+        showToast("Cache enregistré vidé. Les miniatures visibles restent affichées jusqu’à leur actualisation.");
+      } catch (error) {
+        updateCacheStatus({ available: false, error: "Impossible de vider le cache local." });
+        showToast("Impossible de vider le cache local.");
+        console.error("Échec du vidage du cache des aperçus.", error);
+      }
+    });
+    render();
+  </script>
+  <script type="module" src="/src/mega-connector.js"></script>
+</body>
+</html>

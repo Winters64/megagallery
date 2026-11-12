@@ -1,0 +1,14 @@
+{
+  "name": "Free.fr",
+  "host": "ftpperso.free.fr",
+  "protocol": "ftp",
+  "port": 21,
+  "secure": false,
+  "username": "VOTRE_IDENTIFIANT_FREE",
+  "remotePath": "/megagallery",
+  "context": "dist",
+  "uploadOnSave": false,
+  "ignore": [
+    ".DS_Store"
+  ]
+}
