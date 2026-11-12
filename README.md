@@ -21,20 +21,11 @@ npm run build
 
 Le contenu de `dist/` est le livrable à héberger. Le prototype ne nécessite ni PHP ni base de données.
 
-## Déploiement Free.fr depuis VS Code
+## Déploiement GitHub Pages
 
-1. Installer l’extension recommandée **SFTP** (`Natizyskunk.sftp`) depuis la vue Extensions de VS Code.
-2. Ouvrir `.vscode/sftp.json` et renseigner `username` avec l’identifiant FTP Free. Le mot de passe n’est pas enregistré dans le fichier : l’extension le demande lors de la connexion.
-3. La configuration vise le sous-dossier `megagallery` (`http://winters64.free.fr/megagallery`). Si ce dossier n’existe pas encore côté FTP, le créer d’abord ; si le compte présente une racine FTP différente, adapter `remotePath` en conséquence.
-4. Lancer `npm run build`, puis utiliser la commande d’envoi de dossier de l’extension sur `dist/`. La configuration limite les transferts à `dist/`, désactive l’envoi automatique à chaque sauvegarde, et évite d’envoyer le code source.
+Le workflow `.github/workflows/deploy-pages.yml` construit le site et publie `dist/` à chaque push sur `master`. Aucun secret FTP ni autre secret de déploiement n’est nécessaire. Après le premier déploiement, le site sera disponible à l’adresse `https://winters64.github.io/megagallery/`.
 
-Le fichier `.vscode/sftp.json` est ignoré par Git pour éviter d’y conserver des données de compte ; le modèle sans identifiant personnel est dans `.vscode/sftp.json.example`. Free utilise le FTP classique (port 21, sans chiffrement) : les identifiants transitent sans protection. Effectuer le transfert uniquement sur un réseau de confiance et ne jamais partager le mot de passe.
-
-### Déploiement automatique depuis GitHub
-
-Le workflow `.github/workflows/deploy-free.yml` construit le site et publie le contenu de `dist/` dans `/megagallery/` après chaque push sur `master` (ou manuellement depuis l’onglet Actions). Dans les paramètres du dépôt GitHub, ajouter les secrets d’Actions `FREE_FTP_USERNAME` et `FREE_FTP_PASSWORD`. Le premier déploiement échouera tant que ces secrets ne sont pas définis. Le workflow utilise FTP classique, sans chiffrement ; les identifiants doivent uniquement être enregistrés comme secrets GitHub, jamais dans le dépôt.
-
-L’URL actuelle `http://winters64.free.fr/megagallery` est en HTTP. L’API Web Crypto utilisée par megajs pour se connecter à MEGA n’est disponible que dans un contexte sécurisé (HTTPS ou `localhost`) ; la connexion MEGA est donc bloquée sur cette URL, et il ne faut pas y saisir ses identifiants. Il faut un hébergement HTTPS pour utiliser MEGA en ligne.
+Le dépôt source reste privé, mais le site publié sur GitHub Pages peut être accessible publiquement. GitHub Pages avec un dépôt privé dépend de l’offre du compte ; si l’activation est refusée, il faudra soit rendre le dépôt public, soit utiliser une offre GitHub qui autorise Pages pour les dépôts privés. Le build utilise `/megagallery/` comme base pour cette URL de projet.
 
 ## Connexion et limites de ce POC
 
@@ -46,4 +37,4 @@ L’URL actuelle `http://winters64.free.fr/megagallery` est en HTTP. L’API Web
 - L’intégration actuelle via megajs récupère l’arborescence des dossiers et les médias qu’ils contiennent, mais pas les albums virtuels natifs de MEGA. La barre latérale ne présente donc que les dossiers ; avant connexion, ceux affichés sont des exemples.
 - Les dossiers MEGA sont présentés sous forme d’arborescence, repliée par défaut ; chaque niveau peut être déplié ou replié avec sa flèche.
 - Les éléments affichés avant connexion sont des exemples et sont conservés localement dans le navigateur.
-- Le miroir Free.fr, la synchronisation, le mode de repli réel et l’écriture MEGA ne sont pas implémentés.
+- La synchronisation, le mode de repli réel et l’écriture MEGA ne sont pas implémentés.
