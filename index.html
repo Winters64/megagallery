@@ -328,7 +328,21 @@
     .mega-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; }
     .remote-file-placeholder { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 7px; padding: 10px; color: #66816b; background: linear-gradient(140deg, #e9f1e8, #e7ece8 55%, #f0eee7); font-size: 25px; text-align: center; }
     .remote-file-placeholder span { max-width: 100%; color: #727a71; font-size: 9px; line-height: 1.35; }
-    .remote-thumbnail { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .remote-thumbnail {
+      width: 100%; height: 100%; display: block; object-fit: cover;
+      background-color: var(--cover-placeholder);
+      background-image: linear-gradient(105deg, transparent 25%, #ffffff88 45%, transparent 65%);
+      background-size: 220% 100%;
+      animation: thumbnail-shimmer 1.5s ease-in-out infinite;
+      opacity: 0;
+      transition: opacity .28s ease;
+    }
+    .remote-thumbnail.is-loaded { background: none; animation: none; opacity: 1; }
+    @keyframes thumbnail-shimmer { to { background-position: -220% 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .remote-thumbnail { animation: none; background-image: linear-gradient(105deg, transparent 25%, #ffffff55 45%, transparent 65%); }
+      .remote-thumbnail.is-loaded { transition: none; }
+    }
     .remote-preview-message { padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
     .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
     .viewer-video-player { max-width: 100%; max-height: calc(100vh - 120px); }
@@ -423,7 +437,7 @@
           <div class="storage-top"><span>Cache des aperçus</span><span id="cache-usage">—</span></div>
           <div class="meter"><div class="meter-fill" id="cache-meter" style="width:0"></div></div>
           <div class="storage-caption" id="cache-caption">Chargement du cache local…</div>
-          <button class="cache-clear" id="clear-thumbnail-cache" type="button">Vider le cache enregistré</button>
+          <button class="cache-clear" id="clear-thumbnail-cache" type="button">Vider le cache local</button>
         </div>
         <div class="profile">
           <div class="avatar">P</div>
@@ -604,8 +618,9 @@
     function updateCacheStatus({ bytes = 0, entries = 0, available = true, error = "", warning = "" } = {}) {
       $("#cache-usage").textContent = available ? formatCacheBytes(bytes) : "Indisponible";
       $("#cache-meter").style.width = `${Math.min(100, bytes / (200 * 1024 * 1024) * 100)}%`;
+      const localStatus = `${entries} miniature${entries === 1 ? "" : "s"} sur cet appareil`;
       $("#cache-caption").textContent = available
-        ? (warning || `${entries} aperçu${entries === 1 ? "" : "s"} gardé${entries === 1 ? "" : "s"} sur cet appareil`)
+        ? [localStatus, warning].filter(Boolean).join(" · ")
         : error || "Le navigateur n’a pas pu ouvrir le cache.";
     }
     function getFolderCount(folder) {
@@ -940,7 +955,6 @@
         if (!$("#move-form").dataset.fileKeys) submit.textContent = "Déplacer dans MEGA";
       }
     });
-
     function openMenu(id, button, position) {
       closeMenu();
       const item = media.find((entry) => entry.id === Number(id));
@@ -1293,6 +1307,7 @@
         media = files;
         folders = remoteFolders;
         render();
+        window.megaConnector.updateCacheStatus();
       },
       clearLibrary() {
         window.megaConnector.releaseAllThumbnails();
@@ -1319,7 +1334,7 @@
       try {
         await window.megaConnector.clearPersistentCache();
         await window.megaConnector.updateCacheStatus();
-        showToast("Cache enregistré vidé. Les miniatures visibles restent affichées jusqu’à leur actualisation.");
+        showToast("Cache local des miniatures vidé.");
       } catch (error) {
         updateCacheStatus({ available: false, error: "Impossible de vider le cache local." });
         showToast("Impossible de vider le cache local.");

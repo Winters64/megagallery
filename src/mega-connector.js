@@ -23,13 +23,14 @@ const cacheEntryLimit = 400;
 const sessionStorageKey = "mega-gallery-session";
 const thumbnailUrls = new Map();
 const thumbnailRequests = new Map();
+const previewBlobRequests = new Map();
 const thumbnailQueue = [];
 let activeThumbnailDownloads = 0;
 let thumbnailObserver = null;
 let thumbnailGeneration = 0;
 let cacheDatabasePromise = null;
 let cacheUnavailableReason = "";
-let cacheNotice = "";
+let localCacheNotice = "";
 const escapeAttribute = (value) => String(value).replace(/[&<>"']/g, (char) => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
 ));
@@ -144,6 +145,31 @@ function downloadBuffer(file) {
   return file.downloadBuffer({});
 }
 
+async function createImageThumbnail(file) {
+  const buffer = await downloadBuffer(file);
+  const source = new Blob([buffer], { type: getMimeType(file.name, "photo") });
+  const image = await createImageBitmap(source);
+  const scale = Math.min(1, 640 / image.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) {
+    image.close();
+    throw new Error("Impossible de préparer la miniature de cette image.");
+  }
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  image.close();
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Impossible de compresser la miniature de cette image."));
+    }, "image/jpeg", 0.78);
+  });
+}
+
 function getCacheDatabase() {
   if (cacheUnavailableReason) return Promise.reject(new Error(cacheUnavailableReason));
   if (!("indexedDB" in window)) {
@@ -152,12 +178,14 @@ function getCacheDatabase() {
   }
   if (!cacheDatabasePromise) {
     cacheDatabasePromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(cacheDatabaseName, 1);
+      const request = indexedDB.open(cacheDatabaseName, 2);
       request.onupgradeneeded = () => {
         const database = request.result;
         if (!database.objectStoreNames.contains(cacheStoreName)) {
           const store = database.createObjectStore(cacheStoreName, { keyPath: "key" });
           store.createIndex("lastUsed", "lastUsed");
+        } else {
+          request.transaction.objectStore(cacheStoreName).clear();
         }
       };
       request.onsuccess = () => {
@@ -244,7 +272,7 @@ async function getCacheStats() {
     available: true,
     bytes: records.reduce((sum, record) => sum + (record.bytes || 0), 0),
     entries: records.length,
-    warning: cacheNotice
+    warning: localCacheNotice
   };
 }
 
@@ -270,39 +298,55 @@ async function clearPersistentCache() {
     transaction.onerror = () => reject(transaction.error || new Error("Impossible de vider IndexedDB."));
     transaction.onabort = () => reject(transaction.error || new Error("Vidage du cache annulé."));
   });
-  cacheNotice = "";
+  localCacheNotice = "";
 }
 
-async function getOrCreateThumbnailBlob(file) {
+async function createOrLoadThumbnailBlob(file) {
   const key = cacheKeysByFile.get(file);
+  const isVideo = videoExtensions.has(getExtension(file.name));
+  let blob = null;
   if (key) {
     try {
       const cachedBlob = await getCachedBlob(key);
-      if (cachedBlob) return cachedBlob;
+      if (cachedBlob) blob = cachedBlob;
     } catch (error) {
-      cacheNotice = "Lecture du cache impossible ; les aperçus seront rechargés depuis MEGA.";
+      localCacheNotice = "Lecture du cache local impossible ; les aperçus seront rechargés depuis MEGA.";
       console.warn("Lecture du cache des aperçus impossible ; téléchargement direct utilisé.", error);
       await updateCacheStatus();
     }
   }
 
-  const isVideo = videoExtensions.has(getExtension(file.name));
-  const blob = isVideo
-    ? await createVideoThumbnail(file)
-    : new Blob([await downloadBuffer(file)], { type: getMimeType(file.name, "photo") });
+  if (!blob) {
+    blob = isVideo
+      ? await createVideoThumbnail(file)
+      : await createImageThumbnail(file);
+  }
 
-  if (key) {
+  if (key && blob) {
     try {
       const saved = await storeCachedBlob(key, blob);
-      cacheNotice = saved ? "" : "Cache saturé : cet aperçu reste disponible en mémoire seulement.";
+      localCacheNotice = saved
+        ? ""
+        : "Cache local plein ; l’aperçu reste temporaire sur cet appareil.";
       await updateCacheStatus();
     } catch (error) {
-      cacheNotice = "Enregistrement impossible ; cet aperçu reste disponible en mémoire seulement.";
+      localCacheNotice = "Enregistrement local impossible ; l’aperçu reste temporaire sur cet appareil.";
       console.warn("Écriture du cache des aperçus impossible ; l’aperçu reste en mémoire.", error);
       await updateCacheStatus();
     }
   }
   return blob;
+}
+
+function getOrCreateThumbnailBlob(file) {
+  const requestKey = cacheKeysByFile.get(file) || `${file.name}:${file.timestamp || 0}:${file.size || 0}`;
+  const existingRequest = previewBlobRequests.get(requestKey);
+  if (existingRequest) return existingRequest;
+  const request = createOrLoadThumbnailBlob(file);
+  previewBlobRequests.set(requestKey, request);
+  return request.finally(() => {
+    if (previewBlobRequests.get(requestKey) === request) previewBlobRequests.delete(requestKey);
+  });
 }
 
 function waitForMediaEvent(video, eventName) {
@@ -441,6 +485,18 @@ function observeThumbnails(root) {
   }
   const images = root.querySelectorAll("[data-thumbnail]");
   for (const image of images) {
+    if (image.dataset.loadingBound !== "true") {
+      image.dataset.loadingBound = "true";
+      image.addEventListener("load", () => {
+        if (image.isConnected) image.classList.add("is-loaded");
+      });
+      image.addEventListener("error", () => {
+        if (image.isConnected && image.dataset.inView === "true") {
+          showThumbnailFallback(image, "Impossible d’afficher cette miniature.");
+        }
+      });
+      if (image.complete && image.naturalWidth > 0) image.classList.add("is-loaded");
+    }
     if (thumbnailObserver) thumbnailObserver.observe(image);
     else {
       image.dataset.inView = "true";
@@ -549,6 +605,7 @@ function displayConnectedLibrary(candidate) {
     ...library,
     accountName: storage.name || storage.email
   });
+  updateCacheStatus();
 }
 
 async function restoreMegaSession() {
@@ -805,9 +862,9 @@ window.megaConnector = {
         throw new Error("Ce format vidéo n’est pas pris en charge par le navigateur.");
       }
     }
-    const blob = !isVideo && cacheKeysByFile.has(file)
-      ? await getOrCreateThumbnailBlob(file)
-      : new Blob([await downloadBuffer(file)], { type: getMimeType(file.name, isVideo ? "video" : "photo") });
+    const blob = new Blob([await downloadBuffer(file)], {
+      type: getMimeType(file.name, isVideo ? "video" : "photo")
+    });
     return URL.createObjectURL(blob);
   }
 };
