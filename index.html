@@ -427,6 +427,7 @@
     <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m14 5 5 5M4 20l4.5-1 10.2-10.2a2.1 2.1 0 0 0-3-3L5.5 16z"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></symbol>
     <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z"/></symbol>
     <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
   </svg>
@@ -490,6 +491,7 @@
     </main>
   </div>
   <div id="modal-root"></div>
+  <input id="upload-files" type="file" multiple hidden>
   <dialog class="mega-dialog" id="mega-dialog">
     <form class="mega-form" id="mega-login-form">
       <h2>Connexion à MEGA</h2>
@@ -566,6 +568,7 @@
     let megaPreviewRequest = 0;
     let mediaPageSize = 120;
     let mediaLoadObserver = null;
+    let toastTimer = null;
 
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -619,7 +622,11 @@
     function showToast(message) {
       const root = $("#toast-root");
       root.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`;
-      window.setTimeout(() => { root.innerHTML = ""; }, 2600);
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        root.innerHTML = "";
+        toastTimer = null;
+      }, 2600);
     }
     function formatCacheBytes(bytes) {
       if (!bytes) return "0 o";
@@ -728,7 +735,13 @@
         return matchesView && (!query || `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query));
       });
       if (sort === "name") items.sort((a, b) => a.title.localeCompare(b.title, "fr"));
-      else items.sort((a, b) => sort === "oldest" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+      else items.sort((a, b) => {
+        const firstTimestamp = Number(a.timestamp) || Date.parse(a.date) || 0;
+        const secondTimestamp = Number(b.timestamp) || Date.parse(b.date) || 0;
+        return sort === "oldest"
+          ? firstTimestamp - secondTimestamp
+          : secondTimestamp - firstTimestamp;
+      });
       return items;
     }
     function visibleSubfolders() {
@@ -907,6 +920,8 @@
       showToast("Diaporama lancé — cliquez sur × pour arrêter.");
     }
     let activeContextMenu = null;
+    let uploadTargetPath = "__root__";
+    let uploadInProgress = false;
     function closeMenu() {
       activeContextMenu?.remove();
       activeContextMenu = null;
@@ -922,14 +937,23 @@
       menu.className = "context-menu";
       menu.setAttribute("role", "menu");
       const folder = folderPath ? folders.find((entry) => entry.path === folderPath) : null;
-      menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>` +
+      menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>` +
         (folder ? `<button type="button" role="menuitem" data-folder-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" class="danger" data-folder-action="delete">${icon("trash")}<span>Supprimer</span></button>` : "");
       menu.addEventListener("click", async (event) => {
         const action = event.target.closest("[data-folder-action]")?.dataset.folderAction;
         if (!action) return;
         closeMenu();
         try {
-          if (action === "create") {
+          if (action === "upload") {
+            if (uploadInProgress) {
+              showToast("Un envoi de fichiers est déjà en cours.");
+              return;
+            }
+            uploadTargetPath = parentPath;
+            const input = $("#upload-files");
+            input.value = "";
+            input.click();
+          } else if (action === "create") {
             const name = window.prompt("Nom du nouveau dossier :");
             if (name === null) return;
             const created = await window.megaConnector.createFolder(parentPath, name);
@@ -958,6 +982,33 @@
       menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`;
       menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
     }
+    $("#upload-files").addEventListener("change", async (event) => {
+      const input = event.currentTarget;
+      const selectedFiles = Array.from(input.files || []);
+      if (!selectedFiles.length) return;
+      uploadInProgress = true;
+      showToast(`Envoi de ${selectedFiles.length} fichier${selectedFiles.length === 1 ? "" : "s"} vers MEGA…`);
+      try {
+        const result = await window.megaConnector.uploadFiles(uploadTargetPath, selectedFiles, (progress) => {
+          if (progress.percent === 100 || progress.percent % 10 === 0) {
+            showToast(`Envoi de « ${progress.title} » vers MEGA : ${progress.percent} %`);
+          }
+        });
+        if (result.failed.length) {
+          console.error("Certains fichiers n’ont pas pu être envoyés vers MEGA.", result.failed);
+          const firstFailure = result.failed[0];
+          showToast(`${result.uploaded.length} envoyé(s), ${result.failed.length} échec(s) : ${firstFailure.message}`);
+        } else {
+          showToast(`${result.uploaded.length} fichier${result.uploaded.length === 1 ? "" : "s"} envoyé${result.uploaded.length === 1 ? "" : "s"} dans MEGA.`);
+        }
+      } catch (error) {
+        console.error("Échec de l’envoi de fichiers vers MEGA.", error);
+        showToast(error instanceof Error ? error.message : "Impossible d’envoyer les fichiers vers MEGA.");
+      } finally {
+        uploadInProgress = false;
+        input.value = "";
+      }
+    });
     function openMoveDialog(items) {
       if (!megaConnected) return;
       const dialog = $("#move-dialog");

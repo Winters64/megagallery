@@ -18,8 +18,8 @@ const photoPreviewLimit = 30 * 1024 * 1024;
 const videoPreviewLimit = 100 * 1024 * 1024;
 const cacheDatabaseName = "mega-gallery-preview-cache";
 const cacheStoreName = "previews";
+const cacheMetadataStoreName = "preview-metadata";
 const cacheLimit = 200 * 1024 * 1024;
-const cacheEntryLimit = 400;
 const sessionStorageKey = "mega-gallery-session";
 const thumbnailUrls = new Map();
 const thumbnailRequests = new Map();
@@ -59,9 +59,14 @@ function getWebCryptoError() {
 }
 
 function formatDate(node) {
-  const seconds = Number(node.timestamp || node.createdAt);
+  const seconds = getTimestamp(node);
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
   return new Date(seconds * 1000).toISOString().slice(0, 10);
+}
+
+function getTimestamp(node) {
+  const seconds = Number(node.timestamp || node.createdAt);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
 }
 
 function getMimeType(name, type) {
@@ -179,12 +184,28 @@ function getCacheDatabase() {
   }
   if (!cacheDatabasePromise) {
     cacheDatabasePromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(cacheDatabaseName, 2);
+      const request = indexedDB.open(cacheDatabaseName, 3);
       request.onupgradeneeded = () => {
         const database = request.result;
         if (!database.objectStoreNames.contains(cacheStoreName)) {
           const store = database.createObjectStore(cacheStoreName, { keyPath: "key" });
           store.createIndex("lastUsed", "lastUsed");
+        }
+        if (!database.objectStoreNames.contains(cacheMetadataStoreName)) {
+          const metadata = database.createObjectStore(cacheMetadataStoreName, { keyPath: "key" });
+          const cursorRequest = request.transaction.objectStore(cacheStoreName).openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const record = cursor.value;
+            metadata.put({
+              key: record.key,
+              bytes: record.bytes || record.blob?.size || 0,
+              lastUsed: record.lastUsed || 0
+            });
+            cursor.continue();
+          };
+          cursorRequest.onerror = () => request.transaction.abort();
         }
       };
       request.onsuccess = () => {
@@ -223,53 +244,67 @@ function requestResult(request) {
   });
 }
 
+function transactionResult(transaction, errorMessage) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error || new Error(errorMessage));
+    transaction.onabort = () => reject(transaction.error || new Error(errorMessage));
+  });
+}
+
 async function getCachedBlob(key) {
   if (!key || cacheUnavailableReason) return null;
   const database = await getCacheDatabase();
-  const transaction = database.transaction(cacheStoreName, "readwrite");
-  const store = transaction.objectStore(cacheStoreName);
-  const record = await requestResult(store.get(key));
-  if (!record) return null;
-  record.lastUsed = Date.now();
-  store.put(record);
-  return record.blob;
+  const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
+  const done = transactionResult(transaction, "Erreur de lecture du cache local.");
+  const recordRequest = transaction.objectStore(cacheStoreName).get(key);
+  const metadataRequest = transaction.objectStore(cacheMetadataStoreName).get(key);
+  let record;
+  let metadata;
+  try {
+    [record, metadata] = await Promise.all([requestResult(recordRequest), requestResult(metadataRequest)]);
+  } catch (error) {
+    await done.catch(() => {});
+    throw error;
+  }
+  if (record && metadata) {
+    metadata.lastUsed = Date.now();
+    transaction.objectStore(cacheMetadataStoreName).put(metadata);
+  }
+  await done;
+  return record?.blob || null;
 }
 
 async function storeCachedBlob(key, blob) {
   if (!key || !blob || blob.size > cacheLimit || cacheUnavailableReason) return false;
   const database = await getCacheDatabase();
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(cacheStoreName, "readwrite");
+    const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
+    const done = transactionResult(transaction, "Impossible d’enregistrer le cache local.");
     const store = transaction.objectStore(cacheStoreName);
+    const metadataStore = transaction.objectStore(cacheMetadataStoreName);
     let saved = false;
-    const request = store.getAll();
+    const request = metadataStore.getAll();
     request.onsuccess = () => {
       const records = request.result;
       const existing = records.find((record) => record.key === key);
       let totalBytes = records.reduce((sum, record) => sum + (record.bytes || 0), 0) - (existing?.bytes || 0);
-      let count = records.length - (existing ? 1 : 0);
       const evictable = records.filter((record) => record.key !== key).sort((a, b) => a.lastUsed - b.lastUsed);
 
-      while ((totalBytes + blob.size > cacheLimit || count >= cacheEntryLimit) && evictable.length) {
+      while (totalBytes + blob.size > cacheLimit && evictable.length) {
         const oldest = evictable.shift();
         store.delete(oldest.key);
+        metadataStore.delete(oldest.key);
         totalBytes -= oldest.bytes || 0;
-        count -= 1;
       }
 
-      if (totalBytes + blob.size > cacheLimit || count >= cacheEntryLimit) return;
-      store.put({
-        key,
-        blob,
-        bytes: blob.size,
-        lastUsed: Date.now()
-      });
+      if (totalBytes + blob.size > cacheLimit) return;
+      store.put({ key, blob });
+      metadataStore.put({ key, bytes: blob.size, lastUsed: Date.now() });
       saved = true;
     };
     request.onerror = () => reject(request.error || new Error("Impossible de préparer le cache local."));
-    transaction.oncomplete = () => resolve(saved);
-    transaction.onerror = () => reject(transaction.error || new Error("Impossible d’enregistrer le cache local."));
-    transaction.onabort = () => reject(transaction.error || new Error("Enregistrement du cache local annulé."));
+    done.then(() => resolve(saved), reject);
   });
 }
 
@@ -279,8 +314,8 @@ async function getCacheStats() {
   }
   await requestPersistentCache();
   const database = await getCacheDatabase();
-  const transaction = database.transaction(cacheStoreName, "readonly");
-  const records = await requestResult(transaction.objectStore(cacheStoreName).getAll());
+  const transaction = database.transaction(cacheMetadataStoreName, "readonly");
+  const records = await requestResult(transaction.objectStore(cacheMetadataStoreName).getAll());
   return {
     available: true,
     bytes: records.reduce((sum, record) => sum + (record.bytes || 0), 0),
@@ -306,8 +341,9 @@ async function updateCacheStatus() {
 async function clearPersistentCache() {
   const database = await getCacheDatabase();
   await new Promise((resolve, reject) => {
-    const transaction = database.transaction(cacheStoreName, "readwrite");
+    const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
     transaction.objectStore(cacheStoreName).clear();
+    transaction.objectStore(cacheMetadataStoreName).clear();
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error || new Error("Impossible de vider IndexedDB."));
     transaction.onabort = () => reject(transaction.error || new Error("Vidage du cache annulé."));
@@ -570,6 +606,7 @@ function buildLibrary(root) {
         title: name,
         folder: parentDisplayPath || "Mon drive",
         folderPath: parentPath,
+        timestamp: getTimestamp(node),
         date: formatDate(node),
         size: formatSize(Number(node.size)),
         type,
@@ -622,6 +659,12 @@ function displayConnectedLibrary(candidate) {
   updateCacheStatus();
 }
 
+function closeStorageLocally(candidate) {
+  candidate.status = "closed";
+  // Storage.close() also logs out the shared MEGA SID used by the replacement session.
+  candidate.api.close();
+}
+
 async function refreshMegaLibraryFromDrive() {
   const previousStorage = storage;
   if (!previousStorage) throw new Error("Connectez-vous à MEGA pour actualiser la bibliothèque.");
@@ -640,21 +683,17 @@ async function refreshMegaLibraryFromDrive() {
     await candidate.reload(true);
     candidate.status = "ready";
   } catch (error) {
-    candidate?.close().catch((closeError) => {
-      console.error("La session MEGA temporaire n’a pas pu être fermée.", closeError);
-    });
+    if (candidate) closeStorageLocally(candidate);
     throw new Error(`Impossible de vérifier les changements dans MEGA : ${error instanceof Error ? error.message : "erreur inconnue"}`);
   }
 
   if (storage !== previousStorage) {
-    candidate.close().catch((error) => console.error("La session MEGA temporaire n’a pas pu être fermée.", error));
+    closeStorageLocally(candidate);
     throw new Error("La connexion MEGA a changé pendant l’actualisation.");
   }
 
   storage = candidate;
-  previousStorage.close().catch((error) => {
-    console.error("L’ancienne session MEGA n’a pas pu être fermée.", error);
-  });
+  closeStorageLocally(previousStorage);
   const library = buildLibrary(candidate.root);
   window.megaGallery.refreshLibrary(library);
   await updateCacheStatus();
@@ -697,11 +736,7 @@ async function restoreMegaSession() {
     candidate.status = "ready";
     displayConnectedLibrary(candidate);
   } catch (error) {
-    if (candidate) {
-      candidate.close().catch((closeError) => {
-        console.error("La session MEGA restaurée n’a pas pu être fermée proprement.", closeError);
-      });
-    }
+    if (candidate) closeStorageLocally(candidate);
     console.error("Échec de la restauration de la session MEGA.", error);
     window.megaGallery.showToast("Session MEGA indisponible. Vérifiez votre connexion puis reconnectez-vous.");
   }
@@ -869,6 +904,69 @@ window.megaConnector = {
     );
     if (!created) throw new Error("Le dossier a été créé dans MEGA, mais il n’a pas pu être rechargé dans l’arborescence.");
     return created;
+  },
+  async uploadFiles(parentPath, browserFiles, onProgress = () => {}) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant d’envoyer des fichiers.");
+    const parent = folderNodesByPath.get(String(parentPath));
+    if (!parent?.directory) throw new Error("Le dossier de destination n’existe plus dans MEGA.");
+    if (!Array.isArray(browserFiles) || !browserFiles.length) {
+      throw new Error("Sélectionnez au moins un fichier à envoyer.");
+    }
+
+    const uploaded = [];
+    const failed = [];
+    const namesInFolder = new Set((parent.children || []).map((child) =>
+      child.name?.toLocaleLowerCase("fr")
+    ));
+    for (const browserFile of browserFiles) {
+      const fileName = typeof browserFile?.name === "string" ? browserFile.name : "";
+      if (!fileName.trim() || fileName === "." || fileName === ".." || /[/\\]/.test(fileName)) {
+        failed.push({ title: browserFile?.name || "Fichier sans nom", message: "Nom de fichier invalide." });
+        continue;
+      }
+      const normalizedName = fileName.toLocaleLowerCase("fr");
+      if (namesInFolder.has(normalizedName)) {
+        failed.push({ title: fileName, message: "Un élément portant ce nom existe déjà dans ce dossier." });
+        continue;
+      }
+      namesInFolder.add(normalizedName);
+
+      try {
+        const content = new Uint8Array(await browserFile.arrayBuffer());
+        const upload = parent.upload({ name: fileName, size: browserFile.size }, content);
+        upload.on("progress", ({ bytesUploaded, bytesTotal }) => {
+          onProgress({
+            title: fileName,
+            bytesUploaded,
+            bytesTotal,
+            percent: bytesTotal ? Math.floor(bytesUploaded / bytesTotal * 100) : 100
+          });
+        });
+        const uploadedFile = await upload.complete;
+        if (!uploadedFile?.nodeId) throw new Error("MEGA n’a pas confirmé la réception du fichier.");
+        uploaded.push({ title: fileName, nodeId: String(uploadedFile.nodeId) });
+      } catch (error) {
+        failed.push({
+          title: fileName,
+          message: error instanceof Error ? error.message : "L’envoi vers MEGA a échoué."
+        });
+      }
+    }
+
+    if (uploaded.length) {
+      try {
+        await refreshMegaLibraryFromDrive();
+      } catch (error) {
+        throw new Error(`Les fichiers ont été envoyés, mais la bibliothèque n’a pas pu être actualisée : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+      }
+      const refreshedParent = folderNodesByPath.get(String(parentPath));
+      for (const entry of uploaded) {
+        if (!(refreshedParent?.children || []).some((child) => String(child.nodeId) === entry.nodeId)) {
+          failed.push({ title: entry.title, message: "L’envoi a été effectué, mais le fichier n’a pas été retrouvé après actualisation." });
+        }
+      }
+    }
+    return { uploaded: uploaded.filter((entry) => !failed.some((failure) => failure.title === entry.title)), failed };
   },
   async moveFiles(ids, destinationPath) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de déplacer un fichier.");
