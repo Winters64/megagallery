@@ -31,6 +31,7 @@ let thumbnailGeneration = 0;
 let cacheDatabasePromise = null;
 let cacheUnavailableReason = "";
 let localCacheNotice = "";
+let cachePersistent = null;
 const escapeAttribute = (value) => String(value).replace(/[&<>"']/g, (char) => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
 ));
@@ -184,13 +185,12 @@ function getCacheDatabase() {
         if (!database.objectStoreNames.contains(cacheStoreName)) {
           const store = database.createObjectStore(cacheStoreName, { keyPath: "key" });
           store.createIndex("lastUsed", "lastUsed");
-        } else {
-          request.transaction.objectStore(cacheStoreName).clear();
         }
       };
       request.onsuccess = () => {
         const database = request.result;
         database.onversionchange = () => database.close();
+        requestPersistentCache();
         resolve(database);
       };
       request.onerror = () => reject(request.error || new Error("Impossible d’ouvrir IndexedDB."));
@@ -202,6 +202,18 @@ function getCacheDatabase() {
     });
   }
   return cacheDatabasePromise;
+}
+
+async function requestPersistentCache() {
+  if (!navigator.storage?.persist || !navigator.storage?.persisted) return;
+  if (cachePersistent !== null) return;
+  try {
+    cachePersistent = await navigator.storage.persisted();
+    if (!cachePersistent) cachePersistent = await navigator.storage.persist();
+  } catch (error) {
+    cachePersistent = false;
+    console.warn("Impossible de demander une protection durable du cache local.", error);
+  }
 }
 
 function requestResult(request) {
@@ -263,8 +275,9 @@ async function storeCachedBlob(key, blob) {
 
 async function getCacheStats() {
   if (cacheUnavailableReason) {
-    return { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0 };
+    return { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0, persistent: false };
   }
+  await requestPersistentCache();
   const database = await getCacheDatabase();
   const transaction = database.transaction(cacheStoreName, "readonly");
   const records = await requestResult(transaction.objectStore(cacheStoreName).getAll());
@@ -272,6 +285,7 @@ async function getCacheStats() {
     available: true,
     bytes: records.reduce((sum, record) => sum + (record.bytes || 0), 0),
     entries: records.length,
+    persistent: cachePersistent === true,
     warning: localCacheNotice
   };
 }
@@ -283,7 +297,7 @@ async function updateCacheStatus() {
     return stats;
   } catch (error) {
     cacheUnavailableReason = error.message || "Cache local indisponible.";
-    const stats = { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0 };
+    const stats = { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0, persistent: false };
     window.megaGallery.setCacheStatus(stats);
     return stats;
   }

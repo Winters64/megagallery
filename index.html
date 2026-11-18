@@ -85,16 +85,18 @@
     }
 
     * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); background: var(--canvas); }
+    html, body { height: 100%; }
+    body { margin: 0; overflow: hidden; color: var(--ink); background: var(--canvas); }
     button, input { font: inherit; }
     button { color: inherit; }
-    .app { display: flex; min-height: 100vh; }
+    .app { height: 100vh; display: flex; min-height: 0; }
     .sidebar {
+      position: sticky; top: 0; z-index: 4; height: 100vh; overflow-y: auto;
       width: var(--sidebar-width); flex: 0 0 var(--sidebar-width); display: flex; flex-direction: column;
       padding: 27px 17px 18px; background: var(--paper); border-right: 1px solid var(--line);
     }
     .sidebar-resizer {
-      position: relative; z-index: 2; flex: 0 0 10px; margin-left: -10px; touch-action: none;
+      position: sticky; top: 0; z-index: 2; height: 100vh; flex: 0 0 10px; margin-left: -10px; touch-action: none;
       cursor: col-resize; outline: 0;
     }
     .sidebar-resizer::after {
@@ -148,9 +150,15 @@
     .profile-name { font-size: 12px; font-weight: 650; }
     .profile-caption { color: var(--muted); font-size: 10px; margin-top: 2px; }
 
-    main { min-width: 0; min-height: 100vh; display: flex; flex: 1; flex-direction: column; padding: 0 44px 50px; }
+    main { min-width: 0; height: 100vh; overflow-y: auto; display: flex; flex: 1; flex-direction: column; padding: 0 44px 50px; }
     main > section { display: flex; flex: 1; flex-direction: column; }
-    .topbar { height: 82px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+    .topbar {
+      position: sticky; top: 0; z-index: 10; height: 82px; flex: 0 0 82px;
+      display: flex; justify-content: space-between; align-items: center; gap: 18px;
+      border-bottom: 1px solid var(--line); background: var(--canvas);
+    }
+    .topbar-left { min-width: 0; display: flex; align-items: center; }
+    .topbar-search { width: min(520px, 42vw); min-width: 220px; flex: 1 1 520px; padding: 12px 14px; }
     .breadcrumb { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
     .breadcrumb-link { padding: 3px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; font-size: inherit; white-space: nowrap; }
     .breadcrumb-link:hover { color: var(--green-dark); text-decoration: underline; }
@@ -172,7 +180,7 @@
       border-radius: 9px; background: var(--paper); cursor: pointer;
     }
     .icon-button .icon, .mobile-menu .icon { width: 18px; height: 18px; }
-    .search > .icon { width: 16px; height: 16px; flex: 0 0 16px; }
+    .search > .icon { width: 19px; height: 19px; flex: 0 0 19px; }
     .mobile-menu { display: none; }
     .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 32px 0 23px; }
     h1 { margin: 0; font-size: clamp(24px, 3vw, 31px); letter-spacing: -1.1px; }
@@ -204,10 +212,11 @@
     .toolbar h2 { margin: 0; font-size: 15px; }
     .toolbar-right { display: flex; align-items: center; gap: 8px; }
     .search {
-      width: min(230px, 28vw); display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
       border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--muted);
     }
     .search input { width: 100%; min-width: 0; padding: 0; outline: 0; border: 0; background: transparent; color: var(--ink); font-size: 11px; }
+    .topbar-search input { font-size: 14px; }
     .search input::placeholder { color: #a1a59f; }
     .select {
       padding: 8px 25px 8px 10px; color: var(--control-text); border: 1px solid var(--line); border-radius: 8px;
@@ -257,7 +266,7 @@
     .more-button:hover { background: var(--surface-hover); }
     .photo-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
     .empty-state { grid-column: 1 / -1; padding: 45px 15px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; text-align: center; font-size: 13px; }
-    .load-more { grid-column: 1 / -1; justify-self: center; padding: 9px 13px; color: var(--green-dark); border: 1px solid var(--connected-border); border-radius: 8px; background: var(--connected-background); cursor: pointer; font-size: 11px; }
+    .media-load-sentinel { grid-column: 1 / -1; height: 1px; pointer-events: none; }
     .demo-note { margin: 20px 0 0; color: #92978f; font-size: 10px; text-align: center; }
     .context-menu {
       position: fixed; z-index: 20; width: min(216px, calc(100vw - 16px)); padding: 6px;
@@ -363,14 +372,15 @@
       main { padding-right: 28px; padding-left: 28px; }
     }
     @media (max-width: 720px) {
-      .sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; width: 260px; flex-basis: 260px; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 12px 0 35px #0001; }
+      .sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; height: 100vh; width: 260px; flex-basis: 260px; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 12px 0 35px #0001; }
       .sidebar-resizer { display: none; }
       .sidebar.open { transform: translateX(0); }
       .mobile-scrim.visible { position: fixed; z-index: 24; inset: 0; display: block; background: #10151055; }
       main { padding: 0 17px 35px; }
-      .topbar { height: 63px; }
+      .topbar { height: auto; min-height: 63px; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
       .mobile-menu { display: grid; margin-right: 9px; }
-      .topbar-left { display: flex; align-items: center; }
+      .topbar-left { display: flex; flex: 1; align-items: center; }
+      .topbar-search { width: 100%; min-width: 0; max-width: none; flex: 0 0 100%; order: 3; padding: 10px 12px; }
       .connection { padding: 7px 8px; font-size: 0; }
       .connection .status-dot { margin: 0; }
       .top-actions { gap: 7px; }
@@ -383,7 +393,7 @@
       .stat-value { font-size: 14px; }
       .stat-label { font-size: 9px; }
       .toolbar { align-items: flex-start; flex-direction: column; }
-      .toolbar-right { width: 100%; }
+      .toolbar-right { width: auto; }
       .search { width: 100%; flex: 1; }
       .select { max-width: 120px; }
       .photo-grid { row-gap: 9px; }
@@ -456,6 +466,7 @@
           <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir le menu"><svg class="icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
           <nav class="breadcrumb" id="breadcrumb" aria-label="Fil d’Ariane"></nav>
         </div>
+        <label class="search topbar-search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
         <div class="top-actions">
           <button class="connection disconnected" id="connection" title="État de la connexion MEGA"><span class="status-dot"></span><span id="connection-label">Mode démonstration</span></button>
           <button class="icon-button" id="theme-toggle" type="button" aria-label="Activer le thème sombre" aria-pressed="false" title="Activer le thème sombre"><svg class="icon" aria-hidden="true"><use href="#icon-moon"></use></svg></button>
@@ -466,7 +477,6 @@
         <div class="toolbar">
           <h2 id="media-heading">Récemment ajoutés</h2>
           <div class="toolbar-right">
-            <label class="search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
             <select class="select" id="sort" aria-label="Trier les médias">
               <option value="recent">Plus récents</option>
               <option value="name">Nom A–Z</option>
@@ -555,6 +565,7 @@
     let megaPreviewUrl = null;
     let megaPreviewRequest = 0;
     let mediaPageSize = 120;
+    let mediaLoadObserver = null;
 
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -618,12 +629,17 @@
       while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
       return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)} ${units[index]}`;
     }
-    function updateCacheStatus({ bytes = 0, entries = 0, available = true, error = "", warning = "" } = {}) {
+    function updateCacheStatus({ bytes = 0, entries = 0, available = true, error = "", warning = "", persistent = null } = {}) {
       $("#cache-usage").textContent = available ? formatCacheBytes(bytes) : "Indisponible";
       $("#cache-meter").style.width = `${Math.min(100, bytes / (200 * 1024 * 1024) * 100)}%`;
       const localStatus = `${entries} miniature${entries === 1 ? "" : "s"} sur cet appareil`;
+      const persistenceStatus = persistent === true
+        ? "stockage protégé"
+        : persistent === false
+          ? "stockage susceptible d’être nettoyé"
+          : "";
       $("#cache-caption").textContent = available
-        ? [localStatus, warning].filter(Boolean).join(" · ")
+        ? [localStatus, persistenceStatus, warning].filter(Boolean).join(" · ")
         : error || "Le navigateur n’a pas pu ouvrir le cache.";
     }
     function getFolderCount(folder) {
@@ -672,7 +688,7 @@
               ${children.length
                 ? `<button class="folder-toggle" type="button" data-folder-toggle="${escapeHtml(key)}" aria-label="${expanded ? "Replier" : "Déplier"} le dossier ${escapeHtml(folder.name)}" aria-expanded="${expanded}">${icon("chevron")}</button>`
                 : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
-              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === key ? "active" : ""}" data-folder="${escapeHtml(key)}">
+              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === key && !(megaConnected && $("#search").value.trim()) ? "active" : ""}" data-folder="${escapeHtml(key)}">
                 ${icon("folder", "icon folder-icon")}<span class="folder-title">${escapeHtml(folder.name)}</span><span class="nav-count">${getFolderCount(folder)}</span>
               </button>
             </div>
@@ -688,7 +704,7 @@
               ${rootFolders.length
                 ? `<button class="folder-toggle" type="button" data-folder-toggle="${rootKey}" aria-label="${rootExpanded ? "Replier" : "Déplier"} Mon Drive" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
                 : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
-              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === rootKey ? "active" : ""}" data-folder="${rootKey}">
+              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === rootKey && !$("#search").value.trim() ? "active" : ""}" data-folder="${rootKey}">
                 ${icon("folder", "icon folder-icon")}<span class="folder-title">Mon Drive</span><span class="nav-count">${media.filter((item) => !item.folderPath).length}</span>
               </button>
             </div>
@@ -700,8 +716,9 @@
     function visibleMedia() {
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
       const sort = $("#sort").value;
+      const globalSearch = megaConnected && Boolean(query);
       let items = media.filter((item) => {
-        const matchesView = currentView === "all" ||
+        const matchesView = globalSearch || currentView === "all" ||
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
           (currentView === "videos" && item.type === "video") ||
@@ -715,11 +732,10 @@
       return items;
     }
     function visibleSubfolders() {
-      if (!megaConnected || currentView !== "folder") return [];
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
+      if (!megaConnected || currentView !== "folder" || query) return [];
       return folders
         .filter((folder) => folder.parentPath === (currentFolder === "__root__" ? "" : currentFolder))
-        .filter((folder) => !query || `${folder.name} ${folder.displayPath}`.toLocaleLowerCase("fr").includes(query))
         .sort(compareFoldersByName);
     }
     function folderCoverMedia(folder) {
@@ -742,7 +758,7 @@
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
       }
-      const visibleItems = items.slice(0, mediaPageSize);
+      const visibleItems = items.slice(0, "IntersectionObserver" in window ? mediaPageSize : items.length);
       const folderCards = subfolders.map((folder) => {
         const cover = folderCoverMedia(folder);
         const count = getFolderMediaCount(folder);
@@ -771,9 +787,21 @@
             <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? "" : `<button class="more-button" data-menu="${item.id}" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>`}</div>
             <div class="photo-meta"><span>${escapeHtml(item.folder)}</span><span>${escapeHtml(item.size || "")}</span></div>
           </div>
-        </article>`).join("")}${items.length > visibleItems.length ? `<button class="load-more" data-load-more>Afficher plus · ${items.length - visibleItems.length} restants</button>` : ""}`;
+        </article>`).join("")}${items.length > visibleItems.length ? `<div class="media-load-sentinel" aria-hidden="true"></div>` : ""}`;
       updateSelectedMediaCards();
       if (megaConnected) window.megaGallery.observeThumbnails(grid);
+      const sentinel = grid.querySelector(".media-load-sentinel");
+      if (sentinel) {
+        if (!mediaLoadObserver) {
+          mediaLoadObserver = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            mediaLoadObserver.disconnect();
+            mediaPageSize += 120;
+            renderMedia();
+          }, { root: $("main"), rootMargin: "500px 0px", threshold: 0 });
+        }
+        mediaLoadObserver.observe(sentinel);
+      }
     }
     function formatDate(date) {
       return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
@@ -788,6 +816,9 @@
       $("#all-count").textContent = media.length;
       renderFolders();
       renderMedia();
+      const globalSearchActive = megaConnected && Boolean($("#search").value.trim());
+      $("#search").placeholder = megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
+      $("#search").setAttribute("aria-label", megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
       const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", folder: currentFolder };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
@@ -820,10 +851,12 @@
         breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
       }
       $("#breadcrumb").innerHTML = breadcrumbParts.join("");
-      $("#media-heading").textContent = currentView === "folder"
+      $("#media-heading").textContent = globalSearchActive
+        ? "Résultats dans tout le drive"
+        : currentView === "folder"
         ? (isCloudRoot ? "Mon Drive" : selectedFolder?.name || "Dossier")
         : currentView === "all" ? "Récemment ajoutés" : labels[currentView];
-      document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === currentView));
+      document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", !globalSearchActive && button.dataset.view === currentView));
     }
     function openViewer(id, launchSlideshow = false, keepSlideshow = false) {
       const item = media.find((entry) => entry.id === Number(id));
@@ -1303,7 +1336,7 @@
         });
         return;
       }
-      if (!megaConnected || event.target.closest(".photo-card, .load-more")) return;
+      if (!megaConnected || event.target.closest(".photo-card")) return;
       event.preventDefault();
       const parentPath = currentView === "folder" ? currentFolder : "__root__";
       openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
@@ -1435,11 +1468,6 @@
         if (megaConnected) expandFolderAncestors(currentFolder);
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
       }
-      if (event.target.closest("[data-load-more]")) {
-        mediaPageSize += 120;
-        renderMedia();
-        return;
-      }
       const favorite = event.target.closest("[data-favorite]");
       if (favorite) {
         if (megaConnected) return;
@@ -1479,7 +1507,7 @@
         openViewer(open.dataset.open);
       }
     });
-    $("#search").addEventListener("input", () => { mediaPageSize = 120; renderMedia(); });
+    $("#search").addEventListener("input", () => { mediaPageSize = 120; render(); });
     $("#sort").addEventListener("change", () => { mediaPageSize = 120; renderMedia(); });
     $("#mobile-menu").addEventListener("click", () => { $("#sidebar").classList.add("open"); $("#scrim").classList.add("visible"); });
     $("#scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); });
