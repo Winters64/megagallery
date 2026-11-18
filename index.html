@@ -12,7 +12,7 @@
       if (useDarkTheme) document.documentElement.dataset.theme = "dark";
       const savedSidebarWidth = Number(localStorage.getItem("mega-gallery-sidebar-width"));
       if (Number.isFinite(savedSidebarWidth) && savedSidebarWidth > 0) {
-        document.documentElement.style.setProperty("--sidebar-width", `${Math.min(460, Math.max(220, savedSidebarWidth))}px`);
+        document.documentElement.style.setProperty("--sidebar-width", `${Math.min(800, Math.max(200, savedSidebarWidth))}px`);
       }
     } catch (error) {
       console.warn("Les préférences d’affichage n’ont pas pu être lues.", error);
@@ -91,22 +91,34 @@
     button { color: inherit; }
     .app { height: 100vh; display: flex; min-height: 0; }
     .sidebar {
-      position: sticky; top: 0; z-index: 4; height: 100vh; overflow-y: auto;
+      position: sticky; top: 0; z-index: 4; height: 100vh; overflow-y: auto; overflow-x: hidden;
       width: var(--sidebar-width); flex: 0 0 var(--sidebar-width); display: flex; flex-direction: column;
       padding: 27px 17px 18px; background: var(--paper); border-right: 1px solid var(--line);
     }
     .sidebar-resizer {
-      position: sticky; top: 0; z-index: 2; height: 100vh; flex: 0 0 10px; margin-left: -10px; touch-action: none;
+      position: relative; z-index: 15; height: 100vh; flex: 0 0 14px; margin-left: -7px; margin-right: -7px; touch-action: none;
       cursor: col-resize; outline: 0;
     }
+    .sidebar-resizer::before {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 4px; height: 36px; border-radius: 4px; content: "";
+      background: var(--line); opacity: .8; transition: background .15s, opacity .15s, height .15s; pointer-events: none;
+    }
     .sidebar-resizer::after {
-      position: absolute; top: 0; right: 4px; bottom: 0; left: 4px; content: "";
-      background: transparent; transition: background .15s;
+      position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 2px; content: "";
+      background: transparent; transition: background .15s; pointer-events: none;
+    }
+    .sidebar-resizer:hover::before,
+    .sidebar-resizer:focus-visible::before,
+    .sidebar-resizer.dragging::before {
+      background: var(--green); height: 52px; opacity: 1;
     }
     .sidebar-resizer:hover::after,
     .sidebar-resizer:focus-visible::after,
-    .sidebar-resizer.dragging::after { background: var(--green); opacity: .7; }
-    body.resizing-sidebar { cursor: col-resize; user-select: none; }
+    .sidebar-resizer.dragging::after {
+      background: var(--green);
+    }
+    body.resizing-sidebar, body.resizing-sidebar * { cursor: col-resize !important; user-select: none !important; }
     .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; margin-bottom: 34px; }
     .brand-mark {
       width: 36px; height: 36px; display: grid; place-items: center; color: white;
@@ -126,7 +138,7 @@
     .nav-item:hover { background: var(--surface-hover); color: var(--ink); }
     .nav-item.active { color: var(--green-dark); background: var(--green-soft); font-weight: 650; }
     .nav-icon { width: 18px; flex: 0 0 18px; opacity: .82; }
-    .nav-count { margin-left: auto; color: var(--nav-muted); font-size: 11px; }
+    .nav-count { margin-left: auto; color: var(--nav-muted); font-size: 11px; flex-shrink: 0; }
     .folder-icon { width: 20px; height: 20px; flex: 0 0 20px; margin-left: 1px; color: #829987; }
     .folder-tree-row { display: flex; align-items: center; }
     .folder-toggle, .folder-toggle-placeholder { width: 24px; flex: 0 0 24px; }
@@ -459,7 +471,7 @@
         </div>
       </div>
     </aside>
-    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Redimensionner le panneau des dossiers" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="460" aria-valuenow="246" aria-valuetext="246 pixels" tabindex="0"></div>
+    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Redimensionner le panneau des dossiers" aria-orientation="vertical" aria-valuemin="200" aria-valuemax="800" aria-valuenow="246" aria-valuetext="246 pixels" tabindex="0" title="Glisser pour redimensionner (double-clic pour réinitialiser)"></div>
     <div class="mobile-scrim" id="scrim"></div>
     <main>
       <header class="topbar">
@@ -1159,11 +1171,6 @@
         $("#move-error").textContent = "Le dossier sélectionné n’est plus disponible.";
         return;
       }
-      const confirmation = items.length === 1
-        ? `Déplacer « ${items[0].title} » vers « ${destinationName} » dans MEGA ?`
-        : `Déplacer ces ${items.length} médias vers « ${destinationName} » dans MEGA ?`;
-      if (!window.confirm(confirmation)) return;
-
       const submit = $("#move-submit");
       submit.disabled = true;
       submit.textContent = "Déplacement…";
@@ -1432,14 +1439,19 @@
 
     const sidebar = $("#sidebar");
     const sidebarResizer = $("#sidebar-resizer");
-    const minSidebarWidth = 220;
-    const maxSidebarWidth = 460;
+    const minSidebarWidth = 200;
+    const defaultSidebarWidth = 246;
+    function getMaxSidebarWidth() {
+      return Math.max(minSidebarWidth, Math.min(800, window.innerWidth - 360));
+    }
     let activePointerId = null;
     function setSidebarWidth(width) {
+      const maxSidebarWidth = getMaxSidebarWidth();
       const normalizedWidth = Math.round(Math.min(maxSidebarWidth, Math.max(minSidebarWidth, width)));
       document.documentElement.style.setProperty("--sidebar-width", `${normalizedWidth}px`);
       sidebarResizer.setAttribute("aria-valuenow", String(normalizedWidth));
       sidebarResizer.setAttribute("aria-valuetext", `${normalizedWidth} pixels`);
+      sidebarResizer.setAttribute("aria-valuemax", String(maxSidebarWidth));
       return normalizedWidth;
     }
     function saveSidebarWidth() {
@@ -1467,12 +1479,19 @@
     const finishSidebarResize = (event) => {
       if (event.pointerId !== activePointerId) return;
       activePointerId = null;
+      try {
+        sidebarResizer.releasePointerCapture(event.pointerId);
+      } catch {}
       sidebarResizer.classList.remove("dragging");
       document.body.classList.remove("resizing-sidebar");
       saveSidebarWidth();
     };
     sidebarResizer.addEventListener("pointerup", finishSidebarResize);
     sidebarResizer.addEventListener("pointercancel", finishSidebarResize);
+    sidebarResizer.addEventListener("dblclick", () => {
+      setSidebarWidth(defaultSidebarWidth);
+      saveSidebarWidth();
+    });
     sidebarResizer.addEventListener("keydown", (event) => {
       const width = sidebar.getBoundingClientRect().width;
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
@@ -1482,9 +1501,14 @@
         saveSidebarWidth();
       } else if (event.key === "Home" || event.key === "End") {
         event.preventDefault();
-        setSidebarWidth(event.key === "Home" ? minSidebarWidth : maxSidebarWidth);
+        setSidebarWidth(event.key === "Home" ? minSidebarWidth : getMaxSidebarWidth());
         saveSidebarWidth();
       }
+    });
+    window.addEventListener("resize", () => {
+      if (window.matchMedia("(max-width: 720px)").matches) return;
+      const currentWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width")) || defaultSidebarWidth;
+      setSidebarWidth(currentWidth);
     });
 
     document.addEventListener("click", (event) => {
