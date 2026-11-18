@@ -148,10 +148,13 @@
     .profile-name { font-size: 12px; font-weight: 650; }
     .profile-caption { color: var(--muted); font-size: 10px; margin-top: 2px; }
 
-    main { min-width: 0; flex: 1; padding: 0 44px 50px; }
+    main { min-width: 0; min-height: 100vh; display: flex; flex: 1; flex-direction: column; padding: 0 44px 50px; }
+    main > section { display: flex; flex: 1; flex-direction: column; }
     .topbar { height: 82px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
-    .breadcrumb { color: var(--muted); font-size: 12px; }
-    .breadcrumb strong { color: var(--ink); font-weight: 600; }
+    .breadcrumb { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+    .breadcrumb-link { padding: 3px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; font-size: inherit; white-space: nowrap; }
+    .breadcrumb-link:hover { color: var(--green-dark); text-decoration: underline; }
+    .breadcrumb-current { overflow: hidden; color: var(--ink); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
     .top-actions { display: flex; align-items: center; gap: 10px; }
     .connection {
       display: flex; align-items: center; gap: 7px; padding: 7px 10px; color: var(--connected-text);
@@ -210,7 +213,7 @@
       padding: 8px 25px 8px 10px; color: var(--control-text); border: 1px solid var(--line); border-radius: 8px;
       outline: 0; background: var(--paper); font-size: 11px; cursor: pointer;
     }
-    .photo-grid { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 126px) / 10)), 1fr)); gap: 14px; }
+    .photo-grid { position: relative; display: grid; flex: 1; align-content: start; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 126px) / 10)), 1fr)); gap: 14px; }
     .photo-grid.is-selecting { user-select: none; cursor: crosshair; }
     .photo-grid.is-selecting .photo-cover { cursor: crosshair; }
     .selection-marquee { position: absolute; z-index: 3; border: 1px solid var(--green); background: var(--selection-fill); pointer-events: none; }
@@ -314,8 +317,8 @@
     .folder-tree-select.is-current { color: var(--green-dark); background: var(--green-soft); font-weight: 700; }
     .folder-tree-root .icon,
     .folder-tree-select .icon { width: 16px; height: 16px; flex: 0 0 16px; color: var(--green); }
-    .folder-tree-root:disabled,
-    .folder-tree-select:disabled { opacity: .45; cursor: not-allowed; }
+    .folder-tree-root[aria-disabled="true"],
+    .folder-tree-select[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
     .folder-tree-group { display: flex; align-items: center; }
     .folder-tree-toggle { width: 25px; flex: 0 0 25px; justify-content: center; padding: 0; color: var(--muted); }
     .folder-tree-toggle .icon { width: 13px; height: 13px; transition: transform .12s; }
@@ -451,7 +454,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir le menu"><svg class="icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
-          <div class="breadcrumb">Bibliothèque <span aria-hidden="true">/</span> <strong id="breadcrumb-current">Récemment ajoutés</strong></div>
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Fil d’Ariane"></nav>
         </div>
         <div class="top-actions">
           <button class="connection disconnected" id="connection" title="État de la connexion MEGA"><span class="status-dot"></span><span id="connection-label">Mode démonstration</span></button>
@@ -630,6 +633,31 @@
     function compareFoldersByName(first, second) {
       return first.name.localeCompare(second.name, "fr", { numeric: true, sensitivity: "base" });
     }
+    function expandFolderAncestors(path) {
+      expandedFolderPaths.add("__root__");
+      let currentPath = path === "__root__" ? "" : path;
+      while (currentPath) {
+        expandedFolderPaths.add(currentPath);
+        currentPath = folders.find((folder) => folder.path === currentPath)?.parentPath || "";
+      }
+    }
+    function refreshFolderNavigation(action, folder) {
+      if (action === "delete") {
+        expandedFolderPaths = new Set([...expandedFolderPaths].filter((path) =>
+          path !== folder.path && !path.startsWith(`${folder.path}/`)
+        ));
+        if (currentView === "folder" && (
+          currentFolder === folder.path || currentFolder.startsWith(`${folder.path}/`)
+        )) {
+          currentFolder = folder.parentPath || "__root__";
+          currentView = "folder";
+          selectedMediaKeys.clear();
+        }
+      } else {
+        expandFolderAncestors(action === "create" ? folder.path : folder.parentPath || "__root__");
+      }
+      render();
+    }
     function renderFolders() {
       $("#folder-nav-label").textContent = megaConnected ? "Dossiers" : "Dossiers (exemple)";
       const renderFolderTree = (folder, source = folders) => {
@@ -652,7 +680,22 @@
           </div>`;
       };
       const rootFolders = folders.filter((folder) => !folder.parentPath).sort(compareFoldersByName);
-      $("#folder-nav").innerHTML = rootFolders.map((folder) => renderFolderTree(folder, folders)).join("");
+      const rootKey = "__root__";
+      const rootExpanded = expandedFolderPaths.has(rootKey);
+      const cloudRoot = megaConnected
+        ? `<div class="folder-tree-node">
+            <div class="folder-tree-row">
+              ${rootFolders.length
+                ? `<button class="folder-toggle" type="button" data-folder-toggle="${rootKey}" aria-label="${rootExpanded ? "Replier" : "Déplier"} Mon Drive" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
+                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
+              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === rootKey ? "active" : ""}" data-folder="${rootKey}">
+                ${icon("folder", "icon folder-icon")}<span class="folder-title">Mon Drive</span><span class="nav-count">${media.filter((item) => !item.folderPath).length}</span>
+              </button>
+            </div>
+            ${rootExpanded ? `<div class="folder-children">${rootFolders.map((folder) => renderFolderTree(folder, folders)).join("")}</div>` : ""}
+          </div>`
+        : "";
+      $("#folder-nav").innerHTML = `${cloudRoot}${!megaConnected ? rootFolders.map((folder) => renderFolderTree(folder, folders)).join("") : ""}`;
     }
     function visibleMedia() {
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
@@ -662,7 +705,9 @@
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
           (currentView === "videos" && item.type === "video") ||
-          (currentView === "folder" && (megaConnected ? item.folderPath === currentFolder : item.folder === currentFolder));
+          (currentView === "folder" && (megaConnected
+            ? item.folderPath === (currentFolder === "__root__" ? "" : currentFolder)
+            : item.folder === currentFolder));
         return matchesView && (!query || `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query));
       });
       if (sort === "name") items.sort((a, b) => a.title.localeCompare(b.title, "fr"));
@@ -673,7 +718,7 @@
       if (!megaConnected || currentView !== "folder") return [];
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
       return folders
-        .filter((folder) => folder.parentPath === currentFolder)
+        .filter((folder) => folder.parentPath === (currentFolder === "__root__" ? "" : currentFolder))
         .filter((folder) => !query || `${folder.name} ${folder.displayPath}`.toLocaleLowerCase("fr").includes(query))
         .sort(compareFoldersByName);
     }
@@ -744,14 +789,39 @@
       renderFolders();
       renderMedia();
       const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", folder: currentFolder };
+      const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
         (megaConnected ? folder.path : folder.name) === currentFolder
       ));
-      $("#breadcrumb-current").textContent = currentView === "folder"
-        ? (selectedFolder?.name || "Dossier")
-        : labels[currentView];
+      const breadcrumbParts = [];
+      if (currentView === "folder" && megaConnected) {
+        const ancestors = [];
+        let current = folders.find((folder) => folder.path === currentFolder);
+        while (current) {
+          ancestors.unshift(current);
+          current = folders.find((folder) => folder.path === current.parentPath);
+        }
+        const rootCurrent = isCloudRoot || !ancestors.length;
+        breadcrumbParts.push(
+          `${rootCurrent
+            ? `<span class="breadcrumb-current" aria-current="page">Mon Drive</span>`
+            : `<button type="button" class="breadcrumb-link" data-folder="__root__">Mon Drive</button>`}`
+        );
+        ancestors.forEach((folder, index) => {
+          const isCurrent = !isCloudRoot && index === ancestors.length - 1;
+          breadcrumbParts.push(
+            `<span aria-hidden="true">/</span>${isCurrent
+              ? `<span class="breadcrumb-current" aria-current="page">${escapeHtml(folder.name)}</span>`
+              : `<button type="button" class="breadcrumb-link" data-folder="${escapeHtml(folder.path)}">${escapeHtml(folder.name)}</button>`}`
+          );
+        });
+      } else {
+        const currentLabel = currentView === "folder" ? selectedFolder?.name || "Dossier" : labels[currentView];
+        breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
+      }
+      $("#breadcrumb").innerHTML = breadcrumbParts.join("");
       $("#media-heading").textContent = currentView === "folder"
-        ? (selectedFolder?.name || "Dossier")
+        ? (isCloudRoot ? "Mon Drive" : selectedFolder?.name || "Dossier")
         : currentView === "all" ? "Récemment ajoutés" : labels[currentView];
       document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === currentView));
     }
@@ -803,7 +873,58 @@
       slideTimer = window.setInterval(showNext, 2800);
       showToast("Diaporama lancé — cliquez sur × pour arrêter.");
     }
-    function closeMenu() { $("#menu-root").innerHTML = ""; }
+    let activeContextMenu = null;
+    function closeMenu() {
+      activeContextMenu?.remove();
+      activeContextMenu = null;
+    }
+    function openFolderContextMenu(parentPath, position, {
+      container = $("#menu-root"),
+      folderPath = null,
+      onChanged = () => {}
+    } = {}) {
+      if (!megaConnected) return;
+      closeMenu();
+      const menu = document.createElement("div");
+      menu.className = "context-menu";
+      menu.setAttribute("role", "menu");
+      const folder = folderPath ? folders.find((entry) => entry.path === folderPath) : null;
+      menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>` +
+        (folder ? `<button type="button" role="menuitem" data-folder-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" class="danger" data-folder-action="delete">${icon("trash")}<span>Supprimer</span></button>` : "");
+      menu.addEventListener("click", async (event) => {
+        const action = event.target.closest("[data-folder-action]")?.dataset.folderAction;
+        if (!action) return;
+        closeMenu();
+        try {
+          if (action === "create") {
+            const name = window.prompt("Nom du nouveau dossier :");
+            if (name === null) return;
+            const created = await window.megaConnector.createFolder(parentPath, name);
+            onChanged("create", created);
+            showToast(`Dossier « ${created.name} » créé dans MEGA.`);
+          } else if (action === "rename" && folder) {
+            const name = window.prompt("Nouveau nom du dossier :", folder.name);
+            if (name === null || !name.trim()) return;
+            const renamed = await window.megaConnector.renameFolder(folder.path, name);
+            onChanged("rename", { ...folder, name: renamed });
+            showToast(`Dossier renommé en « ${renamed} » dans MEGA.`);
+          } else if (action === "delete" && folder) {
+            if (!window.confirm(`Placer le dossier « ${folder.name} » et tout son contenu dans la corbeille MEGA ? Vous pourrez les restaurer tant que la corbeille n’est pas vidée.`)) return;
+            await window.megaConnector.deleteFolder(folder.path);
+            onChanged("delete", folder);
+            showToast(`Dossier « ${folder.name} » et son contenu placés dans la corbeille MEGA.`);
+          }
+        } catch (error) {
+          console.error(`Échec de l’action « ${action} » sur un dossier MEGA.`, error);
+          showToast(error instanceof Error ? error.message : "Impossible de modifier ce dossier dans MEGA.");
+        }
+      });
+      container.append(menu);
+      activeContextMenu = menu;
+      const bounds = menu.getBoundingClientRect();
+      menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`;
+      menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
+    }
     function openMoveDialog(items) {
       if (!megaConnected) return;
       const dialog = $("#move-dialog");
@@ -813,14 +934,8 @@
       const searchInput = $("#move-search");
       const selectedLabel = $("#move-target-label");
       const expandedPaths = new Set();
-      const childrenByParent = new Map();
-      const foldersByPath = new Map(folders.map((folder) => [folder.path, folder]));
-      for (const folder of folders) {
-        const siblings = childrenByParent.get(folder.parentPath) || [];
-        siblings.push(folder);
-        childrenByParent.set(folder.parentPath, siblings);
-      }
-      for (const siblings of childrenByParent.values()) siblings.sort(compareFoldersByName);
+      let childrenByParent = new Map();
+      let foldersByPath = new Map();
       currentDestination.value = "";
       selectedLabel.textContent = "Aucun dossier sélectionné";
       searchInput.value = "";
@@ -850,6 +965,14 @@
         });
       };
       const renderFolderTree = () => {
+        foldersByPath = new Map(folders.map((folder) => [folder.path, folder]));
+        childrenByParent = new Map();
+        for (const folder of folders) {
+          const siblings = childrenByParent.get(folder.parentPath) || [];
+          siblings.push(folder);
+          childrenByParent.set(folder.parentPath, siblings);
+        }
+        for (const siblings of childrenByParent.values()) siblings.sort(compareFoldersByName);
         const query = searchInput.value.trim().toLocaleLowerCase("fr");
         const includedPaths = new Set();
         if (query) {
@@ -874,14 +997,14 @@
               ? `<button type="button" class="folder-tree-toggle" data-toggle-folder="${escapeHtml(folder.path)}" aria-label="${expanded ? "Replier" : "Déplier"} ${escapeHtml(folder.name)}" aria-expanded="${expanded}">${icon("chevron")}</button>`
               : `<span class="folder-tree-toggle is-placeholder" aria-hidden="true"></span>`;
             return `<div role="treeitem" aria-expanded="${descendants ? expanded : "false"}">
-              <div class="folder-tree-group">${toggle}<button type="button" class="folder-tree-select ${selected ? "is-current" : ""}" data-destination="${escapeHtml(folder.path)}" aria-selected="${selected}" ${excluded ? "disabled" : ""}>${icon("folder")}<span>${escapeHtml(folder.name)}</span></button></div>
+              <div class="folder-tree-group">${toggle}<button type="button" class="folder-tree-select ${selected ? "is-current" : ""}" data-destination="${escapeHtml(folder.path)}" aria-selected="${selected}" aria-disabled="${excluded}">${icon("folder")}<span>${escapeHtml(folder.name)}</span></button></div>
               ${descendants && expanded ? `<div class="folder-tree-children" role="group">${renderBranch(folder.path)}</div>` : ""}
             </div>`;
           }).join("");
         };
         const rootDisabled = items.every((item) => !item.folderPath);
         const rootSelected = currentDestination.value === "__root__";
-        const rootLabel = `<button type="button" class="folder-tree-root ${rootSelected ? "is-current" : ""}" data-destination="__root__" role="treeitem" aria-selected="${rootSelected}" ${rootDisabled ? "disabled" : ""}>${icon("folder")}<span>Mon Drive / Racine</span></button>`;
+        const rootLabel = `<button type="button" class="folder-tree-root ${rootSelected ? "is-current" : ""}" data-destination="__root__" role="treeitem" aria-selected="${rootSelected}" aria-disabled="${rootDisabled}">${icon("folder")}<span>Mon Drive / Racine</span></button>`;
         const branches = renderBranch("");
         folderTree.innerHTML = `${rootLabel}${branches || (query ? `<div class="folder-tree-empty">Aucun dossier trouvé.</div>` : "")}`;
       };
@@ -895,10 +1018,42 @@
           return;
         }
         const target = event.target.closest("[data-destination]");
-        if (!target || target.disabled) return;
+        if (!target || target.getAttribute("aria-disabled") === "true") return;
         const path = target.dataset.destination;
         const label = path === "__root__" ? "Mon Drive / Racine" : foldersByPath.get(path)?.displayPath;
         if (label) chooseDestination(path, label);
+      };
+      folderTree.oncontextmenu = (event) => {
+        const target = event.target.closest("[data-destination]");
+        if (!target) return;
+        event.preventDefault();
+        const parentPath = target.dataset.destination;
+        openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
+          container: dialog,
+          folderPath: parentPath === "__root__" ? null : parentPath,
+          onChanged(action, changedFolder) {
+            if (action === "create") {
+              if (changedFolder.parentPath) expandedPaths.add(changedFolder.parentPath);
+              searchInput.value = "";
+              renderFolderTree();
+              chooseDestination(changedFolder.path, changedFolder.displayPath);
+            } else if (action === "rename") {
+              renderFolderTree();
+              const renamedFolder = foldersByPath.get(changedFolder.path);
+              if (currentDestination.value === changedFolder.path && renamedFolder) {
+                chooseDestination(renamedFolder.path, renamedFolder.displayPath);
+              }
+            } else {
+              renderFolderTree();
+              if (currentDestination.value === changedFolder.path ||
+                currentDestination.value.startsWith(`${changedFolder.path}/`)) {
+                currentDestination.value = "";
+                selectedLabel.textContent = "Aucun dossier sélectionné";
+                $("#move-submit").disabled = true;
+              }
+            }
+          }
+        });
       };
       searchInput.oninput = renderFolderTree;
       renderFolderTree();
@@ -972,7 +1127,7 @@
       const moveLabel = actionItems.length > 1 ? `Déplacer (${actionItems.length})` : "Déplacer";
       const deleteLabel = actionItems.length > 1 ? `Supprimer (${actionItems.length})` : "Supprimer";
       menu.innerHTML = megaConnected
-        ? `<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`
+        ? `${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`
         : `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" data-action="move">${icon("folder")}<span>Déplacer</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${item.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>Supprimer</span></button>`;
       const top = position?.y ?? rect.bottom;
       const left = position?.x ?? rect.right - 216;
@@ -984,6 +1139,19 @@
         if (megaConnected && action === "move") {
           closeMenu();
           openMoveDialog(actionItems);
+          return;
+        }
+        if (megaConnected && action === "rename") {
+          closeMenu();
+          const name = window.prompt("Nouveau nom du média :", item.title);
+          if (name === null || !name.trim()) return;
+          try {
+            const renamed = await window.megaConnector.renameFile(item.id, name);
+            showToast(`Média renommé en « ${renamed} » dans MEGA.`);
+          } catch (error) {
+            console.error("Échec du renommage d’un média MEGA.", error);
+            showToast(error instanceof Error ? error.message : "Impossible de renommer ce média dans MEGA.");
+          }
           return;
         }
         if (megaConnected && action === "favorite") {
@@ -1045,6 +1213,7 @@
         closeMenu();
       });
       $("#menu-root").append(menu);
+      activeContextMenu = menu;
       const menuBounds = menu.getBoundingClientRect();
       menu.style.top = `${Math.max(8, Math.min(top, window.innerHeight - menuBounds.height - 8))}px`;
       menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - menuBounds.width - 8))}px`;
@@ -1115,13 +1284,41 @@
     photoGrid.addEventListener("dragstart", (event) => {
       if (activeSelection) event.preventDefault();
     });
-    photoGrid.addEventListener("contextmenu", (event) => {
+    $("main > section").addEventListener("contextmenu", (event) => {
       const cover = event.target.closest(".photo-cover[data-open]");
-      if (!cover) return;
-      const item = media.find((entry) => entry.id === Number(cover.dataset.open));
-      if (!item) return;
+      if (cover) {
+        const item = media.find((entry) => entry.id === Number(cover.dataset.open));
+        if (!item) return;
+        event.preventDefault();
+        openMenu(item.id, null, { x: event.clientX, y: event.clientY });
+        return;
+      }
+      const folderCard = event.target.closest(".folder-card [data-open-folder]");
+      if (folderCard) {
+        event.preventDefault();
+        const path = folderCard.dataset.openFolder;
+        openFolderContextMenu(path, { x: event.clientX, y: event.clientY }, {
+          folderPath: path,
+          onChanged: refreshFolderNavigation
+        });
+        return;
+      }
+      if (!megaConnected || event.target.closest(".photo-card, .load-more")) return;
       event.preventDefault();
-      openMenu(item.id, null, { x: event.clientX, y: event.clientY });
+      const parentPath = currentView === "folder" ? currentFolder : "__root__";
+      openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
+        onChanged: refreshFolderNavigation
+      });
+    });
+    $("#folder-nav").addEventListener("contextmenu", (event) => {
+      const folder = event.target.closest("[data-folder]");
+      if (!megaConnected || !folder) return;
+      event.preventDefault();
+      const parentPath = folder.dataset.folder;
+      openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
+        folderPath: parentPath === "__root__" ? null : parentPath,
+        onChanged: refreshFolderNavigation
+      });
     });
 
     function updateThemeButton() {
@@ -1235,6 +1432,7 @@
         mediaPageSize = 120;
         currentView = "folder";
         currentFolder = folder.dataset.folder || folder.dataset.openFolder;
+        if (megaConnected) expandFolderAncestors(currentFolder);
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
       }
       if (event.target.closest("[data-load-more]")) {
@@ -1292,7 +1490,7 @@
         selectedMediaKeys.clear();
         media = files;
         folders = remoteFolders;
-        expandedFolderPaths = new Set();
+        expandedFolderPaths = new Set(["__root__"]);
         currentView = "all";
         currentFolder = null;
         mediaPageSize = 120;

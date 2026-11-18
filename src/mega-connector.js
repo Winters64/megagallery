@@ -608,6 +608,45 @@ function displayConnectedLibrary(candidate) {
   updateCacheStatus();
 }
 
+async function refreshMegaLibraryFromDrive() {
+  const previousStorage = storage;
+  if (!previousStorage) throw new Error("Connectez-vous à MEGA pour actualiser la bibliothèque.");
+  const { key, sid, name, user } = previousStorage.toJSON();
+  let candidate;
+  try {
+    candidate = Storage.fromJSON({
+      key,
+      sid,
+      name,
+      user,
+      options: { email: previousStorage.email, keepalive: true }
+    });
+    await candidate.ready;
+    candidate.status = "connecting";
+    await candidate.reload(true);
+    candidate.status = "ready";
+  } catch (error) {
+    candidate?.close().catch((closeError) => {
+      console.error("La session MEGA temporaire n’a pas pu être fermée.", closeError);
+    });
+    throw new Error(`Impossible de vérifier les changements dans MEGA : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+  }
+
+  if (storage !== previousStorage) {
+    candidate.close().catch((error) => console.error("La session MEGA temporaire n’a pas pu être fermée.", error));
+    throw new Error("La connexion MEGA a changé pendant l’actualisation.");
+  }
+
+  storage = candidate;
+  previousStorage.close().catch((error) => {
+    console.error("L’ancienne session MEGA n’a pas pu être fermée.", error);
+  });
+  const library = buildLibrary(candidate.root);
+  window.megaGallery.refreshLibrary(library);
+  await updateCacheStatus();
+  return library;
+}
+
 async function restoreMegaSession() {
   const cryptoError = getWebCryptoError();
   if (cryptoError) {
@@ -738,6 +777,85 @@ window.megaConnector = {
   releaseAllThumbnails,
   clearPersistentCache,
   updateCacheStatus,
+  async renameFile(id, name) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de renommer un média.");
+    const file = filesById.get(Number(id));
+    if (!file) throw new Error("Ce média n’est plus disponible dans la session MEGA.");
+    const newName = typeof name === "string" ? name.trim() : "";
+    if (!newName || newName === "." || newName === ".." || /[/\\]/.test(newName)) {
+      throw new Error("Saisissez un nom de fichier valide, sans barre oblique.");
+    }
+    if ((file.parent?.children || []).some((sibling) =>
+      sibling !== file && sibling.name?.toLocaleLowerCase("fr") === newName.toLocaleLowerCase("fr")
+    )) {
+      throw new Error("Un élément portant ce nom existe déjà dans ce dossier.");
+    }
+    await file.rename(newName);
+    await refreshMegaLibraryFromDrive();
+    const refreshedFile = storage.files[String(file.nodeId)];
+    if (!refreshedFile || refreshedFile.name !== newName) {
+      throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
+    }
+    return newName;
+  },
+  async renameFolder(path, name) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de renommer un dossier.");
+    const folder = folderNodesByPath.get(String(path));
+    if (!folder?.directory || folder === storage.root) throw new Error("Ce dossier n’existe plus dans MEGA.");
+    const newName = typeof name === "string" ? name.trim() : "";
+    if (!newName || newName === "." || newName === ".." || /[/\\]/.test(newName)) {
+      throw new Error("Saisissez un nom de dossier valide, sans barre oblique.");
+    }
+    if ((folder.parent?.children || []).some((sibling) =>
+      sibling !== folder && sibling.directory && sibling.name?.toLocaleLowerCase("fr") === newName.toLocaleLowerCase("fr")
+    )) {
+      throw new Error("Un dossier portant ce nom existe déjà à cet emplacement.");
+    }
+    await folder.rename(newName);
+    const library = await refreshMegaLibraryFromDrive();
+    if (!library.folders.some((entry) => entry.path === String(path) && entry.name === newName)) {
+      throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
+    }
+    return newName;
+  },
+  async deleteFolder(path) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de supprimer un dossier.");
+    const folder = folderNodesByPath.get(String(path));
+    if (!folder?.directory || folder === storage.root) throw new Error("Ce dossier n’existe plus dans MEGA.");
+    const folderName = folder.name;
+    await folder.delete(false);
+    const library = await refreshMegaLibraryFromDrive();
+    if (library.folders.some((entry) => entry.path === String(path))) {
+      throw new Error("La suppression a été envoyée, mais le dossier apparaît toujours dans MEGA.");
+    }
+    return folderName;
+  },
+  async createFolder(parentPath, name) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de créer un dossier.");
+    const folderName = typeof name === "string" ? name.trim() : "";
+    if (!folderName || folderName === "." || folderName === ".." || /[/\\]/.test(folderName)) {
+      throw new Error("Saisissez un nom de dossier valide, sans barre oblique.");
+    }
+    const parent = folderNodesByPath.get(String(parentPath));
+    if (!parent?.directory) throw new Error("Le dossier parent n’existe plus dans MEGA.");
+    if ((parent.children || []).some((child) =>
+      child.directory && child.name?.toLocaleLowerCase("fr") === folderName.toLocaleLowerCase("fr")
+    )) {
+      throw new Error("Un dossier portant ce nom existe déjà à cet emplacement.");
+    }
+
+    const folder = await parent.mkdir({ name: folderName });
+    if (!folder?.directory) throw new Error("MEGA n’a pas confirmé la création du dossier.");
+    if (!parent.children.includes(folder)) parent.children.push(folder);
+    folder.parent = parent;
+    const library = await refreshMegaLibraryFromDrive();
+    const expectedParentPath = parentPath === "__root__" ? "" : String(parentPath);
+    const created = library.folders.find((entry) =>
+      entry.parentPath === expectedParentPath && entry.name === folderName
+    );
+    if (!created) throw new Error("Le dossier a été créé dans MEGA, mais il n’a pas pu être rechargé dans l’arborescence.");
+    return created;
+  },
   async moveFiles(ids, destinationPath) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de déplacer un fichier.");
     const destination = folderNodesByPath.get(String(destinationPath));
