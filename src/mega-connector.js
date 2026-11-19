@@ -563,32 +563,40 @@ function releaseAllThumbnails() {
   thumbnailRequests.clear();
 }
 
-function buildLibrary(root) {
+function buildLibrary(root, trashRoot = storage?.trash) {
   const folders = [];
   const files = [];
   filesById = new Map();
   folderNodesByPath = new Map([["__root__", root]]);
+  if (trashRoot) folderNodesByPath.set("__trash__", trashRoot);
   cacheKeysByFile = new WeakMap();
   let nextFileId = 1;
   let nextFolderId = 1;
 
-  function visit(directory, parentPath = "", parentDisplayPath = "") {
+  function visit(directory, parentPath = "", parentDisplayPath = "", isTrash = false) {
+    if (!directory || !directory.children) return;
     for (const node of directory.children || []) {
       const name = node.name || "Sans nom";
       if (node.directory) {
         const nodeId = node.nodeId || `folder-${nextFolderId++}`;
-        const path = parentPath ? `${parentPath}/${nodeId}` : nodeId;
+        const path = isTrash
+          ? (parentPath ? `${parentPath}/${nodeId}` : `__trash__/${nodeId}`)
+          : (parentPath ? `${parentPath}/${nodeId}` : nodeId);
+        const folderParent = isTrash
+          ? (parentPath || "__trash__")
+          : parentPath;
         const displayPath = parentDisplayPath ? `${parentDisplayPath}/${name}` : name;
         folders.push({
           path,
-          parentPath,
+          parentPath: folderParent,
           name,
           displayPath,
-          color: "#e9f1e6",
-          emoji: "▰"
+          color: isTrash ? "#f3e8e8" : "#e9f1e6",
+          emoji: isTrash ? "🗑" : "▰",
+          trashed: isTrash
         });
         folderNodesByPath.set(path, node);
-        visit(node, path, displayPath);
+        visit(node, path, displayPath, isTrash);
         continue;
       }
 
@@ -597,20 +605,21 @@ function buildLibrary(root) {
       if (!type) continue;
 
       const id = nextFileId++;
-      const cacheKey = storage.user && node.nodeId
+      const cacheKey = storage?.user && node.nodeId
         ? `${storage.user}:${node.nodeId}:${node.timestamp || 0}:${node.size || 0}`
         : null;
       const record = {
         id,
         fileKey: String(node.nodeId || id),
         title: name,
-        folder: parentDisplayPath || "Mon drive",
-        folderPath: parentPath,
+        folder: parentDisplayPath || (isTrash ? "Corbeille" : "Mon drive"),
+        folderPath: isTrash ? (parentPath || "__trash__") : parentPath,
         timestamp: getTimestamp(node),
         date: formatDate(node),
         size: formatSize(Number(node.size)),
         type,
-        favorite: Boolean(node.favorited)
+        favorite: Boolean(node.favorited),
+        trashed: isTrash
       };
       files.push(record);
       filesById.set(id, node);
@@ -618,7 +627,10 @@ function buildLibrary(root) {
     }
   }
 
-  visit(root);
+  visit(root, "", "", false);
+  if (trashRoot) {
+    visit(trashRoot, "", "", true);
+  }
   return { files, folders };
 }
 
@@ -651,7 +663,7 @@ function forgetMegaSession() {
 
 function displayConnectedLibrary(candidate) {
   storage = candidate;
-  const library = buildLibrary(storage.root);
+  const library = buildLibrary(storage.root, storage.trash);
   window.megaGallery.setLibrary({
     ...library,
     accountName: storage.name || storage.email
@@ -694,7 +706,7 @@ async function refreshMegaLibraryFromDrive() {
 
   storage = candidate;
   closeStorageLocally(previousStorage);
-  const library = buildLibrary(candidate.root);
+  const library = buildLibrary(candidate.root, candidate.trash);
   window.megaGallery.refreshLibrary(library);
   await updateCacheStatus();
   return library;
@@ -1006,7 +1018,7 @@ window.megaConnector = {
       }
     }
 
-    if (moved.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    if (moved.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
     return { moved, failed };
   },
   async moveFile(id, destinationPath) {
@@ -1040,7 +1052,7 @@ window.megaConnector = {
       }
     }
 
-    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
     return { succeeded, failed };
   },
   async deleteFiles(ids) {
@@ -1056,15 +1068,23 @@ window.megaConnector = {
     for (const file of files) {
       const previousParent = file.parent;
       try {
-        await file.delete(false);
-        if (previousParent && previousParent !== storage.trash) {
-          let previousIndex;
-          while ((previousIndex = previousParent.children?.indexOf(file) ?? -1) >= 0) {
-            previousParent.children.splice(previousIndex, 1);
+        const inTrash = file.parent === storage.trash || file.trashed;
+        await file.delete(inTrash ? true : false);
+        if (inTrash) {
+          if (storage.trash?.children) {
+            const idx = storage.trash.children.indexOf(file);
+            if (idx >= 0) storage.trash.children.splice(idx, 1);
           }
+        } else {
+          if (previousParent && previousParent !== storage.trash) {
+            let previousIndex;
+            while ((previousIndex = previousParent.children?.indexOf(file) ?? -1) >= 0) {
+              previousParent.children.splice(previousIndex, 1);
+            }
+          }
+          if (storage.trash?.children && !storage.trash.children.includes(file)) storage.trash.children.push(file);
+          file.parent = storage.trash;
         }
-        if (storage.trash?.children && !storage.trash.children.includes(file)) storage.trash.children.push(file);
-        file.parent = storage.trash;
         succeeded.push({ fileKey: String(file.nodeId), title: file.name });
       } catch (error) {
         failed.push({
@@ -1075,8 +1095,42 @@ window.megaConnector = {
       }
     }
 
-    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root));
+    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
     return { succeeded, failed };
+  },
+  async emptyTrash() {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de vider la corbeille.");
+    const trash = storage.trash;
+    if (!trash) throw new Error("La corbeille MEGA est introuvable.");
+    const items = [...(trash.children || [])];
+    if (!items.length) {
+      return { count: 0 };
+    }
+    let count = 0;
+    const errors = [];
+    for (const item of items) {
+      try {
+        await item.delete(true);
+        if (trash.children) {
+          const index = trash.children.indexOf(item);
+          if (index >= 0) trash.children.splice(index, 1);
+        }
+        count++;
+      } catch (err) {
+        console.error("Échec de la suppression définitive d’un élément de la corbeille :", item.name, err);
+        errors.push(item.name);
+      }
+    }
+    try {
+      await refreshMegaLibraryFromDrive();
+    } catch (refreshErr) {
+      console.warn("Actualisation après vidage de corbeille :", refreshErr);
+      window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
+    }
+    if (errors.length) {
+      throw new Error(`Certains éléments n’ont pas pu être supprimés (${errors.join(", ")}).`);
+    }
+    return { count };
   },
   async downloadPreview(id) {
     const file = filesById.get(Number(id));

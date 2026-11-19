@@ -170,27 +170,37 @@
       border-bottom: 1px solid var(--line); background: var(--canvas);
     }
     .topbar-left { min-width: 0; display: flex; align-items: center; }
-    .topbar-search { width: min(520px, 42vw); min-width: 220px; flex: 1 1 520px; padding: 12px 14px; }
+    .topbar-search { width: min(520px, 42vw); min-width: 220px; flex: 1 1 520px; height: 36px; padding: 0 13px; }
     .breadcrumb { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
     .breadcrumb-link { padding: 3px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; font-size: inherit; white-space: nowrap; }
     .breadcrumb-link:hover { color: var(--green-dark); text-decoration: underline; }
     .breadcrumb-current { overflow: hidden; color: var(--ink); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-    .top-actions { display: flex; align-items: center; gap: 10px; }
-    .connection {
-      display: flex; align-items: center; gap: 7px; padding: 7px 10px; color: var(--connected-text);
-      border: 1px solid var(--connected-border); border-radius: 20px; background: var(--connected-background); font-size: 11px;
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .connection-button {
+      height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 13px;
+      color: var(--control-text); border: 1px solid var(--line); border-radius: 9px;
+      background: var(--paper); font-size: 12px; font-weight: 580; cursor: pointer; white-space: nowrap;
+      transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
     }
-    .connection.offline { color: var(--offline-text); border-color: var(--offline-border); background: var(--offline-background); }
-    .connection.disconnected { color: var(--disconnected-text); border-color: var(--line); background: var(--paper); }
-    .connection.connected { color: var(--connected-text); border-color: var(--connected-border); background: var(--connected-background); }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #61a36c; }
+    .connection-button:hover { background: var(--surface-hover); color: var(--ink); }
+    .connection-button.offline { color: var(--offline-text); border-color: var(--offline-border); background: var(--offline-background); }
+    .connection-button.disconnected { color: var(--control-text); border-color: var(--line); background: var(--paper); }
+    .connection-button.connected { color: var(--connected-text); border-color: var(--connected-border); background: var(--connected-background); }
+    .connection-button.connected .action-text { display: none; }
+    .connection-button.connected:hover { border-color: #bd4d4d66; background: #bd4d4d12; color: #bd4d4d; }
+    .connection-button.connected:hover .status-dot { background: #bd4d4d; box-shadow: 0 0 0 2px #bd4d4d2e; }
+    .connection-button.connected:hover .status-text { display: none; }
+    .connection-button.connected:hover .action-text { display: inline; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #a5aaa3; flex-shrink: 0; transition: background .15s; }
     .offline .status-dot { background: #d29a43; }
     .disconnected .status-dot { background: #a5aaa3; }
-    .connected .status-dot { background: #61a36c; }
+    .connected .status-dot { background: #61a36c; box-shadow: 0 0 0 2px #61a36c2e; }
     .icon-button, .mobile-menu {
-      width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid var(--line);
-      border-radius: 9px; background: var(--paper); cursor: pointer;
+      width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line);
+      border-radius: 9px; background: var(--paper); cursor: pointer; color: var(--control-text);
+      transition: background .15s, border-color .15s, color .15s;
     }
+    .icon-button:hover, .mobile-menu:hover { background: var(--surface-hover); color: var(--ink); }
     .icon-button .icon, .mobile-menu .icon { width: 18px; height: 18px; }
     .search > .icon { width: 19px; height: 19px; flex: 0 0 19px; }
     .mobile-menu { display: none; }
@@ -220,21 +230,18 @@
     .section-heading h2 { margin: 0; font-size: 15px; letter-spacing: -.3px; }
     .section-heading .subtle { color: var(--muted); font-size: 11px; }
     .folder-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 670; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 24px 0 14px; }
-    .toolbar h2 { margin: 0; font-size: 15px; }
-    .toolbar-right { display: flex; align-items: center; gap: 8px; }
     .search {
-      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-      border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--muted);
+      display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 36px;
+      border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--muted);
     }
     .search input { width: 100%; min-width: 0; padding: 0; outline: 0; border: 0; background: transparent; color: var(--ink); font-size: 11px; }
-    .topbar-search input { font-size: 14px; }
+    .topbar-search input { font-size: 13px; }
     .search input::placeholder { color: #a1a59f; }
     .select {
       padding: 8px 25px 8px 10px; color: var(--control-text); border: 1px solid var(--line); border-radius: 8px;
       outline: 0; background: var(--paper); font-size: 11px; cursor: pointer;
     }
-    .photo-grid { position: relative; display: grid; flex: 1; align-content: start; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 126px) / 10)), 1fr)); gap: 14px; }
+    .photo-grid { position: relative; display: grid; flex: 1; align-content: start; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 126px) / 10)), 1fr)); gap: 14px; padding-top: 24px; }
     .photo-grid.is-selecting { user-select: none; cursor: crosshair; }
     .photo-grid.is-selecting .photo-cover { cursor: crosshair; }
     .selection-marquee { position: absolute; z-index: 3; border: 1px solid var(--green); background: var(--selection-fill); pointer-events: none; }
@@ -264,12 +271,11 @@
       background: #17201987; font-size: 9px; backdrop-filter: blur(7px);
     }
     .favorite {
-      position: absolute; top: 8px; right: 8px; width: 29px; height: 29px; display: grid; place-items: center;
-      color: #343a34; border: 1px solid #ffffff8a; border-radius: 50%; background: #ffffffdc; cursor: pointer; font-size: 15px;
+      position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: grid; place-items: center;
+      color: #c34e50; border: 1px solid #ffffffaa; border-radius: 50%; background: #ffffffeb;
+      pointer-events: none; user-select: none; box-shadow: 0 2px 6px #0002;
     }
-    .favorite .icon { width: 16px; height: 16px; }
-    .favorite.is-favorite { color: #c34e50; }
-    .favorite.is-favorite .icon { fill: currentColor; }
+    .favorite .icon { width: 15px; height: 15px; fill: currentColor; }
     .photo-info { padding: 10px 11px 9px; }
     .photo-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .photo-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; }
@@ -293,8 +299,14 @@
     .context-menu button:hover,
     .context-menu button:focus-visible { outline: 0; background: var(--surface-hover); }
     .context-menu button .icon { width: 16px; height: 16px; flex: 0 0 16px; color: var(--muted); }
-    .context-menu .danger { margin-top: 5px; padding-top: 10px; border-top: 1px solid var(--line); color: #bd4d4d; }
+    .context-menu .danger { color: #bd4d4d; }
+    .context-menu .danger:not(:first-child) { margin-top: 5px; padding-top: 10px; border-top: 1px solid var(--line); }
     .context-menu .danger .icon { color: inherit; }
+    .context-menu button.is-active { color: var(--green-dark); font-weight: 650; }
+    .context-menu button.is-active .icon { color: var(--green); }
+    .context-menu-divider { height: 1px; margin: 5px 0; background: var(--line); }
+    .context-menu-label { padding: 6px 9px 3px; color: var(--nav-muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+    .context-menu .icon-placeholder { width: 16px; height: 16px; flex: 0 0 16px; display: inline-block; }
     @keyframes menu-in { from { opacity: 0; transform: translateY(-3px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: #141815df; backdrop-filter: blur(5px); }
     .viewer { width: min(960px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ffffff29; border-radius: 14px; background: #171b18; }
@@ -374,7 +386,7 @@
     :root[data-theme="dark"] .demo-note { color: var(--muted); }
     :root[data-theme="dark"] .folder-icon { color: #fff; }
     :root[data-theme="dark"] .avatar { color: #e2c6af; background: #4b3b31; }
-    :root[data-theme="dark"] .favorite { color: #28302a; border-color: #ffffff70; background: #f0f3f0e8; }
+    :root[data-theme="dark"] .favorite { color: #e25c5f; border-color: #ffffff2e; background: #222924ea; box-shadow: 0 2px 6px #0006; }
     :root[data-theme="dark"] .remote-file-placeholder { color: #a7c7ad; background: linear-gradient(140deg, #293d30, #28332d 55%, #3b392e); }
     :root[data-theme="dark"] .remote-file-placeholder span { color: #b2bcb3; }
     :root[data-theme="dark"] .mega-form [style*="color:#898d86"] { color: var(--muted) !important; }
@@ -392,9 +404,9 @@
       .topbar { height: auto; min-height: 63px; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
       .mobile-menu { display: grid; margin-right: 9px; }
       .topbar-left { display: flex; flex: 1; align-items: center; }
-      .topbar-search { width: 100%; min-width: 0; max-width: none; flex: 0 0 100%; order: 3; padding: 10px 12px; }
-      .connection { padding: 7px 8px; font-size: 0; }
-      .connection .status-dot { margin: 0; }
+      .topbar-search { width: 100%; min-width: 0; max-width: none; flex: 0 0 100%; order: 3; padding: 0 12px; height: 35px; }
+      .connection-button { height: 35px; padding: 0 10px; font-size: 11px; }
+      .icon-button, .mobile-menu { width: 35px; height: 35px; }
       .top-actions { gap: 7px; }
       .intro { align-items: flex-start; padding: 25px 0 19px; }
       .intro .button { padding: 9px 10px; font-size: 11px; }
@@ -404,14 +416,16 @@
       .stat-icon { width: 29px; height: 29px; font-size: 14px; }
       .stat-value { font-size: 14px; }
       .stat-label { font-size: 9px; }
-      .toolbar { align-items: flex-start; flex-direction: column; }
-      .toolbar-right { width: auto; }
       .search { width: 100%; flex: 1; }
       .select { max-width: 120px; }
       .photo-grid { row-gap: 9px; }
       .photo-cover { aspect-ratio: 1.1; }
       .photo-info { padding: 8px; }
       .photo-meta { font-size: 8px; }
+    }
+    @media (max-width: 460px) {
+      .connection-button .btn-text { display: none; }
+      .connection-button { width: 35px; padding: 0; justify-content: center; }
     }
     @media (max-width: 390px) {
       .intro { gap: 8px; }
@@ -455,6 +469,7 @@
         <button class="nav-item" data-view="favorites"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-heart"></use></svg></span>Favoris<span class="nav-count" id="favorite-count"></span></button>
         <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
         <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
+        <button class="nav-item" data-view="trash" id="nav-trash"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span>Corbeille<span class="nav-count" id="trash-count"></span></button>
         <div class="nav-label" id="folder-nav-label">Dossiers (exemple)</div>
         <div id="folder-nav" aria-label="Dossiers"></div>
       </nav>
@@ -481,22 +496,11 @@
         </div>
         <label class="search topbar-search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
         <div class="top-actions">
-          <button class="connection disconnected" id="connection" title="État de la connexion MEGA"><span class="status-dot"></span><span id="connection-label">Mode démonstration</span></button>
+          <button class="connection-button disconnected" id="mega-connect" type="button" title="Mode démonstration — Cliquer pour se connecter à MEGA"><span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span></button>
           <button class="icon-button" id="theme-toggle" type="button" aria-label="Activer le thème sombre" aria-pressed="false" title="Activer le thème sombre"><svg class="icon" aria-hidden="true"><use href="#icon-moon"></use></svg></button>
-          <button class="button small secondary" id="mega-connect">Connexion MEGA</button>
         </div>
       </header>
       <section>
-        <div class="toolbar">
-          <h2 id="media-heading">Récemment ajoutés</h2>
-          <div class="toolbar-right">
-            <select class="select" id="sort" aria-label="Trier les médias">
-              <option value="recent">Plus récents</option>
-              <option value="name">Nom A–Z</option>
-              <option value="oldest">Plus anciens</option>
-            </select>
-          </div>
-        </div>
         <div class="photo-grid" id="photo-grid"></div>
       </section>
       <p class="demo-note">Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.</p>
@@ -581,6 +585,32 @@
     let mediaPageSize = 120;
     let mediaLoadObserver = null;
     let toastTimer = null;
+    let currentSort = "recent";
+    try {
+      const savedSort = localStorage.getItem("mega-gallery-sort");
+      if (savedSort === "name" || savedSort === "oldest" || savedSort === "recent") {
+        currentSort = savedSort;
+      }
+    } catch (error) {
+      console.warn("La préférence de tri n’a pas pu être lue.", error);
+    }
+    function setSort(sort) {
+      if (!sort || (sort !== "recent" && sort !== "name" && sort !== "oldest")) return;
+      currentSort = sort;
+      try {
+        localStorage.setItem("mega-gallery-sort", sort);
+      } catch (error) {
+        console.error("La préférence de tri n’a pas pu être mémorisée.", error);
+      }
+      mediaPageSize = 120;
+      renderMedia();
+      const sortLabels = {
+        recent: "Plus récents",
+        name: "Nom A–Z",
+        oldest: "Plus anciens"
+      };
+      showToast(`Tri : ${sortLabels[sort] || sort}`);
+    }
 
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -697,7 +727,7 @@
       $("#folder-nav-label").textContent = megaConnected ? "Dossiers" : "Dossiers (exemple)";
       const renderFolderTree = (folder, source = folders) => {
         const children = megaConnected
-          ? source.filter((entry) => entry.parentPath === folder.path).sort(compareFoldersByName)
+          ? source.filter((entry) => !entry.trashed && entry.parentPath === folder.path).sort(compareFoldersByName)
           : [];
         const key = megaConnected ? folder.path : folder.name;
         const expanded = expandedFolderPaths.has(key);
@@ -714,7 +744,7 @@
             ${expanded ? `<div class="folder-children">${children.map((child) => renderFolderTree(child, source)).join("")}</div>` : ""}
           </div>`;
       };
-      const rootFolders = folders.filter((folder) => !folder.parentPath).sort(compareFoldersByName);
+      const rootFolders = folders.filter((folder) => !folder.trashed && !folder.parentPath).sort(compareFoldersByName);
       const rootKey = "__root__";
       const rootExpanded = expandedFolderPaths.has(rootKey);
       const cloudRoot = megaConnected
@@ -724,7 +754,7 @@
                 ? `<button class="folder-toggle" type="button" data-folder-toggle="${rootKey}" aria-label="${rootExpanded ? "Replier" : "Déplier"} Mon Drive" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
                 : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
               <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === rootKey && !$("#search").value.trim() ? "active" : ""}" data-folder="${rootKey}">
-                ${icon("folder", "icon folder-icon")}<span class="folder-title">Mon Drive</span><span class="nav-count">${media.filter((item) => !item.folderPath).length}</span>
+                ${icon("folder", "icon folder-icon")}<span class="folder-title">Mon Drive</span><span class="nav-count">${media.filter((item) => !item.trashed && !item.folderPath).length}</span>
               </button>
             </div>
             ${rootExpanded ? `<div class="folder-children">${rootFolders.map((folder) => renderFolderTree(folder, folders)).join("")}</div>` : ""}
@@ -734,9 +764,17 @@
     }
     function visibleMedia() {
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
-      const sort = $("#sort").value;
+      const sort = currentSort;
       const globalSearch = megaConnected && Boolean(query);
       let items = media.filter((item) => {
+        if (currentView === "trash") {
+          const inTrash = Boolean(item.trashed);
+          if (!inTrash) return false;
+          if (query) return `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query);
+          const targetParent = currentFolder || "__trash__";
+          return item.folderPath === targetParent;
+        }
+        if (item.trashed) return false;
         const matchesView = globalSearch || currentView === "all" ||
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
@@ -758,9 +796,16 @@
     }
     function visibleSubfolders() {
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
-      if (!megaConnected || currentView !== "folder" || query) return [];
+      if (query) return [];
+      if (currentView === "trash") {
+        const targetParent = currentFolder || "__trash__";
+        return folders
+          .filter((folder) => folder.trashed && folder.parentPath === targetParent)
+          .sort(compareFoldersByName);
+      }
+      if (!megaConnected || currentView !== "folder") return [];
       return folders
-        .filter((folder) => folder.parentPath === (currentFolder === "__root__" ? "" : currentFolder))
+        .filter((folder) => !folder.trashed && folder.parentPath === (currentFolder === "__root__" ? "" : currentFolder))
         .sort(compareFoldersByName);
     }
     function folderCoverMedia(folder) {
@@ -778,7 +823,7 @@
       const subfolders = visibleSubfolders();
       const grid = $("#photo-grid");
       if (!items.length && !subfolders.length) {
-        grid.innerHTML = `<div class="empty-state">Aucun média trouvé. Essayez une autre recherche.</div>`;
+        grid.innerHTML = `<div class="empty-state">${currentView === "trash" ? "La corbeille est vide." : "Aucun média trouvé. Essayez une autre recherche."}</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
@@ -806,7 +851,7 @@
               ? `<img class="remote-thumbnail" data-thumbnail="${item.id}" alt="${escapeHtml(item.title)}" loading="lazy">`
               : `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy">`}
             ${item.type === "video" ? `<span class="photo-type">${icon("play")} ${escapeHtml(item.duration || "Vidéo")}</span>` : ""}
-            ${megaConnected ? "" : `<button class="favorite ${item.favorite ? "is-favorite" : ""}" data-favorite="${item.id}" aria-label="${item.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("heart")}</button>`}
+            ${item.favorite ? `<span class="favorite" aria-hidden="true">${icon("heart")}</span>` : ""}
           </div>
           <div class="photo-info">
             <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? "" : `<button class="more-button" data-menu="${item.id}" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>`}</div>
@@ -832,25 +877,46 @@
       return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
     }
     function render() {
-      const photos = media.filter((item) => item.type === "photo").length;
-      const videos = media.length - photos;
-      const favorites = media.filter((item) => item.favorite).length;
+      const activeMedia = media.filter((item) => !item.trashed);
+      const trashMedia = media.filter((item) => item.trashed);
+      const trashFolders = folders.filter((folder) => folder.trashed);
+      const photos = activeMedia.filter((item) => item.type === "photo").length;
+      const videos = activeMedia.length - photos;
+      const favorites = activeMedia.filter((item) => item.favorite).length;
       $("#favorite-count").textContent = favorites || "";
       $("#photo-count").textContent = photos || "";
       $("#video-count").textContent = videos || "";
-      $("#all-count").textContent = media.length;
+      $("#all-count").textContent = activeMedia.length;
+      const trashCountEl = $("#trash-count");
+      if (trashCountEl) trashCountEl.textContent = (trashMedia.length + trashFolders.length) || "";
       renderFolders();
       renderMedia();
       const globalSearchActive = megaConnected && Boolean($("#search").value.trim());
       $("#search").placeholder = megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
       $("#search").setAttribute("aria-label", megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
-      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", folder: currentFolder };
+      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", folder: currentFolder };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
         (megaConnected ? folder.path : folder.name) === currentFolder
       ));
       const breadcrumbParts = [];
-      if (currentView === "folder" && megaConnected) {
+      if (currentView === "trash" && currentFolder) {
+        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="trash">Corbeille</button>`);
+        const ancestors = [];
+        let current = folders.find((folder) => folder.path === currentFolder);
+        while (current && current.path !== "__trash__") {
+          ancestors.unshift(current);
+          current = folders.find((folder) => folder.path === current.parentPath);
+        }
+        ancestors.forEach((folder, index) => {
+          const isCurrent = index === ancestors.length - 1;
+          breadcrumbParts.push(
+            `<span aria-hidden="true">/</span>${isCurrent
+              ? `<span class="breadcrumb-current" aria-current="page">${escapeHtml(folder.name)}</span>`
+              : `<button type="button" class="breadcrumb-link" data-open-folder="${escapeHtml(folder.path)}">${escapeHtml(folder.name)}</button>`}`
+          );
+        });
+      } else if (currentView === "folder" && megaConnected) {
         const ancestors = [];
         let current = folders.find((folder) => folder.path === currentFolder);
         while (current) {
@@ -876,11 +942,6 @@
         breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
       }
       $("#breadcrumb").innerHTML = breadcrumbParts.join("");
-      $("#media-heading").textContent = globalSearchActive
-        ? "Résultats dans tout le drive"
-        : currentView === "folder"
-        ? (isCloudRoot ? "Mon Drive" : selectedFolder?.name || "Dossier")
-        : currentView === "all" ? "Récemment ajoutés" : labels[currentView];
       document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", !globalSearchActive && button.dataset.view === currentView));
     }
     function openViewer(id, launchSlideshow = false, keepSlideshow = false) {
@@ -994,6 +1055,124 @@
       menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`;
       menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
     }
+    async function handleEmptyTrash() {
+      const trashedCount = media.filter((item) => item.trashed).length + folders.filter((f) => f.trashed).length;
+      if (trashedCount === 0) {
+        showToast("La corbeille est déjà vide.");
+        return;
+      }
+      if (!window.confirm(`Voulez-vous vraiment vider la corbeille (${trashedCount} élément${trashedCount > 1 ? "s" : ""}) ? Cette action est irréversible.`)) {
+        return;
+      }
+      if (megaConnected) {
+        try {
+          showToast("Vidage de la corbeille en cours…");
+          const result = await window.megaConnector.emptyTrash();
+          currentFolder = null;
+          showToast(`Corbeille vidée (${result.count} élément${result.count > 1 ? "s" : ""} supprimé${result.count > 1 ? "s" : ""}).`);
+        } catch (error) {
+          console.error("Échec du vidage de la corbeille MEGA.", error);
+          showToast(error instanceof Error ? error.message : "Impossible de vider la corbeille MEGA.");
+        }
+      } else {
+        media = media.filter((item) => !item.trashed);
+        folders = folders.filter((f) => !f.trashed);
+        currentFolder = null;
+        persist();
+        render();
+        showToast("Corbeille vidée.");
+      }
+    }
+    function openTrashContextMenu(position) {
+      closeMenu();
+      const menu = document.createElement("div");
+      menu.className = "context-menu";
+      menu.setAttribute("role", "menu");
+      menu.innerHTML = `<button type="button" role="menuitem" class="danger" data-trash-action="empty">${icon("trash")}<span>Vider la corbeille</span></button>`;
+      menu.addEventListener("click", async (event) => {
+        const action = event.target.closest("[data-trash-action]")?.dataset.trashAction;
+        if (action === "empty") {
+          closeMenu();
+          await handleEmptyTrash();
+        }
+      });
+      $("#menu-root").append(menu);
+      activeContextMenu = menu;
+      const bounds = menu.getBoundingClientRect();
+      menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`;
+      menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
+    }
+    function openGalleryContextMenu(parentPath, position) {
+      closeMenu();
+      const menu = document.createElement("div");
+      menu.className = "context-menu";
+      menu.setAttribute("role", "menu");
+      let itemsHtml = "";
+      if (currentView === "trash") {
+        itemsHtml += `<button type="button" role="menuitem" class="danger" data-folder-action="empty-trash">${icon("trash")}<span>Vider la corbeille</span></button><div class="context-menu-divider" role="separator"></div>`;
+      } else if (megaConnected) {
+        itemsHtml += `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button><div class="context-menu-divider" role="separator"></div>`;
+      }
+      itemsHtml += `
+        <div class="context-menu-label">Trier par</div>
+        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'recent'}" class="${currentSort === 'recent' ? 'is-active' : ''}" data-sort="recent">
+          ${currentSort === "recent" ? icon("check") : '<span class="icon-placeholder"></span>'}
+          <span>Plus récents</span>
+        </button>
+        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'name'}" class="${currentSort === 'name' ? 'is-active' : ''}" data-sort="name">
+          ${currentSort === "name" ? icon("check") : '<span class="icon-placeholder"></span>'}
+          <span>Nom A–Z</span>
+        </button>
+        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'oldest'}" class="${currentSort === 'oldest' ? 'is-active' : ''}" data-sort="oldest">
+          ${currentSort === "oldest" ? icon("check") : '<span class="icon-placeholder"></span>'}
+          <span>Plus anciens</span>
+        </button>
+      `;
+      menu.innerHTML = itemsHtml;
+      menu.addEventListener("click", async (event) => {
+        const sortButton = event.target.closest("[data-sort]");
+        if (sortButton) {
+          closeMenu();
+          setSort(sortButton.dataset.sort);
+          return;
+        }
+        const actionButton = event.target.closest("[data-folder-action]");
+        if (actionButton) {
+          const action = actionButton.dataset.folderAction;
+          closeMenu();
+          if (action === "empty-trash") {
+            await handleEmptyTrash();
+            return;
+          }
+          try {
+            if (action === "upload") {
+              if (uploadInProgress) {
+                showToast("Un envoi de fichiers est déjà en cours.");
+                return;
+              }
+              uploadTargetPath = parentPath;
+              const input = $("#upload-files");
+              input.value = "";
+              input.click();
+            } else if (action === "create") {
+              const name = window.prompt("Nom du nouveau dossier :");
+              if (name === null) return;
+              const created = await window.megaConnector.createFolder(parentPath, name);
+              refreshFolderNavigation("create", created);
+              showToast(`Dossier « ${created.name} » créé dans MEGA.`);
+            }
+          } catch (error) {
+            console.error(`Échec de l’action « ${action} » sur un dossier MEGA.`, error);
+            showToast(error instanceof Error ? error.message : "Impossible de modifier ce dossier dans MEGA.");
+          }
+        }
+      });
+      $("#menu-root").append(menu);
+      activeContextMenu = menu;
+      const bounds = menu.getBoundingClientRect();
+      menu.style.top = `${Math.max(8, Math.min(position.y, window.innerHeight - bounds.height - 8))}px`;
+      menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
+    }
     $("#upload-files").addEventListener("change", async (event) => {
       const input = event.currentTarget;
       const selectedFiles = Array.from(input.files || []);
@@ -1061,9 +1240,10 @@
         });
       };
       const renderFolderTree = () => {
-        foldersByPath = new Map(folders.map((folder) => [folder.path, folder]));
+        const availableFolders = folders.filter((folder) => !folder.trashed);
+        foldersByPath = new Map(availableFolders.map((folder) => [folder.path, folder]));
         childrenByParent = new Map();
-        for (const folder of folders) {
+        for (const folder of availableFolders) {
           const siblings = childrenByParent.get(folder.parentPath) || [];
           siblings.push(folder);
           childrenByParent.set(folder.parentPath, siblings);
@@ -1072,7 +1252,7 @@
         const query = searchInput.value.trim().toLocaleLowerCase("fr");
         const includedPaths = new Set();
         if (query) {
-          for (const folder of folders) {
+          for (const folder of availableFolders) {
             if (!folder.displayPath.toLocaleLowerCase("fr").includes(query)) continue;
             let current = folder;
             while (current) {
@@ -1375,7 +1555,8 @@
     photoGrid.addEventListener("dragstart", (event) => {
       if (activeSelection) event.preventDefault();
     });
-    $("main > section").addEventListener("contextmenu", (event) => {
+    $("main").addEventListener("contextmenu", (event) => {
+      if (event.target.closest(".topbar")) return;
       const cover = event.target.closest(".photo-cover[data-open]");
       if (cover) {
         const item = media.find((entry) => entry.id === Number(cover.dataset.open));
@@ -1394,12 +1575,10 @@
         });
         return;
       }
-      if (!megaConnected || event.target.closest(".photo-card")) return;
+      if (event.target.closest(".photo-card, .folder-card")) return;
       event.preventDefault();
       const parentPath = currentView === "folder" ? currentFolder : "__root__";
-      openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
-        onChanged: refreshFolderNavigation
-      });
+      openGalleryContextMenu(parentPath, { x: event.clientX, y: event.clientY });
     });
     $("#folder-nav").addEventListener("contextmenu", (event) => {
       const folder = event.target.closest("[data-folder]");
@@ -1410,6 +1589,12 @@
         folderPath: parentPath === "__root__" ? null : parentPath,
         onChanged: refreshFolderNavigation
       });
+    });
+    $("#sidebar").addEventListener("contextmenu", (event) => {
+      const trashItem = event.target.closest('[data-view="trash"]');
+      if (!trashItem) return;
+      event.preventDefault();
+      openTrashContextMenu({ x: event.clientX, y: event.clientY });
     });
 
     function updateThemeButton() {
@@ -1538,9 +1723,15 @@
       const folder = event.target.closest("[data-folder], [data-open-folder]");
       if (folder) {
         mediaPageSize = 120;
-        currentView = "folder";
-        currentFolder = folder.dataset.folder || folder.dataset.openFolder;
-        if (megaConnected) expandFolderAncestors(currentFolder);
+        const targetPath = folder.dataset.folder || folder.dataset.openFolder;
+        if (currentView === "trash" || targetPath.startsWith("__trash__")) {
+          currentView = "trash";
+          currentFolder = targetPath;
+        } else {
+          currentView = "folder";
+          currentFolder = targetPath;
+          if (megaConnected) expandFolderAncestors(currentFolder);
+        }
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
       }
       const favorite = event.target.closest("[data-favorite]");
@@ -1583,9 +1774,23 @@
       }
     });
     $("#search").addEventListener("input", () => { mediaPageSize = 120; render(); });
-    $("#sort").addEventListener("change", () => { mediaPageSize = 120; renderMedia(); });
     $("#mobile-menu").addEventListener("click", () => { $("#sidebar").classList.add("open"); $("#scrim").classList.add("visible"); });
     $("#scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); });
+    function updateConnectionUI(status = megaConnected ? "connected" : "disconnected") {
+      const btn = $("#mega-connect");
+      if (!btn) return;
+      btn.className = `connection-button ${status}`;
+      if (status === "connected") {
+        btn.title = "Connecté à MEGA — Cliquer pour vous déconnecter";
+        btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label"><span class="status-text">MEGA connecté</span><span class="action-text">Déconnexion</span></span>`;
+      } else if (status === "offline") {
+        btn.title = "Hors ligne — Cliquer pour vous reconnecter";
+        btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Hors ligne</span>`;
+      } else {
+        btn.title = "Mode démonstration — Cliquer pour se connecter à MEGA";
+        btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span>`;
+      }
+    }
     window.megaGallery = {
       setLibrary({ files, folders: remoteFolders }) {
         window.megaConnector.releaseAllThumbnails();
@@ -1597,9 +1802,7 @@
         currentView = "all";
         currentFolder = null;
         mediaPageSize = 120;
-        $("#connection").className = "connection connected";
-        $("#connection-label").textContent = "MEGA connecté";
-        $("#mega-connect").textContent = "Déconnexion";
+        updateConnectionUI("connected");
         $(".demo-note").textContent = "Glissez à la souris pour sélectionner plusieurs médias ; le clic droit ouvre les actions d’un média.";
         render();
       },
@@ -1619,9 +1822,7 @@
         expandedFolderPaths = new Set();
         currentView = "all";
         currentFolder = null;
-        $("#connection").className = "connection disconnected";
-        $("#connection-label").textContent = "Mode démonstration";
-        $("#mega-connect").textContent = "Connexion MEGA";
+        updateConnectionUI("disconnected");
         $(".demo-note").textContent = "Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.";
         render();
       },
