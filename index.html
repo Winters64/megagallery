@@ -141,16 +141,6 @@
     .nav-item.active { color: var(--green-dark); background: var(--green-soft); font-weight: 650; }
     .nav-icon { width: 18px; flex: 0 0 18px; opacity: .82; }
     .nav-count { margin-left: auto; color: var(--nav-muted); font-size: 11px; flex-shrink: 0; }
-    .tag-nav-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .folder-icon { width: 20px; height: 20px; flex: 0 0 20px; margin-left: 1px; color: #829987; }
-    .folder-tree-row { display: flex; align-items: center; }
-    .folder-toggle, .folder-toggle-placeholder { width: 24px; flex: 0 0 24px; }
-    .folder-toggle { display: grid; place-items: center; padding: 8px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; transition: color .16s; }
-    .folder-toggle:hover { color: var(--green-dark); }
-    .folder-toggle[aria-expanded="true"] { transform: rotate(90deg); }
-    .folder-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; border-radius: 4px; }
-    .folder-tree-row .folder-nav-item { min-width: 0; flex: 1; }
-    .folder-children { padding-left: 12px; margin-left: 11px; border-left: 1px solid var(--line); }
     .sidebar-bottom { margin-top: auto; }
     .storage-card { padding: 14px; margin: 0 5px 15px; border: 1px solid var(--line); border-radius: 12px; }
     .storage-top { display: flex; justify-content: space-between; font-size: 11px; font-weight: 650; }
@@ -232,7 +222,6 @@
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 25px 0 13px; }
     .section-heading h2 { margin: 0; font-size: 15px; letter-spacing: -.3px; }
     .section-heading .subtle { color: var(--muted); font-size: 11px; }
-    .folder-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 670; }
     .search {
       display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 36px;
       border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--muted);
@@ -248,16 +237,16 @@
     .photo-grid.is-selecting { user-select: none; cursor: crosshair; }
     .photo-grid.is-selecting .photo-cover { cursor: crosshair; }
     .selection-marquee { position: absolute; z-index: 3; border: 1px solid var(--green); background: var(--selection-fill); pointer-events: none; }
-    .folder-card { cursor: pointer; }
+    .folder-card { display: flex; flex-direction: column; cursor: pointer; }
     .folder-card:focus-within { outline: 2px solid var(--green); outline-offset: 2px; }
     .folder-cover { width: 100%; display: block; padding: 0; border: 0; background: var(--cover-placeholder); color: inherit; font: inherit; text-align: left; }
     .folder-cover::after { position: absolute; inset: 45% 0 0; content: ""; background: linear-gradient(transparent, #1015108c); pointer-events: none; }
     .folder-cover-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: var(--green); background: linear-gradient(140deg, var(--green-soft), var(--cover-placeholder)); }
     .folder-cover-placeholder .icon { width: 56px; height: 56px; opacity: .8; }
-    .folder-card .photo-info { background: var(--green); }
+    .folder-card .photo-info { flex: 1; background: var(--green); }
     .folder-card .photo-title { color: white; }
     .folder-card .photo-meta { color: #e8f2eb; }
-    .photo-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); transition: transform .18s, box-shadow .18s; }
+    .photo-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); transition: transform .18s, box-shadow .18s; }
     .photo-card:hover { transform: translateY(-3px); box-shadow: 0 13px 30px #23301f13; }
     .photo-grid.is-selecting .photo-card,
     .photo-grid.is-selecting .photo-card:hover { transform: none; box-shadow: none; transition: none; }
@@ -279,7 +268,7 @@
       pointer-events: none; user-select: none; box-shadow: 0 2px 6px #0002;
     }
     .favorite .icon { width: 15px; height: 15px; fill: currentColor; }
-    .photo-info { padding: 10px 11px 9px; }
+    .photo-info { flex: 1; padding: 10px 11px 9px; }
     .photo-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .photo-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; }
     .more-button { width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 auto; color: var(--muted); border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
@@ -452,7 +441,6 @@
     .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
     .viewer-video-player { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; border-radius: 0; background: #000; object-fit: contain; }
     :root[data-theme="dark"] .brand-sub { color: var(--muted); }
-    :root[data-theme="dark"] .folder-icon { color: #fff; }
     :root[data-theme="dark"] .avatar { color: #e2c6af; background: #4b3b31; }
     :root[data-theme="dark"] .favorite { color: #e25c5f; border-color: #ffffff2e; background: #222924ea; box-shadow: 0 2px 6px #0006; }
     :root[data-theme="dark"] .remote-file-placeholder { color: #a7c7ad; background: linear-gradient(140deg, #293d30, #28332d 55%, #3b392e); }
@@ -514,7 +502,6 @@
     @media (max-width: 390px) {
       .intro { gap: 8px; }
       .intro .button { padding: 9px 8px; }
-      .folder-title { font-size: 10px; }
       .photo-grid { row-gap: 7px; }
       .photo-title { font-size: 10px; }
     }
@@ -555,10 +542,12 @@
         <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
         <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
         <button class="nav-item" data-view="trash" id="nav-trash"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span>Corbeille<span class="nav-count" id="trash-count"></span></button>
-        <div class="nav-divider" id="library-tags-divider" role="separator" hidden></div>
-        <div id="tag-nav" aria-label="Mes tags"></div>
-        <div class="nav-divider" id="tags-folders-divider" role="separator" hidden></div>
-        <div id="folder-nav" aria-label="Dossiers"></div>
+        <div class="nav-divider" id="explorer-divider" role="separator" hidden></div>
+        <div id="explorer-nav" hidden>
+          <div class="nav-label">Explorer</div>
+          <button class="nav-item" data-view="folder-index" id="nav-folders" type="button"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-folder"></use></svg></span>Dossiers<span class="nav-count" id="folder-count"></span></button>
+          <button class="nav-item" data-view="tag-index" id="nav-tags" type="button"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-tag"></use></svg></span>Tags<span class="nav-count" id="explorer-tag-count"></span></button>
+        </div>
       </nav>
       <div class="sidebar-bottom">
         <div class="storage-card">
@@ -668,8 +657,6 @@
     }
     let media = [];
     let folders = [];
-    let expandedFolderPaths = new Set();
-    let expandedTagNavigation = true;
     let currentView = "all";
     let currentFolder = null;
     let currentTag = null;
@@ -795,26 +782,11 @@
         ? [localStatus, persistenceStatus, warning].filter(Boolean).join(" · ")
         : error || "Le navigateur n’a pas pu ouvrir le cache.";
     }
-    function getFolderCount(folder) {
-      if (!megaConnected) return media.filter((item) => item.folder === folder.name).length;
-      return media.filter((item) => item.folderPath === folder.path).length;
-    }
     function compareFoldersByName(first, second) {
       return first.name.localeCompare(second.name, "fr", { numeric: true, sensitivity: "base" });
     }
-    function expandFolderAncestors(path) {
-      expandedFolderPaths.add("__root__");
-      let currentPath = path === "__root__" ? "" : path;
-      while (currentPath) {
-        expandedFolderPaths.add(currentPath);
-        currentPath = folders.find((folder) => folder.path === currentPath)?.parentPath || "";
-      }
-    }
     function refreshFolderNavigation(action, folder) {
       if (action === "delete") {
-        expandedFolderPaths = new Set([...expandedFolderPaths].filter((path) =>
-          path !== folder.path && !path.startsWith(`${folder.path}/`)
-        ));
         if (currentView === "folder" && (
           currentFolder === folder.path || currentFolder.startsWith(`${folder.path}/`)
         )) {
@@ -822,48 +794,8 @@
           currentView = "folder";
           selectedMediaKeys.clear();
         }
-      } else {
-        expandFolderAncestors(action === "create" ? folder.path : folder.parentPath || "__root__");
       }
       render();
-    }
-    function renderFolders() {
-      const renderFolderTree = (folder, source = folders) => {
-        const children = megaConnected
-          ? source.filter((entry) => !entry.trashed && entry.parentPath === folder.path).sort(compareFoldersByName)
-          : [];
-        const key = megaConnected ? folder.path : folder.name;
-        const expanded = expandedFolderPaths.has(key);
-        return `
-          <div class="folder-tree-node">
-            <div class="folder-tree-row">
-              ${children.length
-                ? `<button class="folder-toggle" type="button" data-folder-toggle="${escapeHtml(key)}" aria-label="${expanded ? "Replier" : "Déplier"} le dossier ${escapeHtml(folder.name)}" aria-expanded="${expanded}">${icon("chevron")}</button>`
-                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
-              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === key && !(megaConnected && $("#search").value.trim()) ? "active" : ""}" data-folder="${escapeHtml(key)}">
-                ${icon("folder", "icon folder-icon")}<span class="folder-title">${escapeHtml(folder.name)}</span><span class="nav-count">${getFolderCount(folder)}</span>
-              </button>
-            </div>
-            ${expanded ? `<div class="folder-children">${children.map((child) => renderFolderTree(child, source)).join("")}</div>` : ""}
-          </div>`;
-      };
-      const rootFolders = folders.filter((folder) => !folder.trashed && !folder.parentPath).sort(compareFoldersByName);
-      const rootKey = "__root__";
-      const rootExpanded = expandedFolderPaths.has(rootKey);
-      const cloudRoot = megaConnected
-        ? `<div class="folder-tree-node">
-            <div class="folder-tree-row">
-              ${rootFolders.length
-                ? `<button class="folder-toggle" type="button" data-folder-toggle="${rootKey}" aria-label="${rootExpanded ? "Replier" : "Déplier"} Mon Drive" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
-                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
-              <button class="nav-item folder-nav-item ${currentView === "folder" && currentFolder === rootKey && !$("#search").value.trim() ? "active" : ""}" data-folder="${rootKey}">
-                ${icon("folder", "icon folder-icon")}<span class="folder-title">Mon Drive</span><span class="nav-count">${media.filter((item) => !item.trashed && !item.folderPath).length}</span>
-              </button>
-            </div>
-            ${rootExpanded ? `<div class="folder-children">${rootFolders.map((folder) => renderFolderTree(folder, folders)).join("")}</div>` : ""}
-          </div>`
-        : "";
-      $("#folder-nav").innerHTML = `${cloudRoot}${!megaConnected ? rootFolders.map((folder) => renderFolderTree(folder, folders)).join("") : ""}`;
     }
     function collectAvailableTags() {
       const tagsByKey = new Map();
@@ -897,30 +829,16 @@
         first.name.localeCompare(second.name, "fr", { sensitivity: "base" })
       );
     }
-    function renderTagNavigation() {
+    function updateExplorerNavigation() {
       const tags = getTagSummaries();
       if (currentView === "tag" && !tags.some((tag) => tag.name.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr"))) {
         currentView = "all";
         currentTag = null;
       }
-      const rootExpanded = expandedTagNavigation;
-      const tagRoot = megaConnected
-        ? `<div class="folder-tree-node">
-            <div class="folder-tree-row">
-              ${tags.length
-                ? `<button class="folder-toggle" type="button" data-tag-toggle aria-label="${rootExpanded ? "Replier" : "Déplier"} Mes tags" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
-                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
-              <button class="nav-item folder-nav-item ${currentView === "tag-index" ? "active" : ""}" type="button" data-view="tag-index">
-                ${icon("tag", "icon folder-icon")}<span class="folder-title">Mes tags</span><span class="nav-count">${tags.length}</span>
-              </button>
-            </div>
-            ${rootExpanded && tags.length ? `<div class="folder-children">${tags.map((tag) => `
-              <button class="nav-item folder-nav-item tag-nav-item ${currentView === "tag" && currentTag?.toLocaleLowerCase("fr") === tag.name.toLocaleLowerCase("fr") ? "active" : ""}" type="button" data-tag="${escapeHtml(tag.name)}">
-                ${icon("tag", "icon folder-icon")}<span class="tag-nav-name">${escapeHtml(tag.name)}</span><span class="nav-count">${tag.count}</span>
-              </button>`).join("")}</div>` : ""}
-          </div>`
-        : "";
-      $("#tag-nav").innerHTML = tagRoot;
+      $("#explorer-divider").hidden = !megaConnected;
+      $("#explorer-nav").hidden = !megaConnected;
+      $("#folder-count").textContent = folders.filter((folder) => !folder.trashed).length || "";
+      $("#explorer-tag-count").textContent = tags.length || "";
     }
     function renderTagDraft() {
       if (bulkTagMode) {
@@ -1107,14 +1025,17 @@
         .sort(compareFoldersByName);
     }
     function folderCoverMedia(folder) {
-      const inFolder = media.filter((item) => item.folderPath === folder.path);
-      const inDescendants = media.filter((item) => item.folderPath.startsWith(`${folder.path}/`));
+      const activeMedia = media.filter((item) => !item.trashed);
+      const inFolder = activeMedia.filter((item) => item.folderPath === folder.path);
+      const inDescendants = activeMedia.filter((item) => item.folderPath.startsWith(`${folder.path}/`));
       return inFolder.find((item) => item.type === "photo") ||
         inDescendants.find((item) => item.type === "photo") ||
         inFolder[0] || inDescendants[0] || null;
     }
     function getFolderMediaCount(folder) {
-      return media.filter((item) => item.folderPath === folder.path || item.folderPath.startsWith(`${folder.path}/`)).length;
+      return media.filter((item) => !item.trashed && (
+        item.folderPath === folder.path || item.folderPath.startsWith(`${folder.path}/`)
+      )).length;
     }
     function tagCoverMedia(tagName) {
       const key = tagName.toLocaleLowerCase("fr");
@@ -1139,16 +1060,44 @@
           </article>`;
       }).join("");
     }
+    function renderFolderCard(folder) {
+      const cover = folderCoverMedia(folder);
+      const title = folder.name;
+      const targetPath = folder.path;
+      const count = getFolderMediaCount(folder);
+      return `<article class="photo-card folder-card">
+          <button type="button" class="photo-cover folder-cover" data-open-folder="${escapeHtml(targetPath)}" aria-label="Ouvrir ${escapeHtml(title)}">
+            ${cover
+              ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" loading="lazy">`
+              : `<span class="folder-cover-placeholder">${icon("folder")}</span>`}
+          </button>
+          <div class="photo-info">
+            <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span></div>
+            <div class="photo-meta"><span>Dossier</span><span>${count} média${count === 1 ? "" : "s"}</span></div>
+          </div>
+        </article>`;
+    }
     function renderMedia() {
       const grid = $("#photo-grid");
-      const query = $("#search").value.trim();
-      if (megaConnected && currentView === "tag-index" && !query) {
-        const tags = getTagSummaries();
+      const query = $("#search").value.trim().toLocaleLowerCase("fr");
+      if (currentView === "tag-index") {
+        const tags = getTagSummaries().filter((tag) => !query || tag.name.toLocaleLowerCase("fr").includes(query));
         grid.innerHTML = tags.length
           ? renderTagCards(tags)
-          : `<div class="empty-state">Aucun tag pour le moment.</div>`;
+          : `<div class="empty-state">${query ? "Aucun tag ne correspond à cette recherche." : "Aucun tag pour le moment."}</div>`;
         updateSelectedMediaCards();
-        window.megaGallery.observeThumbnails(grid);
+        if (megaConnected) window.megaGallery.observeThumbnails(grid);
+        return;
+      }
+      if (currentView === "folder-index") {
+        const rootFolders = folders
+          .filter((folder) => !folder.trashed && !folder.parentPath)
+          .sort(compareFoldersByName)
+          .filter((folder) => !query || folder.name.toLocaleLowerCase("fr").includes(query));
+        const folderCards = rootFolders.map((folder) => renderFolderCard(folder)).join("");
+        grid.innerHTML = folderCards || `<div class="empty-state">${query ? "Aucun dossier ne correspond à cette recherche." : "Aucun dossier trouvé."}</div>`;
+        updateSelectedMediaCards();
+        if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
       }
       const items = visibleMedia();
@@ -1160,21 +1109,7 @@
         return;
       }
       const visibleItems = items.slice(0, "IntersectionObserver" in window ? mediaPageSize : items.length);
-      const folderCards = subfolders.map((folder) => {
-        const cover = folderCoverMedia(folder);
-        const count = getFolderMediaCount(folder);
-        return `<article class="photo-card folder-card">
-            <button type="button" class="photo-cover folder-cover" data-open-folder="${escapeHtml(folder.path)}" aria-label="Ouvrir le dossier ${escapeHtml(folder.name)}">
-              ${cover
-                ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" loading="lazy">`
-                : `<span class="folder-cover-placeholder">${icon("folder")}</span>`}
-            </button>
-            <div class="photo-info">
-              <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(folder.name)}">${escapeHtml(folder.name)}</span></div>
-              <div class="photo-meta"><span>Dossier</span><span>${count} média${count === 1 ? "" : "s"}</span></div>
-            </div>
-          </article>`;
-      }).join("");
+      const folderCards = subfolders.map((folder) => renderFolderCard(folder)).join("");
       grid.innerHTML = `${folderCards}${visibleItems.map((item) => `
         <article class="photo-card ${selectedMediaKeys.has(selectionKeyFor(item)) ? "is-selected" : ""}" data-card="${item.id}" data-selection-key="${escapeHtml(selectionKeyFor(item))}">
           <div class="photo-cover" data-open="${item.id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title)}">
@@ -1221,15 +1156,18 @@
       $("#all-count").textContent = activeMedia.length;
       const trashCountEl = $("#trash-count");
       if (trashCountEl) trashCountEl.textContent = (trashMedia.length + trashFolders.length) || "";
-      $("#library-tags-divider").hidden = !megaConnected;
-      $("#tags-folders-divider").hidden = !megaConnected;
-      renderFolders();
-      renderTagNavigation();
+      updateExplorerNavigation();
       renderMedia();
-      const globalSearchActive = megaConnected && Boolean($("#search").value.trim());
-      $("#search").placeholder = megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
-      $("#search").setAttribute("aria-label", megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
-      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", "tag-index": "Mes tags", tag: currentTag || "Tags", folder: currentFolder };
+      const query = $("#search").value.trim();
+      const isExplorerIndex = currentView === "folder-index" || currentView === "tag-index";
+      const globalSearchActive = megaConnected && Boolean(query) && !isExplorerIndex;
+      $("#search").placeholder = currentView === "folder-index"
+        ? "Rechercher un dossier…"
+        : currentView === "tag-index"
+          ? "Rechercher un tag…"
+          : megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
+      $("#search").setAttribute("aria-label", isExplorerIndex ? $("#search").placeholder : megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
+      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", "folder-index": "Dossiers", "tag-index": "Tags", tag: currentTag || "Tags", folder: currentFolder };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
         (megaConnected ? folder.path : folder.name) === currentFolder
@@ -1252,6 +1190,7 @@
           );
         });
       } else if (currentView === "folder" && megaConnected) {
+        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="folder-index">Dossiers</button><span aria-hidden="true">/</span>`);
         const ancestors = [];
         let current = folders.find((folder) => folder.path === currentFolder);
         while (current) {
@@ -1273,18 +1212,16 @@
           );
         });
       } else if (currentView === "tag") {
-        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="tag-index">Mes tags</button><span aria-hidden="true">/</span><span class="breadcrumb-current" aria-current="page">${escapeHtml(currentTag || "Tag")}</span>`);
+        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="tag-index">Tags</button><span aria-hidden="true">/</span><span class="breadcrumb-current" aria-current="page">${escapeHtml(currentTag || "Tag")}</span>`);
       } else {
         const currentLabel = currentView === "folder" ? selectedFolder?.name || "Dossier" : labels[currentView];
         breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
       }
       $("#breadcrumb").innerHTML = breadcrumbParts.join("");
-      document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", !globalSearchActive && button.dataset.view === currentView));
-      document.querySelectorAll(".nav-item[data-tag]").forEach((button) => button.classList.toggle(
-        "active",
-        !globalSearchActive && currentView === "tag" &&
-          button.dataset.tag.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr")
-      ));
+      const activeView = currentView === "folder" ? "folder-index" : currentView === "tag" ? "tag-index" : currentView;
+      document.querySelectorAll(".nav-item[data-view]").forEach((button) =>
+        button.classList.toggle("active", !globalSearchActive && button.dataset.view === activeView)
+      );
     }
     function fitViewerMedia() {
       const element = $("#viewer-media img, #viewer-media video");
@@ -1989,16 +1926,6 @@
       const parentPath = currentView === "folder" ? currentFolder : "__root__";
       openGalleryContextMenu(parentPath, { x: event.clientX, y: event.clientY });
     });
-    $("#folder-nav").addEventListener("contextmenu", (event) => {
-      const folder = event.target.closest("[data-folder]");
-      if (!megaConnected || !folder) return;
-      event.preventDefault();
-      const parentPath = folder.dataset.folder;
-      openFolderContextMenu(parentPath, { x: event.clientX, y: event.clientY }, {
-        folderPath: parentPath === "__root__" ? null : parentPath,
-        onChanged: refreshFolderNavigation
-      });
-    });
     $("#sidebar").addEventListener("contextmenu", (event) => {
       const trashItem = event.target.closest('[data-view="trash"]');
       if (!trashItem) return;
@@ -2118,27 +2045,10 @@
         currentView = nav.dataset.view;
         currentFolder = null;
         currentTag = null;
+        if (currentView === "folder-index" || currentView === "tag-index") $("#search").value = "";
         render();
         $("#sidebar").classList.remove("open");
         $("#scrim").classList.remove("visible");
-        return;
-      }
-      const tagNav = event.target.closest("[data-tag]");
-      if (tagNav) {
-        mediaPageSize = 120;
-        currentView = "tag";
-        currentFolder = null;
-        currentTag = tagNav.dataset.tag;
-        $("#search").value = "";
-        render();
-        $("#sidebar").classList.remove("open");
-        $("#scrim").classList.remove("visible");
-        return;
-      }
-      const tagToggle = event.target.closest("[data-tag-toggle]");
-      if (tagToggle) {
-        expandedTagNavigation = !expandedTagNavigation;
-        renderTagNavigation();
         return;
       }
       const tagCard = event.target.closest("[data-open-tag]");
@@ -2153,17 +2063,10 @@
         $("#scrim").classList.remove("visible");
         return;
       }
-      const folderToggle = event.target.closest("[data-folder-toggle]");
-      if (folderToggle) {
-        const key = folderToggle.dataset.folderToggle;
-        if (expandedFolderPaths.has(key)) expandedFolderPaths.delete(key);
-        else expandedFolderPaths.add(key);
-        renderFolders();
-        return;
-      }
       const folder = event.target.closest("[data-folder], [data-open-folder]");
       if (folder) {
         mediaPageSize = 120;
+        const fromFolderIndex = currentView === "folder-index";
         const targetPath = folder.dataset.folder || folder.dataset.openFolder;
         if (currentView === "trash" || targetPath.startsWith("__trash__")) {
           currentView = "trash";
@@ -2172,7 +2075,7 @@
           currentView = "folder";
           currentFolder = targetPath;
           currentTag = null;
-          if (megaConnected) expandFolderAncestors(currentFolder);
+          if (fromFolderIndex) $("#search").value = "";
         }
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
       }
@@ -2350,7 +2253,6 @@
         selectedMediaKeys.clear();
         media = files;
         folders = remoteFolders;
-        expandedFolderPaths = new Set(["__root__"]);
         currentView = "all";
         currentFolder = null;
         currentTag = null;
@@ -2372,7 +2274,6 @@
         selectedMediaKeys.clear();
         media = [];
         folders = [];
-        expandedFolderPaths = new Set();
         currentView = "all";
         currentFolder = null;
         currentTag = null;
