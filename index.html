@@ -131,6 +131,7 @@
     .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.5px; }
     .brand-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
     .nav-label { padding: 0 12px; margin: 23px 0 9px; color: var(--nav-muted); font-size: 10px; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+    .nav-divider { height: 1px; margin: 12px 8px; background: var(--line); }
     .nav-item {
       width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin: 2px 0;
       color: var(--nav-text); border: 0; border-radius: 9px; background: transparent; text-align: left;
@@ -311,19 +312,45 @@
     .context-menu-label { padding: 6px 9px 3px; color: var(--nav-muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
     .context-menu .icon-placeholder { width: 16px; height: 16px; flex: 0 0 16px; display: inline-block; }
     @keyframes menu-in { from { opacity: 0; transform: translateY(-3px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: #141815df; backdrop-filter: blur(5px); }
-    .viewer { width: min(960px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ffffff29; border-radius: 14px; background: #171b18; }
-    .viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; color: white; }
-    .viewer-title { font-size: 12px; font-weight: 600; }
-    .viewer-close { width: 30px; height: 30px; color: white; border: 1px solid #ffffff25; border-radius: 8px; background: #ffffff10; cursor: pointer; }
-    .viewer-close .icon { width: 16px; height: 16px; margin: auto; }
-    .photo-type .icon { width: 13px; height: 13px; }
+    .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 0; background: #090c0af7; backdrop-filter: blur(5px); }
+    .viewer { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+    .viewer-top { position: absolute; z-index: 2; inset: 0 0 auto; min-height: 76px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 22px; color: white; background: linear-gradient(#090c0ae8, #090c0a99 65%, transparent); pointer-events: none; }
+    .viewer-heading { min-width: 0; display: flex; align-items: center; gap: 14px; }
+    .viewer-title-copy { min-width: 0; }
+    .viewer-title { display: block; overflow: hidden; color: #f5f7f5; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-subtitle { display: block; margin-top: 4px; overflow: hidden; color: #a4ada6; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-position { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 10px; color: #e6ebe7; border: 1px solid #ffffff1c; border-radius: 999px; background: #ffffff09; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .viewer-position span { color: #78827a; }
+    .viewer-actions { display: flex; flex: 0 0 auto; gap: 8px; pointer-events: auto; }
+    .viewer-close { width: 40px; height: 40px; display: grid; place-items: center; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 11px; background: #ffffff0b; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+    .viewer-close:hover { border-color: #ffffff45; background: #ffffff18; transform: translateY(-1px); }
+    .viewer-close:focus-visible, .viewer-nav:focus-visible { outline: 2px solid #9cc9a5; outline-offset: 3px; }
+    .viewer-close .icon { width: 18px; height: 18px; }
+    .viewer-stage { position: absolute; inset: 0; min-height: 0; display: grid; place-items: center; padding: 0; }
+    .viewer-media { width: 100%; height: 100%; min-height: 0; max-height: none; display: grid; place-items: center; overflow: hidden; }
+    .viewer-media img { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; object-fit: contain; }
+    .viewer-nav { position: absolute; z-index: 1; top: 50%; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; color: #f1f5f1; border: 1px solid #ffffff22; border-radius: 50%; background: #ffffff12; box-shadow: 0 8px 24px #0004; cursor: pointer; transform: translateY(-50%); transition: background .15s, border-color .15s, transform .15s; backdrop-filter: blur(10px); }
+    .viewer-nav:hover:not(:disabled) { border-color: #ffffff55; background: #ffffff24; transform: translateY(-50%) scale(1.05); }
+    .viewer-nav:disabled { opacity: .25; cursor: default; }
+    .viewer-nav.previous { left: 20px; }
+    .viewer-nav.next { right: 20px; }
+    .viewer-nav .icon { width: 21px; height: 21px; }
+    .viewer-nav.previous .icon { transform: rotate(180deg); }
+    .viewer-bottom { position: absolute; z-index: 2; inset: auto 0 0; min-height: 58px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 22px; color: #d7ddd8; background: linear-gradient(transparent, #090c0ae8 35%, #090c0af5); pointer-events: none; }
+    .viewer[data-kind="video"] .viewer-bottom { display: none; }
+    .viewer-context { min-width: 0; display: flex; align-items: center; gap: 12px; }
+    .viewer-kind { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; color: #c1d9c5; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .5px; }
+    .viewer-kind .icon { width: 15px; height: 15px; }
+    .viewer-folder { max-width: 180px; overflow: hidden; color: #a4ada6; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-tags { min-width: 0; display: flex; gap: 5px; overflow: hidden; }
+    .viewer-tag { max-width: 120px; padding: 4px 7px; overflow: hidden; color: #cde2d1; border: 1px solid #9cc9a52a; border-radius: 999px; background: #9cc9a510; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-keyboard-hint { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; color: #89938b; font-size: 10px; white-space: nowrap; }
+    .viewer-keyboard-hint kbd { min-width: 20px; padding: 3px 5px; color: #c8d0ca; border: 1px solid #ffffff20; border-radius: 5px; background: #ffffff08; font: inherit; text-align: center; }
     .viewer-video .icon { width: 38px; height: 38px; margin: auto; }
-    .viewer-media { min-height: 180px; max-height: calc(100vh - 120px); display: grid; place-items: center; overflow: hidden; }
-    .viewer-media img { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; }
     .viewer-video { display: grid; place-items: center; padding: 70px; color: white; text-align: center; }
     .viewer-video strong { display: block; margin: 10px 0; }
     .viewer-video span { color: #b7beb8; font-size: 12px; }
+    .photo-type .icon { width: 13px; height: 13px; }
     .toast { position: fixed; z-index: 40; right: 22px; bottom: 22px; padding: 11px 15px; color: white; border-radius: 9px; background: #252c27; box-shadow: 0 8px 25px #0003; font-size: 12px; animation: toast-in .2s ease-out; }
     @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .mobile-scrim { display: none; }
@@ -421,9 +448,9 @@
       .remote-thumbnail { animation: none; background-image: linear-gradient(105deg, transparent 25%, #ffffff55 45%, transparent 65%); }
       .remote-thumbnail.is-loaded { transition: none; }
     }
-    .remote-preview-message { padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
+    .remote-preview-message { width: 100%; height: 100%; min-height: 180px; display: grid; place-content: center; padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
     .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
-    .viewer-video-player { max-width: 100%; max-height: calc(100vh - 120px); }
+    .viewer-video-player { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; border-radius: 0; background: #000; object-fit: contain; }
     :root[data-theme="dark"] .brand-sub { color: var(--muted); }
     :root[data-theme="dark"] .folder-icon { color: #fff; }
     :root[data-theme="dark"] .avatar { color: #e2c6af; background: #4b3b31; }
@@ -463,6 +490,22 @@
       .photo-cover { aspect-ratio: 1.1; }
       .photo-info { padding: 8px; }
       .photo-meta { font-size: 8px; }
+      .overlay { padding: 0; }
+      .viewer { border-radius: 0; }
+      .viewer-top { min-height: 66px; gap: 8px; padding: 10px 12px; }
+      .viewer-heading { gap: 8px; }
+      .viewer-title { font-size: 12px; }
+      .viewer-subtitle { font-size: 9px; }
+      .viewer-position { gap: 4px; padding: 6px 8px; font-size: 9px; }
+      .viewer-close { width: 36px; height: 36px; }
+      .viewer-stage { padding: 0; }
+      .viewer-nav { width: 35px; height: 35px; }
+      .viewer-nav.previous { left: 3px; }
+      .viewer-nav.next { right: 3px; }
+      .viewer-bottom { min-height: 48px; gap: 8px; padding: 8px 12px; }
+      .viewer-context { gap: 7px; }
+      .viewer-folder { max-width: 85px; }
+      .viewer-tags, .viewer-keyboard-hint { display: none; }
     }
     @media (max-width: 460px) {
       .connection-button .btn-text { display: none; }
@@ -512,7 +555,9 @@
         <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
         <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
         <button class="nav-item" data-view="trash" id="nav-trash"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span>Corbeille<span class="nav-count" id="trash-count"></span></button>
+        <div class="nav-divider" id="library-tags-divider" role="separator" hidden></div>
         <div id="tag-nav" aria-label="Mes tags"></div>
+        <div class="nav-divider" id="tags-folders-divider" role="separator" hidden></div>
         <div id="folder-nav" aria-label="Dossiers"></div>
       </nav>
       <div class="sidebar-bottom">
@@ -642,6 +687,9 @@
     let ignoreNextMediaClick = false;
     let megaPreviewUrl = null;
     let megaPreviewRequest = 0;
+    let viewerItems = [];
+    let viewerIndex = -1;
+    let viewerReturnFocus = null;
     let mediaPageSize = 120;
     let mediaLoadObserver = null;
     let toastTimer = null;
@@ -1173,6 +1221,8 @@
       $("#all-count").textContent = activeMedia.length;
       const trashCountEl = $("#trash-count");
       if (trashCountEl) trashCountEl.textContent = (trashMedia.length + trashFolders.length) || "";
+      $("#library-tags-divider").hidden = !megaConnected;
+      $("#tags-folders-divider").hidden = !megaConnected;
       renderFolders();
       renderTagNavigation();
       renderMedia();
@@ -1236,22 +1286,95 @@
           button.dataset.tag.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr")
       ));
     }
-    function openViewer(id, launchSlideshow = false, keepSlideshow = false) {
+    function fitViewerMedia() {
+      const element = $("#viewer-media img, #viewer-media video");
+      if (!element) return;
+      const width = element instanceof HTMLVideoElement ? element.videoWidth : element.naturalWidth;
+      const height = element instanceof HTMLVideoElement ? element.videoHeight : element.naturalHeight;
+      if (!width || !height) return;
+      const scale = Math.min(1, window.innerWidth / width, window.innerHeight / height);
+      element.style.width = `${width * scale}px`;
+      element.style.height = `${height * scale}px`;
+    }
+    function openViewer(id, keepSlideshow = false) {
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
+      const returnFocusTarget = $("#viewer-overlay")
+        ? viewerReturnFocus
+        : document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+          ? document.activeElement
+          : null;
       closeViewer(keepSlideshow);
+      if (!keepSlideshow) {
+        viewerItems = visibleMedia();
+        viewerIndex = viewerItems.findIndex((entry) => entry.id === item.id);
+        if (viewerIndex < 0) {
+          viewerItems = [item];
+          viewerIndex = 0;
+        }
+        viewerReturnFocus = returnFocusTarget;
+      } else {
+        const index = viewerItems.findIndex((entry) => entry.id === item.id);
+        if (index >= 0) viewerIndex = index;
+        if (!viewerReturnFocus) viewerReturnFocus = returnFocusTarget;
+      }
       const previewRequest = megaPreviewRequest;
       const content = megaConnected
         ? `<div class="remote-preview-message" id="remote-preview-message"><strong>Chargement ${item.type === "video" ? "de la vidéo" : "de l’aperçu"}…</strong>Le fichier est téléchargé temporairement en mémoire.</div>`
         : item.type === "photo"
         ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">`
         : `<div class="viewer-video"><div>${icon("play")}<strong>${escapeHtml(item.title)}</strong><span>Lecture vidéo disponible dans une version connectée à vos fichiers MEGA.</span></div></div>`;
-      $("#modal-root").innerHTML = `<div class="overlay" id="viewer-overlay"><div class="viewer" role="dialog" aria-modal="true" aria-label="${escapeHtml(item.title)}"><div class="viewer-top"><span class="viewer-title">${escapeHtml(item.title)} · ${escapeHtml(item.folder)}</span><div>${megaConnected ? "" : `<button class="viewer-close" id="slideshow" title="Lancer le diaporama">${icon("play")}</button>`} <button class="viewer-close" id="viewer-close" aria-label="Fermer">${icon("close")}</button></div></div><div class="viewer-media">${content}</div></div></div>`;
+      const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
+      const mediaIcon = item.type === "video" ? "video" : "photo";
+      const tags = (item.tags || []).map((tag) => `<span class="viewer-tag">${escapeHtml(tag)}</span>`).join("");
+      $("#modal-root").innerHTML = `<div class="overlay viewer-overlay" id="viewer-overlay">
+        <div class="viewer" data-kind="${item.type}" role="dialog" aria-modal="true" aria-label="${escapeHtml(item.title)}">
+          <div class="viewer-top">
+            <div class="viewer-heading">
+              <div class="viewer-title-copy">
+                <span class="viewer-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>
+                <span class="viewer-subtitle">${escapeHtml(item.folder || "MEGA")} · ${mediaKind}</span>
+              </div>
+              <span class="viewer-position" aria-label="Média ${viewerIndex + 1} sur ${viewerItems.length}">${viewerIndex + 1}<span>/</span>${viewerItems.length}</span>
+            </div>
+            <div class="viewer-actions">
+              ${megaConnected ? "" : `<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`}
+              <button class="viewer-close" id="viewer-close" type="button" aria-label="Fermer">${icon("close")}</button>
+            </div>
+          </div>
+          <div class="viewer-stage">
+            <button class="viewer-nav previous" type="button" data-viewer-step="-1" aria-label="Média précédent" ${viewerItems.length < 2 ? "disabled" : ""}>${icon("chevron")}</button>
+            <div class="viewer-media" id="viewer-media">${content}</div>
+            <button class="viewer-nav next" type="button" data-viewer-step="1" aria-label="Média suivant" ${viewerItems.length < 2 ? "disabled" : ""}>${icon("chevron")}</button>
+          </div>
+          <div class="viewer-bottom">
+            <div class="viewer-context">
+              <span class="viewer-kind">${icon(mediaIcon)}${mediaKind}</span>
+              <span class="viewer-folder" title="${escapeHtml(item.folder || "MEGA")}">${escapeHtml(item.folder || "MEGA")}</span>
+              ${tags ? `<div class="viewer-tags" aria-label="Tags">${tags}</div>` : ""}
+            </div>
+            <div class="viewer-keyboard-hint"><kbd>←</kbd><kbd>→</kbd> naviguer <kbd>Esc</kbd> fermer</div>
+          </div>
+        </div>
+      </div>`;
       $("#viewer-close").addEventListener("click", closeViewer);
-      $("#viewer-overlay").addEventListener("click", (event) => { if (event.target.id === "viewer-overlay") closeViewer(); });
+      $("#viewer-overlay").addEventListener("click", (event) => {
+        const stepButton = event.target.closest("[data-viewer-step]");
+        if (stepButton && !stepButton.disabled) {
+          navigateViewer(Number(stepButton.dataset.viewerStep));
+          return;
+        }
+        if (event.target.closest("button")) return;
+        const mediaElement = $("#viewer-media img, #viewer-media video");
+        if (!mediaElement || !mediaElement.contains(event.target)) closeViewer();
+      });
       $("#slideshow")?.addEventListener("click", () => startSlideshow(item.id));
-      document.addEventListener("keydown", handleEscape, { once: true });
-      if (launchSlideshow) startSlideshow(item.id);
+      $("#viewer-close").focus();
+      const initialMedia = $("#viewer-media img, #viewer-media video");
+      if (initialMedia) {
+        initialMedia.addEventListener(initialMedia instanceof HTMLVideoElement ? "loadedmetadata" : "load", fitViewerMedia, { once: true });
+        fitViewerMedia();
+      }
       if (megaConnected) {
         window.megaGallery.downloadPreview(item.id).then((url) => {
           if (previewRequest !== megaPreviewRequest || !$("#remote-preview-message")) { URL.revokeObjectURL(url); return; }
@@ -1261,27 +1384,41 @@
           } else {
             $("#remote-preview-message").outerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}">`;
           }
+          const preview = $("#viewer-media video, #viewer-media img");
+          preview?.addEventListener(preview instanceof HTMLVideoElement ? "loadedmetadata" : "load", fitViewerMedia, { once: true });
+          fitViewerMedia();
         }).catch((error) => {
           const message = $("#remote-preview-message");
           if (previewRequest === megaPreviewRequest && message) message.innerHTML = `<strong>Aperçu indisponible</strong>${escapeHtml(error.message)}`;
         });
       }
     }
-    function handleEscape(event) { if (event.key === "Escape") closeViewer(); }
+    function navigateViewer(step) {
+      if (viewerItems.length < 2) return;
+      viewerIndex = (viewerIndex + step + viewerItems.length) % viewerItems.length;
+      openViewer(viewerItems[viewerIndex].id, true);
+    }
     function closeViewer(keepSlideshow = false) {
       if (!keepSlideshow && slideTimer) { clearInterval(slideTimer); slideTimer = null; }
       megaPreviewRequest += 1;
       if (megaPreviewUrl) { URL.revokeObjectURL(megaPreviewUrl); megaPreviewUrl = null; }
       $("#modal-root").innerHTML = "";
+      if (!keepSlideshow) {
+        viewerItems = [];
+        viewerIndex = -1;
+        const returnFocus = viewerReturnFocus;
+        viewerReturnFocus = null;
+        if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+      }
     }
     function startSlideshow(id) {
       const photos = visibleMedia().filter((item) => item.type === "photo");
       if (photos.length < 2) { showToast("Ajoutez au moins deux photos pour le diaporama."); return; }
-      let index = Math.max(0, photos.findIndex((item) => item.id === Number(id)));
       closeViewer();
-      const showNext = () => { index = (index + 1) % photos.length; openViewer(photos[index].id, false, true); };
-      openViewer(photos[index].id, false, true);
-      slideTimer = window.setInterval(showNext, 2800);
+      viewerItems = photos;
+      viewerIndex = Math.max(0, photos.findIndex((item) => item.id === Number(id)));
+      openViewer(photos[viewerIndex].id, true);
+      slideTimer = window.setInterval(() => navigateViewer(1), 2800);
       showToast("Diaporama lancé — cliquez sur × pour arrêter.");
     }
     let activeContextMenu = null;
@@ -1963,6 +2100,7 @@
       }
     });
     window.addEventListener("resize", () => {
+      fitViewerMedia();
       if (window.matchMedia("(max-width: 720px)").matches) return;
       const currentWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width")) || defaultSidebarWidth;
       setSidebarWidth(currentWidth);
@@ -2056,6 +2194,32 @@
       if (!event.target.closest(".context-menu")) closeMenu();
     });
     document.addEventListener("keydown", (event) => {
+      const viewer = $("#viewer-overlay");
+      if (viewer) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeViewer();
+          return;
+        }
+        const targetIsVideo = event.target instanceof Element && Boolean(event.target.closest("video"));
+        if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !targetIsVideo) {
+          event.preventDefault();
+          navigateViewer(event.key === "ArrowLeft" ? -1 : 1);
+          return;
+        }
+        if (event.key === "Tab") {
+          const focusable = [...viewer.querySelectorAll("button:not(:disabled), video[controls]")];
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (first && last && (!viewer.contains(document.activeElement) ||
+            (event.shiftKey && document.activeElement === first) ||
+            (!event.shiftKey && document.activeElement === last))) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus();
+          }
+        }
+        return;
+      }
       if (event.key === "Escape") {
         closeMenu();
         if (selectedMediaKeys.size) {
