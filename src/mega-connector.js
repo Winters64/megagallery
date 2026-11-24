@@ -668,7 +668,14 @@ function displayConnectedLibrary(candidate) {
     ...library,
     accountName: storage.name || storage.email
   });
+  if (dialog.open) dialog.close();
   updateCacheStatus();
+}
+
+function openLoginPage() {
+  dialog.classList.add("login-page");
+  if (!dialog.open) dialog.showModal();
+  document.querySelector("#mega-email").focus();
 }
 
 function closeStorageLocally(candidate) {
@@ -713,9 +720,10 @@ async function refreshMegaLibraryFromDrive() {
 }
 
 async function restoreMegaSession() {
+  openLoginPage();
   const cryptoError = getWebCryptoError();
   if (cryptoError) {
-    window.megaGallery.showToast(cryptoError);
+    errorOutput.textContent = cryptoError;
     return;
   }
 
@@ -764,6 +772,7 @@ document.querySelector("#mega-connect").addEventListener("click", () => {
       window.megaGallery.showToast("Impossible d’effacer la session enregistrée de cet onglet.");
     }
     window.megaGallery.clearLibrary();
+    openLoginPage();
     return;
   }
   const cryptoError = getWebCryptoError();
@@ -771,14 +780,16 @@ document.querySelector("#mega-connect").addEventListener("click", () => {
     window.megaGallery.showToast(cryptoError);
     return;
   }
-  errorOutput.textContent = "";
   form.reset();
-  dialog.showModal();
-  document.querySelector("#mega-email").focus();
+  openLoginPage();
 });
 
 document.querySelector("#mega-cancel").addEventListener("click", () => dialog.close());
+dialog.addEventListener("cancel", (event) => {
+  if (!window.megaGallery.isConnected()) event.preventDefault();
+});
 dialog.addEventListener("close", () => {
+  dialog.classList.remove("login-page");
   form.reset();
   errorOutput.textContent = "";
 });

@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f7f5">
-  <title>MEGA Galerie — Prototype</title>
+  <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg">
+  <title>MEGA Galerie</title>
   <script>
     try {
       const savedTheme = localStorage.getItem("mega-gallery-theme");
@@ -285,7 +286,6 @@
     .photo-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
     .empty-state { grid-column: 1 / -1; padding: 45px 15px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; text-align: center; font-size: 13px; }
     .media-load-sentinel { grid-column: 1 / -1; height: 1px; pointer-events: none; }
-    .demo-note { margin: 20px 0 0; color: #92978f; font-size: 10px; text-align: center; }
     .context-menu {
       position: fixed; z-index: 20; width: min(216px, calc(100vw - 16px)); padding: 6px;
       border: 1px solid var(--line); border-radius: 12px; background: var(--paper);
@@ -327,6 +327,19 @@
     .mega-dialog { width: min(440px, calc(100vw - 32px)); padding: 0; color: var(--ink); border: 1px solid var(--line); border-radius: 15px; background: var(--paper); box-shadow: 0 24px 80px #10151050; }
     .mega-dialog::backdrop { background: #141815a8; backdrop-filter: blur(4px); }
     .mega-form { padding: 24px; }
+    .unauthenticated .app { display: none; }
+    .unauthenticated #mega-cancel { display: none; }
+    #mega-dialog.login-page {
+      position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none;
+      display: grid; place-items: center; padding: 20px; margin: 0; border: 0; border-radius: 0;
+      background: var(--canvas); box-shadow: none;
+    }
+    #mega-dialog.login-page::backdrop { background: var(--canvas); }
+    #mega-dialog.login-page .mega-form {
+      width: min(440px, 100%); padding: 32px; border: 1px solid var(--line); border-radius: 15px;
+      background: var(--paper); box-shadow: var(--shadow);
+    }
+    .login-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 20px; color: var(--green-dark); font-size: 13px; font-weight: 750; letter-spacing: -.2px; }
     .mega-form h2 { margin: 0; font-size: 19px; letter-spacing: -.5px; }
     .mega-form > p { margin: 8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
     .mega-field { display: block; margin: 13px 0; color: var(--nav-text); font-size: 11px; font-weight: 650; }
@@ -382,8 +395,7 @@
     .remote-preview-message { padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
     .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
     .viewer-video-player { max-width: 100%; max-height: calc(100vh - 120px); }
-    :root[data-theme="dark"] .brand-sub,
-    :root[data-theme="dark"] .demo-note { color: var(--muted); }
+    :root[data-theme="dark"] .brand-sub { color: var(--muted); }
     :root[data-theme="dark"] .folder-icon { color: #fff; }
     :root[data-theme="dark"] .avatar { color: #e2c6af; background: #4b3b31; }
     :root[data-theme="dark"] .favorite { color: #e25c5f; border-color: #ffffff2e; background: #222924ea; box-shadow: 0 2px 6px #0006; }
@@ -436,7 +448,7 @@
     }
   </style>
 </head>
-<body>
+<body class="unauthenticated">
   <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
     <symbol id="icon-brand" viewBox="0 0 24 24"><path d="M4 19V5l8 10 8-10v14M4 5l8 10 8-10"/></symbol>
     <symbol id="icon-recent" viewBox="0 0 24 24"><path d="M4 7h10M4 12h7M4 17h6"/><circle cx="17" cy="15" r="4"/><path d="M17 13v2l1.5 1"/></symbol>
@@ -470,7 +482,7 @@
         <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
         <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
         <button class="nav-item" data-view="trash" id="nav-trash"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span>Corbeille<span class="nav-count" id="trash-count"></span></button>
-        <div class="nav-label" id="folder-nav-label">Dossiers (exemple)</div>
+        <div class="nav-label" id="folder-nav-label">Dossiers</div>
         <div id="folder-nav" aria-label="Dossiers"></div>
       </nav>
       <div class="sidebar-bottom">
@@ -482,7 +494,7 @@
         </div>
         <div class="profile">
           <div class="avatar">P</div>
-          <div><div class="profile-name">Espace personnel</div><div class="profile-caption">Prototype local</div></div>
+          <div><div class="profile-name">Espace personnel</div><div class="profile-caption">Compte MEGA</div></div>
         </div>
       </div>
     </aside>
@@ -496,22 +508,22 @@
         </div>
         <label class="search topbar-search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
         <div class="top-actions">
-          <button class="connection-button disconnected" id="mega-connect" type="button" title="Mode démonstration — Cliquer pour se connecter à MEGA"><span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span></button>
+          <button class="connection-button disconnected" id="mega-connect" type="button" title="Connexion à MEGA"><span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span></button>
           <button class="icon-button" id="theme-toggle" type="button" aria-label="Activer le thème sombre" aria-pressed="false" title="Activer le thème sombre"><svg class="icon" aria-hidden="true"><use href="#icon-moon"></use></svg></button>
         </div>
       </header>
       <section>
         <div class="photo-grid" id="photo-grid"></div>
       </section>
-      <p class="demo-note">Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.</p>
     </main>
   </div>
   <div id="modal-root"></div>
   <input id="upload-files" type="file" multiple hidden>
   <dialog class="mega-dialog" id="mega-dialog">
     <form class="mega-form" id="mega-login-form">
+      <div class="login-brand"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#icon-brand"></use></svg></span>MEGA Galerie</div>
       <h2>Connexion à MEGA</h2>
-      <p>Parcourez vos dossiers MEGA et déplacez vos photos depuis leur menu contextuel.</p>
+      <p>Connectez-vous avec les identifiants de votre compte MEGA pour accéder à vos photos, vidéos et dossiers.</p>
       <label class="mega-field">Adresse e-mail<input id="mega-email" type="email" autocomplete="username" required></label>
       <label class="mega-field">Mot de passe<input id="mega-password" type="password" autocomplete="current-password" required></label>
       <label class="mega-field">Code 2FA <span style="font-weight:400;color:var(--muted)">(si activé)</span><input id="mega-2fa" type="text" inputmode="numeric" autocomplete="one-time-code"></label>
@@ -547,31 +559,13 @@
   <div id="menu-root"></div>
   <div id="toast-root" aria-live="polite"></div>
   <script>
-    const samplePhotos = [
-      { id: 1, title: "Lac au petit matin.jpg", folder: "Voyages", date: "2025-08-14", size: "4,2 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=900&q=82" },
-      { id: 2, title: "Falaises de la côte.jpg", folder: "Voyages", date: "2025-07-22", size: "3,8 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=900&q=82" },
-      { id: 3, title: "Week-end en montagne.mp4", folder: "Vidéos", date: "2025-06-03", size: "182 Mo", type: "video", duration: "02:34", favorite: false, image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=82" },
-      { id: 4, title: "Les rues de Lisbonne.jpg", folder: "Voyages", date: "2025-05-19", size: "3,1 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=82" },
-      { id: 5, title: "Jardin après la pluie.jpg", folder: "Nature", date: "2025-04-28", size: "5,0 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=900&q=82" },
-      { id: 6, title: "Lumière de fin de journée.jpg", folder: "Famille", date: "2025-03-11", size: "4,6 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=900&q=82" },
-      { id: 7, title: "Sur la route.mp4", folder: "Vidéos", date: "2025-02-15", size: "96 Mo", type: "video", duration: "01:18", favorite: false, image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=900&q=82" },
-      { id: 8, title: "Forêt de sapins.jpg", folder: "Nature", date: "2025-01-30", size: "3,5 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=900&q=82" },
-      { id: 9, title: "Pause au bord de l’eau.jpg", folder: "Famille", date: "2024-12-24", size: "4,1 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=82" },
-      { id: 10, title: "Sentier côtier.jpg", folder: "Voyages", date: "2024-11-09", size: "3,9 Mo", type: "photo", favorite: false, image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=900&q=82" },
-      { id: 11, title: "Les couleurs de l’automne.jpg", folder: "Nature", date: "2024-10-17", size: "5,2 Mo", type: "photo", favorite: true, image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=900&q=82" },
-      { id: 12, title: "Au bord du lac.mp4", folder: "Vidéos", date: "2024-09-04", size: "74 Mo", type: "video", duration: "00:52", favorite: false, image: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=82" }
-    ];
-    const defaultFolders = [
-      { name: "Voyages" },
-      { name: "Famille" },
-      { name: "Nature" },
-      { name: "Vidéos" }
-    ];
-    const storeKey = "mega-gallery-poc-v1";
-    let saved;
-    try { saved = JSON.parse(localStorage.getItem(storeKey) || "null"); } catch (error) { console.warn("Les données locales du prototype n’ont pas pu être lues.", error); }
-    let media = saved?.media || samplePhotos;
-    let folders = saved?.folders || defaultFolders;
+    try {
+      localStorage.removeItem("mega-gallery-poc-v1");
+    } catch (error) {
+      console.warn("Les anciennes données de démonstration n’ont pas pu être supprimées.", error);
+    }
+    let media = [];
+    let folders = [];
     let expandedFolderPaths = new Set();
     let currentView = "all";
     let currentFolder = null;
@@ -657,10 +651,6 @@
       }
       updateSelectedMediaCards();
     }
-    function persist() {
-      try { localStorage.setItem(storeKey, JSON.stringify({ media, folders })); }
-      catch (error) { showToast("Impossible d’enregistrer les changements dans ce navigateur."); console.error("Échec de l’enregistrement local du prototype.", error); }
-    }
     function showToast(message) {
       const root = $("#toast-root");
       root.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`;
@@ -724,7 +714,7 @@
       render();
     }
     function renderFolders() {
-      $("#folder-nav-label").textContent = megaConnected ? "Dossiers" : "Dossiers (exemple)";
+      $("#folder-nav-label").textContent = "Dossiers";
       const renderFolderTree = (folder, source = folders) => {
         const children = megaConnected
           ? source.filter((entry) => !entry.trashed && entry.parentPath === folder.path).sort(compareFoldersByName)
@@ -1074,13 +1064,6 @@
           console.error("Échec du vidage de la corbeille MEGA.", error);
           showToast(error instanceof Error ? error.message : "Impossible de vider la corbeille MEGA.");
         }
-      } else {
-        media = media.filter((item) => !item.trashed);
-        folders = folders.filter((f) => !f.trashed);
-        currentFolder = null;
-        persist();
-        render();
-        showToast("Corbeille vidée.");
       }
     }
     function openTrashContextMenu(position) {
@@ -1382,6 +1365,7 @@
       }
     });
     function openMenu(id, button, position) {
+      if (!megaConnected) return;
       closeMenu();
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
@@ -1397,9 +1381,7 @@
       menu.setAttribute("role", "menu");
       const moveLabel = actionItems.length > 1 ? `Déplacer (${actionItems.length})` : "Déplacer";
       const deleteLabel = actionItems.length > 1 ? `Supprimer (${actionItems.length})` : "Supprimer";
-      menu.innerHTML = megaConnected
-        ? `${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`
-        : `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" data-action="move">${icon("folder")}<span>Déplacer</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${item.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>Supprimer</span></button>`;
+      menu.innerHTML = `${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`;
       const top = position?.y ?? rect.bottom;
       const left = position?.x ?? rect.right - 216;
       menu.style.top = `${top}px`;
@@ -1461,25 +1443,6 @@
             showToast(error instanceof Error ? error.message : "Impossible de supprimer ce média dans MEGA.");
           }
           return;
-        }
-        if (action === "rename") {
-          const title = window.prompt("Nouveau nom :", item.title);
-          if (title?.trim()) { item.title = title.trim(); persist(); render(); showToast("Renommage enregistré localement."); }
-        } else if (action === "move") {
-          const destination = window.prompt(`Dossier de destination (${folders.map((folder) => folder.name).join(", ")}) :`, item.folder);
-          const folder = folders.find((entry) => entry.name.toLocaleLowerCase("fr") === destination?.trim().toLocaleLowerCase("fr"));
-          if (folder) { item.folder = folder.name; persist(); render(); showToast(`Média déplacé vers « ${folder.name} » localement.`); }
-          else if (destination) showToast("Dossier inconnu.");
-        } else if (action === "favorite") {
-          item.favorite = !item.favorite;
-          persist();
-          render();
-          showToast(item.favorite ? "Ajouté aux favoris." : "Retiré des favoris.");
-        } else if (action === "delete") {
-          if (window.confirm(`Supprimer « ${item.title} » de la démonstration ?`)) {
-            media = media.filter((entry) => entry.id !== item.id);
-            persist(); render(); showToast("Média retiré de la démonstration.");
-          }
         }
         closeMenu();
       });
@@ -1734,14 +1697,6 @@
         }
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
       }
-      const favorite = event.target.closest("[data-favorite]");
-      if (favorite) {
-        if (megaConnected) return;
-        event.stopPropagation();
-        const item = media.find((entry) => entry.id === Number(favorite.dataset.favorite));
-        item.favorite = !item.favorite; persist(); render();
-        showToast(item.favorite ? "Ajouté aux favoris." : "Retiré des favoris."); return;
-      }
       const menu = event.target.closest("[data-menu]");
       if (menu) { openMenu(menu.dataset.menu, menu); return; }
       const open = event.target.closest("[data-open]");
@@ -1787,7 +1742,7 @@
         btn.title = "Hors ligne — Cliquer pour vous reconnecter";
         btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Hors ligne</span>`;
       } else {
-        btn.title = "Mode démonstration — Cliquer pour se connecter à MEGA";
+        btn.title = "Connexion à MEGA";
         btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span>`;
       }
     }
@@ -1803,7 +1758,7 @@
         currentFolder = null;
         mediaPageSize = 120;
         updateConnectionUI("connected");
-        $(".demo-note").textContent = "Glissez à la souris pour sélectionner plusieurs médias ; le clic droit ouvre les actions d’un média.";
+        document.body.classList.remove("unauthenticated");
         render();
       },
       refreshLibrary({ files, folders: remoteFolders }) {
@@ -1817,13 +1772,13 @@
         window.megaConnector.releaseAllThumbnails();
         megaConnected = false;
         selectedMediaKeys.clear();
-        media = saved?.media || samplePhotos;
-        folders = saved?.folders || defaultFolders;
+        media = [];
+        folders = [];
         expandedFolderPaths = new Set();
         currentView = "all";
         currentFolder = null;
         updateConnectionUI("disconnected");
-        $(".demo-note").textContent = "Prototype d’interface — les photos et les actions sont des exemples locaux, sans connexion réelle à MEGA.";
+        document.body.classList.add("unauthenticated");
         render();
       },
       isConnected() { return megaConnected; },
