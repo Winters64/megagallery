@@ -140,6 +140,7 @@
     .nav-item.active { color: var(--green-dark); background: var(--green-soft); font-weight: 650; }
     .nav-icon { width: 18px; flex: 0 0 18px; opacity: .82; }
     .nav-count { margin-left: auto; color: var(--nav-muted); font-size: 11px; flex-shrink: 0; }
+    .tag-nav-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .folder-icon { width: 20px; height: 20px; flex: 0 0 20px; margin-left: 1px; color: #829987; }
     .folder-tree-row { display: flex; align-items: center; }
     .folder-toggle, .folder-toggle-placeholder { width: 24px; flex: 0 0 24px; }
@@ -284,6 +285,8 @@
     .more-button .icon { width: 17px; height: 17px; }
     .more-button:hover { background: var(--surface-hover); }
     .photo-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .photo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+    .photo-tag { max-width: 100%; padding: 3px 7px; overflow: hidden; color: var(--green-dark); border-radius: 5px; background: var(--green-soft); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
     .empty-state { grid-column: 1 / -1; padding: 45px 15px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; text-align: center; font-size: 13px; }
     .media-load-sentinel { grid-column: 1 / -1; height: 1px; pointer-events: none; }
     .context-menu {
@@ -375,6 +378,32 @@
     .mega-warning { padding: 11px; margin: 15px 0; color: var(--warning-text); border: 1px solid var(--warning-border); border-radius: 8px; background: var(--warning-background); font-size: 10px; line-height: 1.5; }
     .mega-error { min-height: 16px; margin: 8px 0; color: #b64646; font-size: 11px; }
     .mega-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; }
+    .tag-dialog { width: min(520px, calc(100vw - 32px)); max-height: min(82vh, 720px); overflow-y: auto; }
+    .tag-form { padding: 25px; }
+    .tag-dialog-heading { display: flex; align-items: center; gap: 13px; margin-bottom: 20px; }
+    .tag-dialog-icon { width: 42px; height: 42px; display: grid; flex: 0 0 42px; place-items: center; color: var(--green-dark); border-radius: 12px; background: var(--green-soft); }
+    .tag-dialog-icon .icon { width: 21px; height: 21px; }
+    .tag-dialog-heading h2 { margin: 0; font-size: 18px; }
+    .tag-dialog-heading p { max-width: 390px; margin: 4px 0 0; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-section-label { display: flex; align-items: center; justify-content: space-between; margin: 17px 0 8px; color: var(--nav-text); font-size: 11px; font-weight: 700; }
+    .tag-section-label span { color: var(--muted); font-size: 10px; font-weight: 500; }
+    .tag-selected { min-height: 48px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 7px; padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); }
+    .tag-pill { min-height: 27px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; color: var(--green-dark); border: 1px solid var(--connected-border); border-radius: 999px; background: var(--green-soft); font-size: 11px; }
+    .tag-pill.is-removing { color: #a33d3d; border-color: #bd4d4d55; background: #bd4d4d12; text-decoration: line-through; }
+    .tag-pill.is-added { border-style: dashed; }
+    .tag-pill small { color: var(--muted); font-size: 9px; text-decoration: none; }
+    .tag-pill-remove { width: 18px; height: 18px; display: grid; place-items: center; padding: 0; color: inherit; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+    .tag-pill-remove:hover { background: #00000012; }
+    .tag-pill-remove .icon { width: 12px; height: 12px; }
+    .tag-empty { align-self: center; padding: 4px; color: var(--muted); font-size: 11px; }
+    .tag-input-row { display: flex; align-items: end; gap: 8px; }
+    .tag-input-row .mega-field { min-width: 0; flex: 1; margin: 0; }
+    .tag-input-row .button { min-height: 37px; flex: 0 0 auto; margin-bottom: 0; }
+    .tag-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-suggestion { padding: 6px 10px; color: var(--control-text); border: 1px solid var(--line); border-radius: 999px; background: var(--paper); cursor: pointer; font-size: 10px; }
+    .tag-suggestion:hover { color: var(--green-dark); border-color: var(--connected-border); background: var(--green-soft); }
+    .tag-suggestions-empty { color: var(--muted); font-size: 10px; }
+    .tag-hint { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
     .remote-file-placeholder { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 7px; padding: 10px; color: #66816b; background: linear-gradient(140deg, #e9f1e8, #e7ece8 55%, #f0eee7); font-size: 25px; text-align: center; }
     .remote-file-placeholder span { max-width: 100%; color: #727a71; font-size: 9px; line-height: 1.35; }
     .remote-thumbnail {
@@ -465,6 +494,7 @@
     <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m14 5 5 5M4 20l4.5-1 10.2-10.2a2.1 2.1 0 0 0-3-3L5.5 16z"/></symbol>
+    <symbol id="icon-tag" viewBox="0 0 24 24"><path d="m20 13-7 7L3 10V4h6z"/><circle cx="7.5" cy="7.5" r="1.2"/></symbol>
     <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></symbol>
     <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z"/></symbol>
     <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
@@ -482,7 +512,7 @@
         <button class="nav-item" data-view="photos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-photo"></use></svg></span>Photos<span class="nav-count" id="photo-count"></span></button>
         <button class="nav-item" data-view="videos"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-video"></use></svg></span>Vidéos<span class="nav-count" id="video-count"></span></button>
         <button class="nav-item" data-view="trash" id="nav-trash"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-trash"></use></svg></span>Corbeille<span class="nav-count" id="trash-count"></span></button>
-        <div class="nav-label" id="folder-nav-label">Dossiers</div>
+        <div id="tag-nav" aria-label="Mes tags"></div>
         <div id="folder-nav" aria-label="Dossiers"></div>
       </nav>
       <div class="sidebar-bottom">
@@ -556,6 +586,33 @@
       </div>
     </form>
   </dialog>
+  <dialog class="mega-dialog tag-dialog" id="tag-dialog">
+    <form class="mega-form tag-form" id="tag-form">
+      <div class="tag-dialog-heading">
+        <span class="tag-dialog-icon"><svg class="icon" aria-hidden="true"><use href="#icon-tag"></use></svg></span>
+        <div><h2 id="tag-heading">Tags du média</h2><p id="tag-media-title"></p></div>
+      </div>
+      <div class="tag-section-label"><span id="tag-selected-label">Tags associés</span><span id="tag-count">0 / 10</span></div>
+      <div class="tag-selected" id="tag-selected" aria-live="polite"></div>
+      <div class="tag-section-label" id="tag-add-label">Ajouter un tag</div>
+      <div class="tag-input-row">
+        <label class="mega-field" for="tag-input">
+          Rechercher ou saisir un tag
+          <input id="tag-input" type="text" list="tag-datalist" maxlength="3000" autocomplete="off" placeholder="Ex. vacances">
+          <datalist id="tag-datalist"></datalist>
+        </label>
+        <button class="button secondary small" type="button" id="tag-add"><svg class="icon" aria-hidden="true"><use href="#icon-check"></use></svg>Ajouter</button>
+      </div>
+      <div class="tag-section-label">Tags existants <span>cliquez pour réutiliser</span></div>
+      <div class="tag-suggestions" id="tag-suggestions"></div>
+      <p class="tag-hint" id="tag-hint">Les tags sont enregistrés dans MEGA avec le média. Jusqu’à 10 tags par média.</p>
+      <div class="mega-error" id="tag-error" role="alert"></div>
+      <div class="mega-form-actions">
+        <button class="button secondary" type="button" id="tag-cancel">Annuler</button>
+        <button class="button" type="submit" id="tag-submit">Enregistrer les tags</button>
+      </div>
+    </form>
+  </dialog>
   <div id="menu-root"></div>
   <div id="toast-root" aria-live="polite"></div>
   <script>
@@ -567,8 +624,17 @@
     let media = [];
     let folders = [];
     let expandedFolderPaths = new Set();
+    let expandedTagNavigation = true;
     let currentView = "all";
     let currentFolder = null;
+    let currentTag = null;
+    let editingMediaId = null;
+    let editingMediaIds = [];
+    let bulkMediaItems = [];
+    let bulkTagMode = false;
+    let bulkTagAdditions = [];
+    let bulkTagRemovals = [];
+    let draftTags = [];
     let slideTimer = null;
     let megaConnected = false;
     const selectedMediaKeys = new Set();
@@ -714,7 +780,6 @@
       render();
     }
     function renderFolders() {
-      $("#folder-nav-label").textContent = "Dossiers";
       const renderFolderTree = (folder, source = folders) => {
         const children = megaConnected
           ? source.filter((entry) => !entry.trashed && entry.parentPath === folder.path).sort(compareFoldersByName)
@@ -752,6 +817,198 @@
         : "";
       $("#folder-nav").innerHTML = `${cloudRoot}${!megaConnected ? rootFolders.map((folder) => renderFolderTree(folder, folders)).join("") : ""}`;
     }
+    function collectAvailableTags() {
+      const tagsByKey = new Map();
+      for (const item of media) {
+        if (item.trashed) continue;
+        for (const tag of item.tags || []) {
+          const value = typeof tag === "string" ? tag.trim() : "";
+          const key = value.toLocaleLowerCase("fr");
+          if (value && !tagsByKey.has(key)) tagsByKey.set(key, value);
+        }
+      }
+      return [...tagsByKey.values()].sort((first, second) =>
+        first.localeCompare(second, "fr", { sensitivity: "base" })
+      );
+    }
+    function getTagSummaries() {
+      const tagCounts = new Map();
+      for (const item of media) {
+        if (item.trashed) continue;
+        const countedForItem = new Set();
+        for (const tag of item.tags || []) {
+          const key = tag.toLocaleLowerCase("fr");
+          if (countedForItem.has(key)) continue;
+          countedForItem.add(key);
+          const entry = tagCounts.get(key) || { name: tag, count: 0 };
+          entry.count += 1;
+          tagCounts.set(key, entry);
+        }
+      }
+      return [...tagCounts.values()].sort((first, second) =>
+        first.name.localeCompare(second.name, "fr", { sensitivity: "base" })
+      );
+    }
+    function renderTagNavigation() {
+      const tags = getTagSummaries();
+      if (currentView === "tag" && !tags.some((tag) => tag.name.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr"))) {
+        currentView = "all";
+        currentTag = null;
+      }
+      const rootExpanded = expandedTagNavigation;
+      const tagRoot = megaConnected
+        ? `<div class="folder-tree-node">
+            <div class="folder-tree-row">
+              ${tags.length
+                ? `<button class="folder-toggle" type="button" data-tag-toggle aria-label="${rootExpanded ? "Replier" : "Déplier"} Mes tags" aria-expanded="${rootExpanded}">${icon("chevron")}</button>`
+                : `<span class="folder-toggle-placeholder" aria-hidden="true"></span>`}
+              <button class="nav-item folder-nav-item ${currentView === "tag-index" ? "active" : ""}" type="button" data-view="tag-index">
+                ${icon("tag", "icon folder-icon")}<span class="folder-title">Mes tags</span><span class="nav-count">${tags.length}</span>
+              </button>
+            </div>
+            ${rootExpanded && tags.length ? `<div class="folder-children">${tags.map((tag) => `
+              <button class="nav-item folder-nav-item tag-nav-item ${currentView === "tag" && currentTag?.toLocaleLowerCase("fr") === tag.name.toLocaleLowerCase("fr") ? "active" : ""}" type="button" data-tag="${escapeHtml(tag.name)}">
+                ${icon("tag", "icon folder-icon")}<span class="tag-nav-name">${escapeHtml(tag.name)}</span><span class="nav-count">${tag.count}</span>
+              </button>`).join("")}</div>` : ""}
+          </div>`
+        : "";
+      $("#tag-nav").innerHTML = tagRoot;
+    }
+    function renderTagDraft() {
+      if (bulkTagMode) {
+        const coverage = new Map();
+        for (const item of bulkMediaItems) {
+          const itemTags = new Map((item.tags || []).map((tag) => [tag.toLocaleLowerCase("fr"), tag]));
+          for (const [key, tag] of itemTags) {
+            const entry = coverage.get(key) || { name: tag, count: 0 };
+            entry.count += 1;
+            coverage.set(key, entry);
+          }
+        }
+        const commonTags = [...coverage.values()].map((tag, index) => {
+          const removing = bulkTagRemovals.some((entry) => entry.toLocaleLowerCase("fr") === tag.name.toLocaleLowerCase("fr"));
+          return `<span class="tag-pill ${removing ? "is-removing" : ""}">${escapeHtml(tag.name)}<small>${tag.count}/${bulkMediaItems.length}</small><button class="tag-pill-remove" type="button" data-bulk-remove-tag="${index}" aria-label="${removing ? "Conserver" : "Retirer"} ${escapeHtml(tag.name)} ${removing ? "de la suppression" : "de la sélection"}">${icon(removing ? "check" : "close")}</button></span>`;
+        }).join("");
+        const additions = bulkTagAdditions.map((tag, index) =>
+          `<span class="tag-pill is-added">+ ${escapeHtml(tag)}<button class="tag-pill-remove" type="button" data-bulk-cancel-add="${index}" aria-label="Annuler l’ajout de ${escapeHtml(tag)}">${icon("close")}</button></span>`
+        ).join("");
+        $("#tag-heading").textContent = "Tags de la sélection";
+        $("#tag-media-title").textContent = `${bulkMediaItems.length} médias sélectionnés`;
+        $("#tag-selected-label").textContent = "Tags présents dans la sélection";
+        $("#tag-count").textContent = `${bulkMediaItems.length} médias`;
+        $("#tag-add-label").textContent = "Ajouter à toute la sélection";
+        $("#tag-hint").textContent = "Les autres tags de chaque média sont conservés. Une suppression retire ce tag de tous les médias sélectionnés qui le possèdent.";
+        $("#tag-selected").innerHTML = commonTags || `<span class="tag-empty">Aucun tag existant sur cette sélection.</span>`;
+        $("#tag-selected").insertAdjacentHTML("beforeend", additions);
+      } else {
+        $("#tag-heading").textContent = "Tags du média";
+        $("#tag-media-title").textContent = bulkMediaItems[0]?.title || "";
+        $("#tag-selected-label").textContent = "Tags associés";
+        $("#tag-count").textContent = `${draftTags.length} / 10`;
+        $("#tag-add-label").textContent = "Ajouter un tag";
+        $("#tag-hint").textContent = "Les tags sont enregistrés dans MEGA avec le média. Jusqu’à 10 tags par média.";
+        $("#tag-selected").innerHTML = draftTags.length
+          ? draftTags.map((tag, index) => `
+              <span class="tag-pill">${escapeHtml(tag)}
+                <button class="tag-pill-remove" type="button" data-remove-tag="${index}" aria-label="Retirer le tag ${escapeHtml(tag)}">${icon("close")}</button>
+              </span>`).join("")
+          : `<span class="tag-empty">Aucun tag associé pour le moment.</span>`;
+      }
+      updateTagSuggestions();
+    }
+    function updateTagSuggestions() {
+      const query = $("#tag-input").value.trim().toLocaleLowerCase("fr");
+      const selected = new Set((bulkTagMode ? bulkTagAdditions : draftTags).map((tag) => tag.toLocaleLowerCase("fr")));
+      const suggestions = collectAvailableTags()
+        .filter((tag) => {
+          const key = tag.toLocaleLowerCase("fr");
+          const presentEverywhere = bulkTagMode && bulkMediaItems.length &&
+            bulkMediaItems.every((item) => (item.tags || []).some((value) => value.toLocaleLowerCase("fr") === key));
+          const scheduledForRemoval = bulkTagRemovals.some((value) => value.toLocaleLowerCase("fr") === key);
+          return !selected.has(key) && (!presentEverywhere || scheduledForRemoval) &&
+            (!query || key.includes(query));
+        })
+        .slice(0, 12);
+      $("#tag-datalist").innerHTML = suggestions
+        .map((tag) => `<option value="${escapeHtml(tag)}"></option>`).join("");
+      $("#tag-suggestions").innerHTML = suggestions.length
+        ? suggestions.map((tag) => `
+            <button class="tag-suggestion" type="button" data-suggestion-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join("")
+        : `<span class="tag-suggestions-empty">${query ? "Aucun tag existant correspondant." : "Aucun tag existant à réutiliser."}</span>`;
+    }
+    function addDraftTag(value) {
+      const tag = String(value || "").trim().replace(/\s+/g, " ");
+      if (!tag) return;
+      if (tag.includes(",")) {
+        $("#tag-error").textContent = "Une virgule ne peut pas faire partie d’un tag.";
+        return;
+      }
+      if (bulkTagMode) {
+        if (bulkTagAdditions.some((entry) => entry.toLocaleLowerCase("fr") === tag.toLocaleLowerCase("fr"))) {
+          $("#tag-error").textContent = "Ce tag est déjà prévu pour la sélection.";
+          return;
+        }
+        const key = tag.toLocaleLowerCase("fr");
+        const presentEverywhere = bulkMediaItems.every((item) =>
+          (item.tags || []).some((entry) => entry.toLocaleLowerCase("fr") === key)
+        );
+        const scheduledForRemoval = bulkTagRemovals.some((entry) => entry.toLocaleLowerCase("fr") === key);
+        if (presentEverywhere && !scheduledForRemoval) {
+          $("#tag-error").textContent = "Ce tag est déjà présent sur tous les médias sélectionnés.";
+          return;
+        }
+        bulkTagRemovals = bulkTagRemovals.filter((entry) => entry.toLocaleLowerCase("fr") !== key);
+        bulkTagAdditions.push(tag);
+        $("#tag-input").value = "";
+        $("#tag-error").textContent = "";
+        renderTagDraft();
+        return;
+      }
+      if (draftTags.some((entry) => entry.toLocaleLowerCase("fr") === tag.toLocaleLowerCase("fr"))) {
+        $("#tag-error").textContent = "Ce tag est déjà associé à ce média.";
+        return;
+      }
+      if (draftTags.length >= 10) {
+        $("#tag-error").textContent = "MEGA autorise au maximum 10 tags par média.";
+        return;
+      }
+      if (new TextEncoder().encode([...draftTags, tag].join(",")).length > 3000) {
+        $("#tag-error").textContent = "La liste des tags dépasse la limite de taille de MEGA.";
+        return;
+      }
+      draftTags.push(tag);
+      $("#tag-input").value = "";
+      $("#tag-error").textContent = "";
+      renderTagDraft();
+    }
+    function openTagsDialog(item) {
+      editingMediaId = item.id;
+      editingMediaIds = [item.id];
+      bulkMediaItems = [item];
+      bulkTagMode = false;
+      bulkTagAdditions = [];
+      bulkTagRemovals = [];
+      draftTags = [...(item.tags || [])];
+      $("#tag-error").textContent = "";
+      $("#tag-input").value = "";
+      renderTagDraft();
+      $("#tag-dialog").showModal();
+      $("#tag-input").focus();
+    }
+    function openBulkTagsDialog(items) {
+      editingMediaId = null;
+      editingMediaIds = items.map((item) => item.id);
+      bulkMediaItems = items.map((item) => ({ ...item, tags: [...(item.tags || [])] }));
+      bulkTagMode = true;
+      bulkTagAdditions = [];
+      bulkTagRemovals = [];
+      draftTags = [];
+      $("#tag-error").textContent = "";
+      $("#tag-input").value = "";
+      renderTagDraft();
+      $("#tag-dialog").showModal();
+      $("#tag-input").focus();
+    }
     function visibleMedia() {
       const query = $("#search").value.trim().toLocaleLowerCase("fr");
       const sort = currentSort;
@@ -760,7 +1017,7 @@
         if (currentView === "trash") {
           const inTrash = Boolean(item.trashed);
           if (!inTrash) return false;
-          if (query) return `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query);
+          if (query) return `${item.title} ${item.folder} ${item.date} ${(item.tags || []).join(" ")}`.toLocaleLowerCase("fr").includes(query);
           const targetParent = currentFolder || "__trash__";
           return item.folderPath === targetParent;
         }
@@ -769,10 +1026,13 @@
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
           (currentView === "videos" && item.type === "video") ||
+          (currentView === "tag" && (item.tags || []).some((tag) =>
+            tag.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr")
+          )) ||
           (currentView === "folder" && (megaConnected
             ? item.folderPath === (currentFolder === "__root__" ? "" : currentFolder)
             : item.folder === currentFolder));
-        return matchesView && (!query || `${item.title} ${item.folder} ${item.date}`.toLocaleLowerCase("fr").includes(query));
+        return matchesView && (!query || `${item.title} ${item.folder} ${item.date} ${(item.tags || []).join(" ")}`.toLocaleLowerCase("fr").includes(query));
       });
       if (sort === "name") items.sort((a, b) => a.title.localeCompare(b.title, "fr"));
       else items.sort((a, b) => {
@@ -808,10 +1068,43 @@
     function getFolderMediaCount(folder) {
       return media.filter((item) => item.folderPath === folder.path || item.folderPath.startsWith(`${folder.path}/`)).length;
     }
+    function tagCoverMedia(tagName) {
+      const key = tagName.toLocaleLowerCase("fr");
+      const taggedMedia = media.filter((item) => !item.trashed &&
+        (item.tags || []).some((tag) => tag.toLocaleLowerCase("fr") === key)
+      );
+      return taggedMedia.find((item) => item.type === "photo") || taggedMedia[0] || null;
+    }
+    function renderTagCards(tags) {
+      return tags.map((tag) => {
+        const cover = tagCoverMedia(tag.name);
+        return `<article class="photo-card folder-card">
+            <button type="button" class="photo-cover folder-cover" data-open-tag="${escapeHtml(tag.name)}" aria-label="Afficher les médias du tag ${escapeHtml(tag.name)}">
+              ${cover
+                ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" loading="lazy">`
+                : `<span class="folder-cover-placeholder">${icon("tag")}</span>`}
+            </button>
+            <div class="photo-info">
+              <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(tag.name)}">${escapeHtml(tag.name)}</span></div>
+              <div class="photo-meta"><span>Tag</span><span>${tag.count} média${tag.count === 1 ? "" : "s"}</span></div>
+            </div>
+          </article>`;
+      }).join("");
+    }
     function renderMedia() {
+      const grid = $("#photo-grid");
+      const query = $("#search").value.trim();
+      if (megaConnected && currentView === "tag-index" && !query) {
+        const tags = getTagSummaries();
+        grid.innerHTML = tags.length
+          ? renderTagCards(tags)
+          : `<div class="empty-state">Aucun tag pour le moment.</div>`;
+        updateSelectedMediaCards();
+        window.megaGallery.observeThumbnails(grid);
+        return;
+      }
       const items = visibleMedia();
       const subfolders = visibleSubfolders();
-      const grid = $("#photo-grid");
       if (!items.length && !subfolders.length) {
         grid.innerHTML = `<div class="empty-state">${currentView === "trash" ? "La corbeille est vide." : "Aucun média trouvé. Essayez une autre recherche."}</div>`;
         updateSelectedMediaCards();
@@ -846,6 +1139,7 @@
           <div class="photo-info">
             <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? "" : `<button class="more-button" data-menu="${item.id}" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>`}</div>
             <div class="photo-meta"><span>${escapeHtml(item.folder)}</span><span>${escapeHtml(item.size || "")}</span></div>
+            ${(item.tags || []).length ? `<div class="photo-tags" aria-label="Tags">${item.tags.map((tag) => `<span class="photo-tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
           </div>
         </article>`).join("")}${items.length > visibleItems.length ? `<div class="media-load-sentinel" aria-hidden="true"></div>` : ""}`;
       updateSelectedMediaCards();
@@ -880,11 +1174,12 @@
       const trashCountEl = $("#trash-count");
       if (trashCountEl) trashCountEl.textContent = (trashMedia.length + trashFolders.length) || "";
       renderFolders();
+      renderTagNavigation();
       renderMedia();
       const globalSearchActive = megaConnected && Boolean($("#search").value.trim());
       $("#search").placeholder = megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
       $("#search").setAttribute("aria-label", megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
-      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", folder: currentFolder };
+      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", "tag-index": "Mes tags", tag: currentTag || "Tags", folder: currentFolder };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
         (megaConnected ? folder.path : folder.name) === currentFolder
@@ -927,12 +1222,19 @@
               : `<button type="button" class="breadcrumb-link" data-folder="${escapeHtml(folder.path)}">${escapeHtml(folder.name)}</button>`}`
           );
         });
+      } else if (currentView === "tag") {
+        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="tag-index">Mes tags</button><span aria-hidden="true">/</span><span class="breadcrumb-current" aria-current="page">${escapeHtml(currentTag || "Tag")}</span>`);
       } else {
         const currentLabel = currentView === "folder" ? selectedFolder?.name || "Dossier" : labels[currentView];
         breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
       }
       $("#breadcrumb").innerHTML = breadcrumbParts.join("");
       document.querySelectorAll(".nav-item[data-view]").forEach((button) => button.classList.toggle("active", !globalSearchActive && button.dataset.view === currentView));
+      document.querySelectorAll(".nav-item[data-tag]").forEach((button) => button.classList.toggle(
+        "active",
+        !globalSearchActive && currentView === "tag" &&
+          button.dataset.tag.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr")
+      ));
     }
     function openViewer(id, launchSlideshow = false, keepSlideshow = false) {
       const item = media.find((entry) => entry.id === Number(id));
@@ -1381,7 +1683,8 @@
       menu.setAttribute("role", "menu");
       const moveLabel = actionItems.length > 1 ? `Déplacer (${actionItems.length})` : "Déplacer";
       const deleteLabel = actionItems.length > 1 ? `Supprimer (${actionItems.length})` : "Supprimer";
-      menu.innerHTML = `${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`;
+      const tagsLabel = actionItems.length > 1 ? `Gérer les tags (${actionItems.length})` : "Gérer les tags";
+      menu.innerHTML = `<button type="button" role="menuitem" data-action="tags">${icon("tag")}<span>${tagsLabel}</span></button>${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`;
       const top = position?.y ?? rect.bottom;
       const left = position?.x ?? rect.right - 216;
       menu.style.top = `${top}px`;
@@ -1405,6 +1708,12 @@
             console.error("Échec du renommage d’un média MEGA.", error);
             showToast(error instanceof Error ? error.message : "Impossible de renommer ce média dans MEGA.");
           }
+          return;
+        }
+        if (megaConnected && action === "tags") {
+          closeMenu();
+          if (actionItems.length > 1) openBulkTagsDialog(actionItems);
+          else openTagsDialog(item);
           return;
         }
         if (megaConnected && action === "favorite") {
@@ -1670,6 +1979,37 @@
         mediaPageSize = 120;
         currentView = nav.dataset.view;
         currentFolder = null;
+        currentTag = null;
+        render();
+        $("#sidebar").classList.remove("open");
+        $("#scrim").classList.remove("visible");
+        return;
+      }
+      const tagNav = event.target.closest("[data-tag]");
+      if (tagNav) {
+        mediaPageSize = 120;
+        currentView = "tag";
+        currentFolder = null;
+        currentTag = tagNav.dataset.tag;
+        $("#search").value = "";
+        render();
+        $("#sidebar").classList.remove("open");
+        $("#scrim").classList.remove("visible");
+        return;
+      }
+      const tagToggle = event.target.closest("[data-tag-toggle]");
+      if (tagToggle) {
+        expandedTagNavigation = !expandedTagNavigation;
+        renderTagNavigation();
+        return;
+      }
+      const tagCard = event.target.closest("[data-open-tag]");
+      if (tagCard) {
+        mediaPageSize = 120;
+        currentView = "tag";
+        currentFolder = null;
+        currentTag = tagCard.dataset.openTag;
+        $("#search").value = "";
         render();
         $("#sidebar").classList.remove("open");
         $("#scrim").classList.remove("visible");
@@ -1693,6 +2033,7 @@
         } else {
           currentView = "folder";
           currentFolder = targetPath;
+          currentTag = null;
           if (megaConnected) expandFolderAncestors(currentFolder);
         }
         render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
@@ -1729,6 +2070,98 @@
       }
     });
     $("#search").addEventListener("input", () => { mediaPageSize = 120; render(); });
+    $("#tag-input").addEventListener("input", updateTagSuggestions);
+    $("#tag-input").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addDraftTag($("#tag-input").value);
+    });
+    $("#tag-add").addEventListener("click", () => addDraftTag($("#tag-input").value));
+    $("#tag-suggestions").addEventListener("click", (event) => {
+      const suggestion = event.target.closest("[data-suggestion-tag]");
+      if (suggestion) addDraftTag(suggestion.dataset.suggestionTag);
+    });
+    $("#tag-selected").addEventListener("click", (event) => {
+      const bulkRemoveButton = event.target.closest("[data-bulk-remove-tag]");
+      if (bulkRemoveButton) {
+        const tag = [...new Map(bulkMediaItems.flatMap((item) =>
+          (item.tags || []).map((value) => [value.toLocaleLowerCase("fr"), value])
+        )).values()][Number(bulkRemoveButton.dataset.bulkRemoveTag)];
+        if (!tag) return;
+        const key = tag.toLocaleLowerCase("fr");
+        const additionIndex = bulkTagAdditions.findIndex((entry) => entry.toLocaleLowerCase("fr") === key);
+        if (additionIndex >= 0) {
+          bulkTagAdditions.splice(additionIndex, 1);
+        } else {
+          const removalIndex = bulkTagRemovals.findIndex((entry) => entry.toLocaleLowerCase("fr") === key);
+          if (removalIndex >= 0) bulkTagRemovals.splice(removalIndex, 1);
+          else bulkTagRemovals.push(tag);
+        }
+        $("#tag-error").textContent = "";
+        renderTagDraft();
+        return;
+      }
+      const cancelAdditionButton = event.target.closest("[data-bulk-cancel-add]");
+      if (cancelAdditionButton) {
+        bulkTagAdditions.splice(Number(cancelAdditionButton.dataset.bulkCancelAdd), 1);
+        $("#tag-error").textContent = "";
+        renderTagDraft();
+        return;
+      }
+      const removeButton = event.target.closest("[data-remove-tag]");
+      if (!removeButton) return;
+      draftTags.splice(Number(removeButton.dataset.removeTag), 1);
+      $("#tag-error").textContent = "";
+      renderTagDraft();
+    });
+    $("#tag-cancel").addEventListener("click", () => $("#tag-dialog").close());
+    $("#tag-dialog").addEventListener("close", () => {
+      editingMediaId = null;
+      editingMediaIds = [];
+      bulkMediaItems = [];
+      bulkTagMode = false;
+      bulkTagAdditions = [];
+      bulkTagRemovals = [];
+      draftTags = [];
+    });
+    $("#tag-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (editingMediaId === null && !bulkTagMode) return;
+      if (bulkTagMode && !bulkTagAdditions.length && !bulkTagRemovals.length) {
+        $("#tag-error").textContent = "Ajoutez ou retirez au moins un tag avant d’enregistrer.";
+        return;
+      }
+      const submit = $("#tag-submit");
+      submit.disabled = true;
+      submit.textContent = "Enregistrement…";
+      $("#tag-error").textContent = "";
+      try {
+        if (bulkTagMode) {
+          const result = await window.megaConnector.updateMediaTags(editingMediaIds, {
+            add: bulkTagAdditions,
+            remove: bulkTagRemovals
+          });
+          $("#tag-dialog").close();
+          if (result.failed.length) {
+            const failedNames = result.failed.map((entry) => entry.title).join(", ");
+            showToast(`${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} mis à jour ; échec pour ${failedNames}.`);
+            console.error("Échec partiel de la mise à jour des tags MEGA.", result.failed);
+          } else {
+            showToast(`${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} mis à jour dans MEGA.`);
+          }
+        } else {
+          const tags = await window.megaConnector.setMediaTags(editingMediaId, draftTags);
+          $("#tag-dialog").close();
+          showToast(tags.length ? "Tags enregistrés dans MEGA." : "Tags supprimés de ce média.");
+        }
+      } catch (error) {
+        $("#tag-error").textContent = error instanceof Error ? error.message : "Impossible d’enregistrer les tags dans MEGA.";
+        console.error("Échec de l’enregistrement des tags dans MEGA.", error);
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "Enregistrer les tags";
+      }
+    });
     $("#mobile-menu").addEventListener("click", () => { $("#sidebar").classList.add("open"); $("#scrim").classList.add("visible"); });
     $("#scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); });
     function updateConnectionUI(status = megaConnected ? "connected" : "disconnected") {
@@ -1756,6 +2189,7 @@
         expandedFolderPaths = new Set(["__root__"]);
         currentView = "all";
         currentFolder = null;
+        currentTag = null;
         mediaPageSize = 120;
         updateConnectionUI("connected");
         document.body.classList.remove("unauthenticated");
@@ -1777,6 +2211,7 @@
         expandedFolderPaths = new Set();
         currentView = "all";
         currentFolder = null;
+        currentTag = null;
         updateConnectionUI("disconnected");
         document.body.classList.add("unauthenticated");
         render();

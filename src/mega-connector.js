@@ -21,6 +21,9 @@ const cacheStoreName = "previews";
 const cacheMetadataStoreName = "preview-metadata";
 const cacheLimit = 200 * 1024 * 1024;
 const sessionStorageKey = "mega-gallery-session";
+const mediaTagsAttribute = "t";
+const maxMediaTagCount = 10;
+const maxMediaTagsBytes = 3000;
 const thumbnailUrls = new Map();
 const thumbnailRequests = new Map();
 const previewBlobRequests = new Map();
@@ -35,6 +38,44 @@ let cachePersistent = null;
 const escapeAttribute = (value) => String(value).replace(/[&<>"']/g, (char) => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
 ));
+
+function readMediaTags(value) {
+  if (typeof value !== "string") return [];
+  const tags = [];
+  const seen = new Set();
+  for (const entry of value.split(",")) {
+    const tag = entry.trim().replace(/\s+/g, " ");
+    const normalized = tag.toLocaleLowerCase("fr");
+    if (!tag || seen.has(normalized)) continue;
+    seen.add(normalized);
+    tags.push(tag);
+    if (tags.length === maxMediaTagCount) break;
+  }
+  return tags;
+}
+
+function normalizeMediaTags(value) {
+  if (!Array.isArray(value)) throw new Error("La liste des tags est invalide.");
+  const tags = [];
+  const seen = new Set();
+  for (const entry of value) {
+    if (typeof entry !== "string") throw new Error("Chaque tag doit être du texte.");
+    const tag = entry.trim().replace(/\s+/g, " ");
+    if (!tag) continue;
+    if (tag.includes(",")) throw new Error("Un tag ne peut pas contenir de virgule.");
+    const normalized = tag.toLocaleLowerCase("fr");
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    tags.push(tag);
+  }
+  if (tags.length > maxMediaTagCount) {
+    throw new Error(`Un média peut avoir au maximum ${maxMediaTagCount} tags.`);
+  }
+  if (new TextEncoder().encode(tags.join(",")).length > maxMediaTagsBytes) {
+    throw new Error(`La liste des tags dépasse la limite de ${maxMediaTagsBytes} octets de MEGA.`);
+  }
+  return tags;
+}
 
 function getExtension(name) {
   const index = name.lastIndexOf(".");
@@ -619,6 +660,7 @@ function buildLibrary(root, trashRoot = storage?.trash) {
         size: formatSize(Number(node.size)),
         type,
         favorite: Boolean(node.favorited),
+        tags: readMediaTags(node.attributes?.[mediaTagsAttribute]),
         trashed: isTrash
       };
       files.push(record);
@@ -1064,6 +1106,136 @@ window.megaConnector = {
     }
 
     if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
+    return { succeeded, failed };
+  },
+  async setMediaTags(id, tags) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de modifier les tags.");
+    const file = filesById.get(Number(id));
+    if (!file) throw new Error("Ce média n’est plus disponible dans la session MEGA.");
+    const extension = getExtension(file.name || "");
+    if (!imageExtensions.has(extension) && !videoExtensions.has(extension)) {
+      throw new Error("Les tags MEGA sont disponibles uniquement pour les photos et vidéos.");
+    }
+
+    const nextTags = normalizeMediaTags(tags);
+    const nodeId = String(file.nodeId);
+    const hadPreviousValue = Object.prototype.hasOwnProperty.call(file.attributes, mediaTagsAttribute);
+    const previousValue = file.attributes[mediaTagsAttribute];
+    try {
+      await file.setAttributes({ [mediaTagsAttribute]: nextTags.join(",") });
+    } catch (error) {
+      if (hadPreviousValue) file.attributes[mediaTagsAttribute] = previousValue;
+      else delete file.attributes[mediaTagsAttribute];
+      file.parseAttributes(file.attributes);
+      throw new Error(`Impossible d’enregistrer les tags dans MEGA : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+    }
+
+    try {
+      await refreshMegaLibraryFromDrive();
+    } catch (error) {
+      throw new Error(`Les tags ont été envoyés à MEGA, mais leur relecture a échoué : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+    }
+
+    const refreshedFile = [...filesById.values()].find((entry) => String(entry.nodeId) === nodeId);
+    const savedTags = readMediaTags(refreshedFile?.attributes?.[mediaTagsAttribute]);
+    if (!refreshedFile || JSON.stringify(savedTags) !== JSON.stringify(nextTags)) {
+      throw new Error("MEGA n’a pas confirmé l’enregistrement de l’attribut natif des tags. Les tags ne sont pas affichés comme enregistrés.");
+    }
+    return savedTags;
+  },
+  async updateMediaTags(ids, { add = [], remove = [] } = {}) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de modifier les tags.");
+    if (!Array.isArray(ids) || !Array.isArray(add) || !Array.isArray(remove)) {
+      throw new Error("La sélection ou les opérations sur les tags sont invalides.");
+    }
+
+    const files = [...new Set(ids.map((id) => Number(id)))].map((id) => {
+      const file = filesById.get(id);
+      if (!file) throw new Error("Un ou plusieurs médias ne sont plus disponibles dans la session MEGA.");
+      const extension = getExtension(file.name || "");
+      if (!imageExtensions.has(extension) && !videoExtensions.has(extension)) {
+        throw new Error("Les tags MEGA sont disponibles uniquement pour les photos et vidéos.");
+      }
+      return file;
+    });
+    if (!files.length) throw new Error("Sélectionnez au moins un média.");
+
+    const tagsToAdd = normalizeMediaTags(add);
+    const tagsToRemove = normalizeMediaTags(remove);
+    const additions = new Set(tagsToAdd.map((tag) => tag.toLocaleLowerCase("fr")));
+    if (tagsToRemove.some((tag) => additions.has(tag.toLocaleLowerCase("fr")))) {
+      throw new Error("Un tag ne peut pas être ajouté et supprimé simultanément.");
+    }
+
+    const succeeded = [];
+    const failed = [];
+    const changed = [];
+    for (const file of files) {
+      const fileKey = String(file.nodeId);
+      const title = file.name;
+      const currentTags = readMediaTags(file.attributes?.[mediaTagsAttribute]);
+      const removals = new Set(tagsToRemove.map((tag) => tag.toLocaleLowerCase("fr")));
+      const next = currentTags.filter((tag) => !removals.has(tag.toLocaleLowerCase("fr")));
+      for (const tag of tagsToAdd) {
+        if (!next.some((entry) => entry.toLocaleLowerCase("fr") === tag.toLocaleLowerCase("fr"))) next.push(tag);
+      }
+
+      let nextTags;
+      try {
+        nextTags = normalizeMediaTags(next);
+      } catch (error) {
+        failed.push({
+          fileKey,
+          title,
+          message: error instanceof Error ? error.message : "La liste des tags est invalide."
+        });
+        continue;
+      }
+
+      succeeded.push({ fileKey, title, tags: nextTags });
+      if (JSON.stringify(currentTags) === JSON.stringify(nextTags)) continue;
+
+      const attributes = file.attributes || {};
+      const hadPreviousValue = Object.prototype.hasOwnProperty.call(attributes, mediaTagsAttribute);
+      const previousValue = attributes[mediaTagsAttribute];
+      try {
+        await file.setAttributes({ [mediaTagsAttribute]: nextTags.join(",") });
+        changed.push({ fileKey, title, tags: nextTags });
+      } catch (error) {
+        if (hadPreviousValue) attributes[mediaTagsAttribute] = previousValue;
+        else delete attributes[mediaTagsAttribute];
+        file.parseAttributes(attributes);
+        succeeded.pop();
+        failed.push({
+          fileKey,
+          title,
+          message: error instanceof Error ? error.message : "Impossible d’enregistrer les tags dans MEGA."
+        });
+      }
+    }
+
+    if (changed.length) {
+      try {
+        await refreshMegaLibraryFromDrive();
+      } catch (error) {
+        throw new Error(`Les tags ont été envoyés à MEGA, mais leur relecture a échoué : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+      }
+
+      for (const update of changed) {
+        const refreshedFile = [...filesById.values()].find((entry) => String(entry.nodeId) === update.fileKey);
+        const savedTags = readMediaTags(refreshedFile?.attributes?.[mediaTagsAttribute]);
+        if (!refreshedFile || JSON.stringify(savedTags) !== JSON.stringify(update.tags)) {
+          const successIndex = succeeded.findIndex((entry) => entry.fileKey === update.fileKey);
+          if (successIndex >= 0) succeeded.splice(successIndex, 1);
+          failed.push({
+            fileKey: update.fileKey,
+            title: update.title,
+            message: "MEGA n’a pas confirmé l’enregistrement des tags de ce média."
+          });
+        }
+      }
+    }
+
     return { succeeded, failed };
   },
   async deleteFiles(ids) {
