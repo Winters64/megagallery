@@ -142,18 +142,11 @@
     .nav-icon { width: 18px; flex: 0 0 18px; opacity: .82; }
     .nav-count { margin-left: auto; color: var(--nav-muted); font-size: 11px; flex-shrink: 0; }
     .sidebar-bottom { margin-top: auto; }
-    .storage-card { padding: 14px; margin: 0 5px 15px; border: 1px solid var(--line); border-radius: 12px; }
-    .storage-top { display: flex; justify-content: space-between; font-size: 11px; font-weight: 650; }
-    .storage-top span:last-child { color: var(--muted); font-weight: 500; }
-    .meter { height: 5px; margin: 10px 0 7px; overflow: hidden; border-radius: 9px; background: var(--meter-background); }
-    .meter-fill { width: 28%; height: 100%; background: #5d976c; border-radius: inherit; }
-    .storage-caption { color: var(--muted); font-size: 10px; }
-    .cache-clear { padding: 0; margin-top: 9px; color: var(--green-dark); border: 0; background: transparent; cursor: pointer; font-size: 10px; }
-    .cache-clear:hover { text-decoration: underline; }
-    .profile { display: flex; align-items: center; gap: 10px; padding: 12px 9px 2px; border-top: 1px solid var(--line); }
-    .avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; color: #76563f; background: #f0dfd0; font-size: 11px; font-weight: 700; }
-    .profile-name { font-size: 12px; font-weight: 650; }
-    .profile-caption { color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .profile { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px 9px 2px; border-top: 1px solid var(--line); }
+    .avatar { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border-radius: 50%; color: #76563f; background: #f0dfd0; font-size: 11px; font-weight: 700; }
+    .profile-copy { min-width: 0; flex: 1; }
+    .profile-name { overflow: hidden; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-caption { overflow: hidden; color: var(--muted); font-size: 10px; margin-top: 2px; text-overflow: ellipsis; white-space: nowrap; }
 
     main { min-width: 0; height: 100vh; overflow-y: auto; display: flex; flex: 1; flex-direction: column; padding: 0 44px 50px; }
     main > section { display: flex; flex: 1; flex-direction: column; }
@@ -185,8 +178,10 @@
     .connection-button.connected:hover .status-text { display: none; }
     .connection-button.connected:hover .action-text { display: inline; }
     .refresh-button[hidden] { display: none; }
-    .refresh-button:disabled { cursor: wait; opacity: .7; }
-    .refresh-button.is-refreshing .icon { animation: refresh-spin .8s linear infinite; }
+    .refresh-button:hover:not(:disabled) { color: var(--green-dark); border-color: var(--connected-border); background: var(--connected-background); }
+    .refresh-button:disabled { cursor: wait; }
+    .refresh-button.is-refreshing { color: var(--green-dark); border-color: var(--connected-border); background: var(--connected-background); }
+    .refresh-button.is-refreshing .icon { animation: refresh-spin .85s cubic-bezier(.45, .05, .55, .95) infinite; }
     @keyframes refresh-spin { to { transform: rotate(360deg); } }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #a5aaa3; flex-shrink: 0; transition: background .15s; }
     .offline .status-dot { background: #d29a43; }
@@ -199,11 +194,6 @@
     }
     .icon-button:hover, .mobile-menu:hover { background: var(--surface-hover); color: var(--ink); }
     .icon-button .icon, .mobile-menu .icon { width: 18px; height: 18px; }
-    .refresh-button { width: 40px; height: 40px; }
-    .refresh-button .icon {
-      width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.8;
-      stroke-linecap: round; stroke-linejoin: round;
-    }
     .search > .icon { width: 19px; height: 19px; flex: 0 0 19px; }
     .mobile-menu { display: none; }
     .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 32px 0 23px; }
@@ -309,7 +299,6 @@
     .context-menu-divider { height: 1px; margin: 5px 0; background: var(--line); }
     .context-menu-label { padding: 6px 9px 3px; color: var(--nav-muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
     .context-menu .icon-placeholder { width: 16px; height: 16px; flex: 0 0 16px; display: inline-block; }
-    .context-menu.viewer-context-menu { z-index: 35; }
     @keyframes menu-in { from { opacity: 0; transform: translateY(-3px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 0; background: #090c0af7; backdrop-filter: blur(5px); }
     .viewer { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -320,13 +309,17 @@
     .viewer-subtitle { display: block; margin-top: 4px; overflow: hidden; color: #a4ada6; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .viewer-position { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 10px; color: #e6ebe7; border: 1px solid #ffffff1c; border-radius: 999px; background: #ffffff09; font-size: 11px; font-variant-numeric: tabular-nums; }
     .viewer-position span { color: #78827a; }
-    .viewer-actions { display: flex; flex: 0 0 auto; gap: 8px; pointer-events: auto; }
-    .viewer-close { width: 40px; height: 40px; display: grid; place-items: center; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 11px; background: #ffffff0b; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
-    .viewer-menu-button { width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; }
-    .viewer-menu-button .icon { width: 17px; height: 17px; }
-    .viewer-close:hover { border-color: #ffffff45; background: #ffffff18; transform: translateY(-1px); }
+    .viewer-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 6px; pointer-events: auto; }
+    .viewer-actions-divider { width: 1px; height: 22px; margin: 0 3px; background: #ffffff24; flex: 0 0 1px; }
+    .viewer-close { width: 38px; height: 38px; display: grid; place-items: center; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff0d; cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .15s; backdrop-filter: blur(8px); }
+    .viewer-close:hover:not(:disabled) { border-color: #ffffff45; background: #ffffff1c; transform: translateY(-1px); }
+    .viewer-close:disabled { opacity: .45; cursor: wait; }
+    .viewer-close.is-active { color: #f06d70; border-color: #f06d7066; background: #f06d701c; }
+    .viewer-close.is-active .icon { fill: currentColor; }
+    .viewer-close.is-active:hover:not(:disabled) { border-color: #f06d7099; background: #f06d702b; }
+    .viewer-close.viewer-action-danger:hover:not(:disabled) { color: #f27575; border-color: #e25c5f77; background: #bd4d4d26; }
     .viewer-close:focus-visible, .viewer-nav:focus-visible { outline: 2px solid #9cc9a5; outline-offset: 3px; }
-    .viewer-close .icon { width: 18px; height: 18px; }
+    .viewer-close .icon { width: 17px; height: 17px; }
     .viewer-stage { position: absolute; inset: 0; min-height: 0; display: grid; place-items: center; padding: 0; }
     .viewer-media { width: 100%; height: 100%; min-height: 0; max-height: none; display: grid; place-items: center; overflow: hidden; }
     .viewer-media img { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; object-fit: contain; }
@@ -434,20 +427,29 @@
     .tag-hint { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
     .remote-file-placeholder { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 7px; padding: 10px; color: #66816b; background: linear-gradient(140deg, #e9f1e8, #e7ece8 55%, #f0eee7); font-size: 25px; text-align: center; }
     .remote-file-placeholder span { max-width: 100%; color: #727a71; font-size: 9px; line-height: 1.35; }
-    .remote-thumbnail {
-      width: 100%; height: 100%; display: block; object-fit: cover;
-      background-color: var(--cover-placeholder);
-      background-image: linear-gradient(105deg, transparent 25%, #ffffff88 45%, transparent 65%);
+    .photo-cover:has(.remote-thumbnail:not(.is-loaded)) {
+      background-image: linear-gradient(105deg, transparent 25%, #ffffff66 45%, transparent 65%);
       background-size: 220% 100%;
       animation: thumbnail-shimmer 1.5s ease-in-out infinite;
-      opacity: 0;
-      transition: opacity .28s ease;
     }
-    .remote-thumbnail.is-loaded { background: none; animation: none; opacity: 1; }
+    :root[data-theme="dark"] .photo-cover:has(.remote-thumbnail:not(.is-loaded)) {
+      background-image: linear-gradient(105deg, transparent 25%, #ffffff1c 45%, transparent 65%);
+    }
+    .remote-thumbnail {
+      width: 100%; height: 100%; display: block; object-fit: cover;
+      opacity: 0;
+      transition: opacity .22s ease;
+    }
+    .remote-thumbnail.is-loaded { opacity: 1; }
     @keyframes thumbnail-shimmer { to { background-position: -220% 0; } }
     @media (prefers-reduced-motion: reduce) {
-      .remote-thumbnail { animation: none; background-image: linear-gradient(105deg, transparent 25%, #ffffff55 45%, transparent 65%); }
-      .remote-thumbnail.is-loaded { transition: none; }
+      .photo-cover:has(.remote-thumbnail:not(.is-loaded)) { animation: none; }
+      .remote-thumbnail { transition: none; }
+    }
+    .viewer-hd-badge {
+      position: absolute; z-index: 2; right: 22px; bottom: 68px;
+      padding: 5px 10px; color: #dce3dd; border: 1px solid #ffffff22; border-radius: 999px;
+      background: #090c0acc; backdrop-filter: blur(8px); font-size: 10px; pointer-events: none;
     }
     .remote-preview-message { width: 100%; height: 100%; min-height: 180px; display: grid; place-content: center; padding: 35px; color: #c4cbc5; text-align: center; font-size: 12px; line-height: 1.6; }
     .remote-preview-message strong { display: block; margin-bottom: 7px; color: #fff; font-size: 14px; }
@@ -492,13 +494,15 @@
       .photo-meta { font-size: 8px; }
       .overlay { padding: 0; }
       .viewer { border-radius: 0; }
-      .viewer-top { min-height: 66px; gap: 8px; padding: 10px 12px; }
-      .viewer-heading { gap: 8px; }
+      .viewer-top { min-height: 62px; flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+      .viewer-heading { flex: 1 1 140px; gap: 8px; }
       .viewer-title { font-size: 12px; }
       .viewer-subtitle { font-size: 9px; }
-      .viewer-position { gap: 4px; padding: 6px 8px; font-size: 9px; }
-      .viewer-close { width: 36px; height: 36px; }
-      .viewer-menu-button { width: auto; padding: 0 9px; }
+      .viewer-position { gap: 4px; padding: 5px 8px; font-size: 9px; }
+      .viewer-actions { gap: 5px; margin-left: auto; }
+      .viewer-actions-divider { height: 18px; margin: 0 1px; }
+      .viewer-close { width: 34px; height: 34px; border-radius: 9px; }
+      .viewer-close .icon { width: 16px; height: 16px; }
       .viewer-stage { padding: 0; }
       .viewer-nav { width: 35px; height: 35px; }
       .viewer-nav.previous { left: 3px; }
@@ -531,7 +535,7 @@
     <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M3.8 10h16.4"/></symbol>
     <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
-    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M6.5 7.8A8 8 0 0 1 19 11"/><path d="m14 7 5 4-5 4"/><path d="M17.5 16.2A8 8 0 0 1 5 13"/><path d="m10 9-5 4 5 4"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.36 6.36L3 16"/><path d="M3 21v-5h5"/></symbol>
     <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
     <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -564,15 +568,9 @@
         </div>
       </nav>
       <div class="sidebar-bottom">
-        <div class="storage-card">
-          <div class="storage-top"><span>Cache des aperçus</span><span id="cache-usage">—</span></div>
-          <div class="meter"><div class="meter-fill" id="cache-meter" style="width:0"></div></div>
-          <div class="storage-caption" id="cache-caption">Chargement du cache local…</div>
-          <button class="cache-clear" id="clear-thumbnail-cache" type="button">Vider le cache local</button>
-        </div>
         <div class="profile">
-          <div class="avatar">P</div>
-          <div><div class="profile-name">Espace personnel</div><div class="profile-caption">Compte MEGA</div></div>
+          <div class="avatar" id="profile-avatar">M</div>
+          <div class="profile-copy"><div class="profile-name" id="profile-name">Espace personnel</div><div class="profile-caption" id="profile-caption">Compte MEGA</div></div>
         </div>
       </div>
     </aside>
@@ -676,8 +674,7 @@
     let currentView = "all";
     let currentFolder = null;
     let currentTag = null;
-    let editingMediaId = null;
-    let editingMediaIds = [];
+    let editingMediaKeys = [];
     let bulkMediaItems = [];
     let bulkTagMode = false;
     let bulkTagAdditions = [];
@@ -689,9 +686,12 @@
     let activeSelection = null;
     let ignoreNextMediaClick = false;
     let megaPreviewUrl = null;
+    let megaPreviewRevokeOnClose = false;
     let megaPreviewRequest = 0;
     let viewerItems = [];
     let viewerIndex = -1;
+    let viewerActiveKey = null;
+    let viewerActionPending = false;
     let viewerReturnFocus = null;
     let mediaPageSize = 120;
     let mediaLoadObserver = null;
@@ -761,9 +761,11 @@
       if (!selection.additive) selectedMediaKeys.clear();
       for (const card of grid.querySelectorAll(".photo-card[data-selection-key]")) {
         const coverBounds = card.querySelector(".photo-cover").getBoundingClientRect();
+        const coverArea = coverBounds.width * coverBounds.height;
+        if (coverArea <= 0) continue;
         const overlapWidth = Math.max(0, Math.min(coverBounds.right, right) - Math.max(coverBounds.left, left));
         const overlapHeight = Math.max(0, Math.min(coverBounds.bottom, bottom) - Math.max(coverBounds.top, top));
-        const overlapRatio = overlapWidth * overlapHeight / (coverBounds.width * coverBounds.height);
+        const overlapRatio = overlapWidth * overlapHeight / coverArea;
         if (overlapRatio >= 0.2) selectedMediaKeys.add(card.dataset.selectionKey);
       }
       updateSelectedMediaCards();
@@ -776,27 +778,6 @@
         root.innerHTML = "";
         toastTimer = null;
       }, 2600);
-    }
-    function formatCacheBytes(bytes) {
-      if (!bytes) return "0 o";
-      const units = ["o", "Ko", "Mo", "Go"];
-      let value = bytes;
-      let index = 0;
-      while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
-      return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)} ${units[index]}`;
-    }
-    function updateCacheStatus({ bytes = 0, entries = 0, available = true, error = "", warning = "", persistent = null } = {}) {
-      $("#cache-usage").textContent = available ? formatCacheBytes(bytes) : "Indisponible";
-      $("#cache-meter").style.width = `${Math.min(100, bytes / (200 * 1024 * 1024) * 100)}%`;
-      const localStatus = `${entries} miniature${entries === 1 ? "" : "s"} sur cet appareil`;
-      const persistenceStatus = persistent === true
-        ? "stockage protégé"
-        : persistent === false
-          ? "stockage susceptible d’être nettoyé"
-          : "";
-      $("#cache-caption").textContent = available
-        ? [localStatus, persistenceStatus, warning].filter(Boolean).join(" · ")
-        : error || "Le navigateur n’a pas pu ouvrir le cache.";
     }
     function compareFoldersByName(first, second) {
       return first.name.localeCompare(second.name, "fr", { numeric: true, sensitivity: "base" });
@@ -964,8 +945,7 @@
       renderTagDraft();
     }
     function openTagsDialog(item) {
-      editingMediaId = item.id;
-      editingMediaIds = [item.id];
+      editingMediaKeys = [selectionKeyFor(item)];
       bulkMediaItems = [item];
       bulkTagMode = false;
       bulkTagAdditions = [];
@@ -978,8 +958,7 @@
       $("#tag-input").focus();
     }
     function openBulkTagsDialog(items) {
-      editingMediaId = null;
-      editingMediaIds = items.map((item) => item.id);
+      editingMediaKeys = items.map(selectionKeyFor);
       bulkMediaItems = items.map((item) => ({ ...item, tags: [...(item.tags || [])] }));
       bulkTagMode = true;
       bulkTagAdditions = [];
@@ -1041,15 +1020,17 @@
         .sort(compareFoldersByName);
     }
     function folderCoverMedia(folder) {
-      const activeMedia = media.filter((item) => !item.trashed);
-      const inFolder = activeMedia.filter((item) => item.folderPath === folder.path);
-      const inDescendants = activeMedia.filter((item) => item.folderPath.startsWith(`${folder.path}/`));
+      const targetTrashed = Boolean(folder.trashed);
+      const matchingMedia = media.filter((item) => Boolean(item.trashed) === targetTrashed);
+      const inFolder = matchingMedia.filter((item) => item.folderPath === folder.path);
+      const inDescendants = matchingMedia.filter((item) => item.folderPath.startsWith(`${folder.path}/`));
       return inFolder.find((item) => item.type === "photo") ||
         inDescendants.find((item) => item.type === "photo") ||
         inFolder[0] || inDescendants[0] || null;
     }
     function getFolderMediaCount(folder) {
-      return media.filter((item) => !item.trashed && (
+      const targetTrashed = Boolean(folder.trashed);
+      return media.filter((item) => Boolean(item.trashed) === targetTrashed && (
         item.folderPath === folder.path || item.folderPath.startsWith(`${folder.path}/`)
       )).length;
     }
@@ -1066,7 +1047,7 @@
         return `<article class="photo-card folder-card">
             <button type="button" class="photo-cover folder-cover" data-open-tag="${escapeHtml(tag.name)}" aria-label="Afficher les médias du tag ${escapeHtml(tag.name)}">
               ${cover
-                ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" loading="lazy">`
+                ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" decoding="async">`
                 : `<span class="folder-cover-placeholder">${icon("tag")}</span>`}
             </button>
             <div class="photo-info">
@@ -1084,7 +1065,7 @@
       return `<article class="photo-card folder-card">
           <button type="button" class="photo-cover folder-cover" data-open-folder="${escapeHtml(targetPath)}" aria-label="Ouvrir ${escapeHtml(title)}">
             ${cover
-              ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" loading="lazy">`
+              ? `<img class="remote-thumbnail" data-thumbnail="${cover.id}" alt="" decoding="async">`
               : `<span class="folder-cover-placeholder">${icon("folder")}</span>`}
           </button>
           <div class="photo-info">
@@ -1130,13 +1111,13 @@
         <article class="photo-card ${selectedMediaKeys.has(selectionKeyFor(item)) ? "is-selected" : ""}" data-card="${item.id}" data-selection-key="${escapeHtml(selectionKeyFor(item))}">
           <div class="photo-cover" data-open="${item.id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title)}">
             ${megaConnected
-              ? `<img class="remote-thumbnail" data-thumbnail="${item.id}" alt="${escapeHtml(item.title)}" loading="lazy">`
+              ? `<img class="remote-thumbnail" data-thumbnail="${item.id}" alt="${escapeHtml(item.title)}" decoding="async">`
               : `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy">`}
             ${item.type === "video" ? `<span class="photo-type">${icon("play")} ${escapeHtml(item.duration || "Vidéo")}</span>` : ""}
             ${item.favorite ? `<span class="favorite" aria-hidden="true">${icon("heart")}</span>` : ""}
           </div>
           <div class="photo-info">
-            <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? "" : `<button class="more-button" data-menu="${item.id}" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>`}</div>
+            <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? `<button type="button" class="more-button" data-menu="${item.id}" title="Actions" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>` : ""}</div>
             <div class="photo-meta"><span>${escapeHtml(item.folder)}</span><span>${escapeHtml(item.size || "")}</span></div>
             ${(item.tags || []).length ? `<div class="photo-tags" aria-label="Tags">${item.tags.map((tag) => `<span class="photo-tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
           </div>
@@ -1155,9 +1136,6 @@
         }
         mediaLoadObserver.observe(sentinel);
       }
-    }
-    function formatDate(date) {
-      return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${date}T12:00:00`));
     }
     function render() {
       const activeMedia = media.filter((item) => !item.trashed);
@@ -1249,6 +1227,75 @@
       element.style.width = `${width * scale}px`;
       element.style.height = `${height * scale}px`;
     }
+    function getCurrentViewerItem() {
+      if (viewerActiveKey) {
+        const byKey = media.find((entry) => selectionKeyFor(entry) === viewerActiveKey);
+        if (byKey) return byKey;
+      }
+      if (viewerIndex >= 0 && viewerItems[viewerIndex]) {
+        return media.find((entry) => entry.id === viewerItems[viewerIndex].id) || viewerItems[viewerIndex];
+      }
+      return null;
+    }
+    function setViewerActionsBusy(busy) {
+      viewerActionPending = busy;
+      document.querySelectorAll("#viewer-overlay [data-viewer-action]").forEach((btn) => {
+        btn.disabled = busy;
+      });
+    }
+    function syncViewerChrome(item) {
+      const overlay = $("#viewer-overlay");
+      if (!overlay || !item) return;
+      viewerActiveKey = selectionKeyFor(item);
+      const dialogEl = overlay.querySelector(".viewer");
+      if (dialogEl) dialogEl.setAttribute("aria-label", item.title);
+      const titleEl = overlay.querySelector(".viewer-title");
+      if (titleEl) {
+        titleEl.textContent = item.title;
+        titleEl.title = item.title;
+      }
+      const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
+      const subtitleEl = overlay.querySelector(".viewer-subtitle");
+      if (subtitleEl) subtitleEl.textContent = `${item.folder || "MEGA"} · ${mediaKind}`;
+      const positionEl = overlay.querySelector(".viewer-position");
+      if (positionEl) {
+        positionEl.setAttribute("aria-label", `Média ${viewerIndex + 1} sur ${viewerItems.length}`);
+        positionEl.innerHTML = `${viewerIndex + 1}<span>/</span>${viewerItems.length}`;
+      }
+      overlay.querySelectorAll("[data-viewer-step]").forEach((navBtn) => {
+        navBtn.disabled = viewerItems.length < 2;
+      });
+      const folderEl = overlay.querySelector(".viewer-folder");
+      if (folderEl) {
+        folderEl.textContent = item.folder || "MEGA";
+        folderEl.title = item.folder || "MEGA";
+      }
+      const contextEl = overlay.querySelector(".viewer-context");
+      if (contextEl) {
+        const existingTagsEl = contextEl.querySelector(".viewer-tags");
+        const tagsHtml = (item.tags || []).map((tag) => `<span class="viewer-tag">${escapeHtml(tag)}</span>`).join("");
+        if (tagsHtml) {
+          if (existingTagsEl) existingTagsEl.innerHTML = tagsHtml;
+          else contextEl.insertAdjacentHTML("beforeend", `<div class="viewer-tags" aria-label="Tags">${tagsHtml}</div>`);
+        } else if (existingTagsEl) {
+          existingTagsEl.remove();
+        }
+      }
+      const favBtn = overlay.querySelector('[data-viewer-action="favorite"]');
+      if (favBtn) {
+        const favLabel = item.favorite ? "Retirer des favoris" : "Ajouter aux favoris";
+        favBtn.classList.toggle("is-active", Boolean(item.favorite));
+        favBtn.setAttribute("aria-pressed", String(Boolean(item.favorite)));
+        favBtn.setAttribute("aria-label", favLabel);
+        favBtn.title = favLabel;
+      }
+      const delBtn = overlay.querySelector('[data-viewer-action="delete"]');
+      if (delBtn) {
+        const delLabel = item.trashed ? "Supprimer définitivement" : "Supprimer";
+        delBtn.setAttribute("aria-label", delLabel);
+        delBtn.title = delLabel;
+      }
+    }
     function openViewer(id, keepSlideshow = false) {
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
@@ -1271,15 +1318,31 @@
         if (index >= 0) viewerIndex = index;
         if (!viewerReturnFocus) viewerReturnFocus = returnFocusTarget;
       }
+      viewerActiveKey = selectionKeyFor(item);
       const previewRequest = megaPreviewRequest;
+      const immediatePreview = megaConnected && item.type === "photo"
+        ? window.megaConnector?.getImmediatePreviewUrl?.(item.id) || null
+        : null;
       const content = megaConnected
-        ? `<div class="remote-preview-message" id="remote-preview-message"><strong>Chargement ${item.type === "video" ? "de la vidéo" : "de l’aperçu"}…</strong>Le fichier est téléchargé temporairement en mémoire.</div>`
+        ? immediatePreview
+          ? `<img id="viewer-photo" src="${escapeHtml(immediatePreview.url)}" alt="${escapeHtml(item.title)}">${immediatePreview.fullQuality ? "" : `<div class="viewer-hd-badge" id="viewer-hd-badge">Chargement haute définition…</div>`}`
+          : `<div class="remote-preview-message" id="remote-preview-message"><strong>Chargement ${item.type === "video" ? "de la vidéo" : "de l’aperçu"}…</strong>Le fichier est téléchargé temporairement en mémoire.</div>`
         : item.type === "photo"
         ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">`
         : `<div class="viewer-video"><div>${icon("play")}<strong>${escapeHtml(item.title)}</strong><span>Lecture vidéo disponible dans une version connectée à vos fichiers MEGA.</span></div></div>`;
       const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
       const mediaIcon = item.type === "video" ? "video" : "photo";
       const tags = (item.tags || []).map((tag) => `<span class="viewer-tag">${escapeHtml(tag)}</span>`).join("");
+      const favoriteTitle = item.favorite ? "Retirer des favoris" : "Ajouter aux favoris";
+      const deleteTitle = item.trashed ? "Supprimer définitivement" : "Supprimer";
+      const viewerActionsHtml = megaConnected
+        ? `<button class="viewer-close" type="button" data-viewer-action="tags" title="Gérer les tags" aria-label="Gérer les tags">${icon("tag")}</button>` +
+          `<button class="viewer-close" type="button" data-viewer-action="rename" title="Renommer" aria-label="Renommer">${icon("edit")}</button>` +
+          `<button class="viewer-close" type="button" data-viewer-action="move" title="Déplacer" aria-label="Déplacer">${icon("folder")}</button>` +
+          `<button class="viewer-close ${item.favorite ? "is-active" : ""}" type="button" data-viewer-action="favorite" title="${favoriteTitle}" aria-label="${favoriteTitle}" aria-pressed="${Boolean(item.favorite)}">${icon("heart")}</button>` +
+          `<button class="viewer-close viewer-action-danger" type="button" data-viewer-action="delete" title="${deleteTitle}" aria-label="${deleteTitle}">${icon("trash")}</button>` +
+          `<span class="viewer-actions-divider" aria-hidden="true"></span>`
+        : `<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`;
       $("#modal-root").innerHTML = `<div class="overlay viewer-overlay" id="viewer-overlay">
         <div class="viewer" data-kind="${item.type}" role="dialog" aria-modal="true" aria-label="${escapeHtml(item.title)}">
           <div class="viewer-top">
@@ -1291,9 +1354,8 @@
               <span class="viewer-position" aria-label="Média ${viewerIndex + 1} sur ${viewerItems.length}">${viewerIndex + 1}<span>/</span>${viewerItems.length}</span>
             </div>
             <div class="viewer-actions">
-              ${megaConnected ? "" : `<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`}
-              ${megaConnected ? `<button class="viewer-close viewer-menu-button" id="viewer-actions-menu" type="button" title="Actions du média" aria-label="Actions du média" aria-haspopup="menu" aria-expanded="false" aria-controls="viewer-action-menu">${icon("more")}<span>Actions</span></button>` : ""}
-              <button class="viewer-close" id="viewer-close" type="button" aria-label="Fermer">${icon("close")}</button>
+              ${viewerActionsHtml}
+              <button class="viewer-close" id="viewer-close" type="button" title="Fermer" aria-label="Fermer">${icon("close")}</button>
             </div>
           </div>
           <div class="viewer-stage">
@@ -1311,8 +1373,43 @@
           </div>
         </div>
       </div>`;
-      $("#viewer-close").addEventListener("click", closeViewer);
-      $("#viewer-overlay").addEventListener("click", (event) => {
+      $("#viewer-close").addEventListener("click", () => closeViewer());
+      $("#viewer-overlay").addEventListener("click", async (event) => {
+        const actionBtn = event.target.closest("[data-viewer-action]");
+        if (actionBtn) {
+          event.stopPropagation();
+          if (viewerActionPending || !megaConnected) return;
+          const currentItem = getCurrentViewerItem();
+          if (!currentItem) return;
+          const action = actionBtn.dataset.viewerAction;
+          if (action === "tags") {
+            openTagsDialog(currentItem);
+          } else if (action === "rename") {
+            setViewerActionsBusy(true);
+            try {
+              await executeRenameMedia(currentItem);
+            } finally {
+              setViewerActionsBusy(false);
+            }
+          } else if (action === "move") {
+            openMoveDialog([currentItem]);
+          } else if (action === "favorite") {
+            setViewerActionsBusy(true);
+            try {
+              await executeFavoriteMedia([currentItem]);
+            } finally {
+              setViewerActionsBusy(false);
+            }
+          } else if (action === "delete") {
+            setViewerActionsBusy(true);
+            try {
+              await executeDeleteMedia([currentItem]);
+            } finally {
+              setViewerActionsBusy(false);
+            }
+          }
+          return;
+        }
         const stepButton = event.target.closest("[data-viewer-step]");
         if (stepButton && !stepButton.disabled) {
           navigateViewer(Number(stepButton.dataset.viewerStep));
@@ -1323,15 +1420,6 @@
         if (!mediaElement || !mediaElement.contains(event.target)) closeViewer();
       });
       $("#slideshow")?.addEventListener("click", () => startSlideshow(item.id));
-      $("#viewer-actions-menu")?.addEventListener("click", (event) => {
-        event.stopPropagation();
-        if (activeContextMenu?.classList.contains("viewer-context-menu")) {
-          closeMenu();
-        } else {
-          openMenu(item.id, event.currentTarget, null, { viewer: true });
-          event.currentTarget.setAttribute("aria-expanded", "true");
-        }
-      });
       $("#viewer-close").focus();
       const initialMedia = $("#viewer-media img, #viewer-media video");
       if (initialMedia) {
@@ -1339,20 +1427,81 @@
         fitViewerMedia();
       }
       if (megaConnected) {
-        window.megaGallery.downloadPreview(item.id).then((url) => {
-          if (previewRequest !== megaPreviewRequest || !$("#remote-preview-message")) { URL.revokeObjectURL(url); return; }
-          megaPreviewUrl = url;
-          if (item.type === "video") {
-            $("#remote-preview-message").outerHTML = `<video class="viewer-video-player" src="${escapeHtml(url)}" controls playsinline autoplay></video>`;
-          } else {
-            $("#remote-preview-message").outerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}">`;
+        if (viewerItems.length > 1) {
+          const nextItem = viewerItems[(viewerIndex + 1) % viewerItems.length];
+          const prevItem = viewerItems[(viewerIndex - 1 + viewerItems.length) % viewerItems.length];
+          window.megaConnector?.prefetchViewerItems?.([nextItem?.id, prevItem?.id].filter((candidateId) => candidateId && candidateId !== item.id));
+        }
+        if (item.type === "photo" && !immediatePreview && window.megaConnector?.loadQuickPreviewUrl) {
+          window.megaConnector.loadQuickPreviewUrl(item.id).then((quickUrl) => {
+            if (!quickUrl || previewRequest !== megaPreviewRequest) return;
+            const message = $("#remote-preview-message");
+            if (!message) return;
+            message.outerHTML = `<img id="viewer-photo" src="${escapeHtml(quickUrl)}" alt="${escapeHtml(item.title)}"><div class="viewer-hd-badge" id="viewer-hd-badge">Chargement haute définition…</div>`;
+            const quickImg = $("#viewer-photo");
+            quickImg?.addEventListener("load", fitViewerMedia, { once: true });
+            fitViewerMedia();
+          });
+        }
+        window.megaGallery.downloadPreview(item.id).then(async (result) => {
+          const resolved = typeof result === "string"
+            ? { url: result, revokeOnClose: true, degraded: false }
+            : result;
+          if (previewRequest !== megaPreviewRequest || !$("#viewer-overlay")) {
+            if (resolved.revokeOnClose && resolved.url) URL.revokeObjectURL(resolved.url);
+            return;
           }
-          const preview = $("#viewer-media video, #viewer-media img");
-          preview?.addEventListener(preview instanceof HTMLVideoElement ? "loadedmetadata" : "load", fitViewerMedia, { once: true });
-          fitViewerMedia();
+          megaPreviewUrl = resolved.url;
+          megaPreviewRevokeOnClose = Boolean(resolved.revokeOnClose);
+          if (item.type === "video") {
+            const message = $("#remote-preview-message");
+            if (message) {
+              message.outerHTML = `<video class="viewer-video-player" src="${escapeHtml(resolved.url)}" controls playsinline autoplay></video>`;
+            }
+            const preview = $("#viewer-media video");
+            preview?.addEventListener("loadedmetadata", fitViewerMedia, { once: true });
+            fitViewerMedia();
+          } else {
+            const hdLoader = new Image();
+            hdLoader.decoding = "async";
+            hdLoader.src = resolved.url;
+            if (typeof hdLoader.decode === "function") {
+              await hdLoader.decode().catch(() => {});
+            }
+            if (previewRequest !== megaPreviewRequest || !$("#viewer-overlay")) {
+              if (resolved.revokeOnClose && resolved.url) URL.revokeObjectURL(resolved.url);
+              return;
+            }
+            const existingPhoto = $("#viewer-photo");
+            if (existingPhoto) {
+              if (existingPhoto.getAttribute("src") !== resolved.url) {
+                existingPhoto.src = resolved.url;
+              }
+              fitViewerMedia();
+            } else {
+              const message = $("#remote-preview-message");
+              if (message) {
+                message.outerHTML = `<img id="viewer-photo" src="${escapeHtml(resolved.url)}" alt="${escapeHtml(item.title)}">`;
+              }
+              const preview = $("#viewer-photo");
+              preview?.addEventListener("load", fitViewerMedia, { once: true });
+              fitViewerMedia();
+            }
+            const badge = $("#viewer-hd-badge");
+            if (badge) {
+              if (resolved.degraded && resolved.notice) badge.textContent = resolved.notice;
+              else badge.remove();
+            }
+          }
         }).catch((error) => {
+          if (previewRequest !== megaPreviewRequest) return;
+          const badge = $("#viewer-hd-badge");
+          if ($("#viewer-photo")) {
+            if (badge) badge.textContent = "Aperçu MEGA optimisé";
+            return;
+          }
           const message = $("#remote-preview-message");
-          if (previewRequest === megaPreviewRequest && message) message.innerHTML = `<strong>Aperçu indisponible</strong>${escapeHtml(error.message)}`;
+          if (message) message.innerHTML = `<strong>Aperçu indisponible</strong>${escapeHtml(error.message)}`;
         });
       }
     }
@@ -1362,14 +1511,19 @@
       openViewer(viewerItems[viewerIndex].id, true);
     }
     function closeViewer(keepSlideshow = false) {
-      if (activeContextMenu?.classList.contains("viewer-context-menu")) closeMenu();
       if (!keepSlideshow && slideTimer) { clearInterval(slideTimer); slideTimer = null; }
       megaPreviewRequest += 1;
-      if (megaPreviewUrl) { URL.revokeObjectURL(megaPreviewUrl); megaPreviewUrl = null; }
+      viewerActionPending = false;
+      if (megaPreviewUrl) {
+        if (megaPreviewRevokeOnClose) URL.revokeObjectURL(megaPreviewUrl);
+        megaPreviewUrl = null;
+        megaPreviewRevokeOnClose = false;
+      }
       $("#modal-root").innerHTML = "";
       if (!keepSlideshow) {
         viewerItems = [];
         viewerIndex = -1;
+        viewerActiveKey = null;
         const returnFocus = viewerReturnFocus;
         viewerReturnFocus = null;
         if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
@@ -1410,8 +1564,12 @@
       menu.className = "context-menu";
       menu.setAttribute("role", "menu");
       const folder = folderPath ? folders.find((entry) => entry.path === folderPath) : null;
-      menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>` +
-        (folder ? `<button type="button" role="menuitem" data-folder-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" class="danger" data-folder-action="delete">${icon("trash")}<span>Supprimer</span></button>` : "");
+      if (folder?.trashed) {
+        menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="restore">${icon("folder")}<span>Restaurer dans Mon Drive</span></button><button type="button" role="menuitem" class="danger" data-folder-action="delete">${icon("trash")}<span>Supprimer définitivement</span></button>`;
+      } else {
+        menu.innerHTML = `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>` +
+          (folder ? `<button type="button" role="menuitem" data-folder-action="rename">${icon("edit")}<span>Renommer</span></button><button type="button" role="menuitem" class="danger" data-folder-action="delete">${icon("trash")}<span>Supprimer</span></button>` : "");
+      }
       menu.addEventListener("click", async (event) => {
         const action = event.target.closest("[data-folder-action]")?.dataset.folderAction;
         if (!action) return;
@@ -1438,11 +1596,21 @@
             const renamed = await window.megaConnector.renameFolder(folder.path, name);
             onChanged("rename", { ...folder, name: renamed });
             showToast(`Dossier renommé en « ${renamed} » dans MEGA.`);
+          } else if (action === "restore" && folder) {
+            const restored = await window.megaConnector.restoreFolder(folder.path);
+            onChanged("restore", folder);
+            showToast(restored.refreshWarning || `Dossier « ${restored.name} » restauré dans Mon Drive.`);
           } else if (action === "delete" && folder) {
-            if (!window.confirm(`Placer le dossier « ${folder.name} » et tout son contenu dans la corbeille MEGA ? Vous pourrez les restaurer tant que la corbeille n’est pas vidée.`)) return;
-            await window.megaConnector.deleteFolder(folder.path);
+            const confirmMsg = folder.trashed
+              ? `Supprimer définitivement le dossier « ${folder.name} » et tout son contenu de MEGA ? Cette action est irréversible.`
+              : `Placer le dossier « ${folder.name} » et tout son contenu dans la corbeille MEGA ? Vous pourrez les restaurer tant que la corbeille n’est pas vidée.`;
+            if (!window.confirm(confirmMsg)) return;
+            const result = await window.megaConnector.deleteFolder(folder.path);
             onChanged("delete", folder);
-            showToast(`Dossier « ${folder.name} » et son contenu placés dans la corbeille MEGA.`);
+            const fallbackMsg = result?.permanentlyDeleted
+              ? `Dossier « ${folder.name} » supprimé définitivement de MEGA.`
+              : `Dossier « ${folder.name} » et son contenu placés dans la corbeille MEGA.`;
+            showToast(result?.refreshWarning || fallbackMsg);
           }
         } catch (error) {
           console.error(`Échec de l’action « ${action} » sur un dossier MEGA.`, error);
@@ -1456,12 +1624,13 @@
       menu.style.left = `${Math.max(8, Math.min(position.x, window.innerWidth - bounds.width - 8))}px`;
     }
     async function handleEmptyTrash() {
-      const trashedCount = media.filter((item) => item.trashed).length + folders.filter((f) => f.trashed).length;
-      if (trashedCount === 0) {
-        showToast("La corbeille est déjà vide.");
-        return;
-      }
-      if (!window.confirm(`Voulez-vous vraiment vider la corbeille (${trashedCount} élément${trashedCount > 1 ? "s" : ""}) ? Cette action est irréversible.`)) {
+      const trashedMediaCount = media.filter((item) => item.trashed).length;
+      const trashedFolderCount = folders.filter((f) => f.trashed).length;
+      const trashedCount = trashedMediaCount + trashedFolderCount;
+      const confirmLabel = trashedCount > 0
+        ? `Voulez-vous vraiment vider la corbeille MEGA (${trashedCount} élément${trashedCount > 1 ? "s" : ""} visible${trashedCount > 1 ? "s" : ""}) ? Cette action est irréversible.`
+        : `Voulez-vous vraiment vider la corbeille MEGA ? Cette action est irréversible.`;
+      if (!window.confirm(confirmLabel)) {
         return;
       }
       if (megaConnected) {
@@ -1469,7 +1638,11 @@
           showToast("Vidage de la corbeille en cours…");
           const result = await window.megaConnector.emptyTrash();
           currentFolder = null;
-          showToast(result.refreshWarning || `Corbeille vidée (${result.count} élément${result.count > 1 ? "s" : ""} supprimé${result.count > 1 ? "s" : ""}).`);
+          if (result.count === 0) {
+            showToast("La corbeille est déjà vide.");
+          } else {
+            showToast(result.refreshWarning || "Corbeille MEGA vidée définitivement.");
+          }
         } catch (error) {
           console.error("Échec du vidage de la corbeille MEGA.", error);
           showToast(error instanceof Error ? error.message : "Impossible de vider la corbeille MEGA.");
@@ -1497,30 +1670,34 @@
     }
     function openGalleryContextMenu(parentPath, position) {
       closeMenu();
+      const showMediaSort = currentView !== "folder-index" && currentView !== "tag-index";
       const menu = document.createElement("div");
       menu.className = "context-menu";
       menu.setAttribute("role", "menu");
       let itemsHtml = "";
       if (currentView === "trash") {
-        itemsHtml += `<button type="button" role="menuitem" class="danger" data-folder-action="empty-trash">${icon("trash")}<span>Vider la corbeille</span></button><div class="context-menu-divider" role="separator"></div>`;
+        itemsHtml += `<button type="button" role="menuitem" class="danger" data-folder-action="empty-trash">${icon("trash")}<span>Vider la corbeille</span></button>${showMediaSort ? `<div class="context-menu-divider" role="separator"></div>` : ""}`;
       } else if (megaConnected) {
-        itemsHtml += `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button><div class="context-menu-divider" role="separator"></div>`;
+        itemsHtml += `<button type="button" role="menuitem" data-folder-action="upload">${icon("upload")}<span>Importer des fichiers ici</span></button><button type="button" role="menuitem" data-folder-action="create">${icon("folder")}<span>Créer un sous-dossier ici</span></button>${showMediaSort ? `<div class="context-menu-divider" role="separator"></div>` : ""}`;
       }
-      itemsHtml += `
-        <div class="context-menu-label">Trier par</div>
-        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'recent'}" class="${currentSort === 'recent' ? 'is-active' : ''}" data-sort="recent">
-          ${currentSort === "recent" ? icon("check") : '<span class="icon-placeholder"></span>'}
-          <span>Plus récents</span>
-        </button>
-        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'name'}" class="${currentSort === 'name' ? 'is-active' : ''}" data-sort="name">
-          ${currentSort === "name" ? icon("check") : '<span class="icon-placeholder"></span>'}
-          <span>Nom A–Z</span>
-        </button>
-        <button type="button" role="menuitemradio" aria-checked="${currentSort === 'oldest'}" class="${currentSort === 'oldest' ? 'is-active' : ''}" data-sort="oldest">
-          ${currentSort === "oldest" ? icon("check") : '<span class="icon-placeholder"></span>'}
-          <span>Plus anciens</span>
-        </button>
-      `;
+      if (showMediaSort) {
+        itemsHtml += `
+          <div class="context-menu-label">Trier par</div>
+          <button type="button" role="menuitemradio" aria-checked="${currentSort === 'recent'}" class="${currentSort === 'recent' ? 'is-active' : ''}" data-sort="recent">
+            ${currentSort === "recent" ? icon("check") : '<span class="icon-placeholder"></span>'}
+            <span>Plus récents</span>
+          </button>
+          <button type="button" role="menuitemradio" aria-checked="${currentSort === 'name'}" class="${currentSort === 'name' ? 'is-active' : ''}" data-sort="name">
+            ${currentSort === "name" ? icon("check") : '<span class="icon-placeholder"></span>'}
+            <span>Nom A–Z</span>
+          </button>
+          <button type="button" role="menuitemradio" aria-checked="${currentSort === 'oldest'}" class="${currentSort === 'oldest' ? 'is-active' : ''}" data-sort="oldest">
+            ${currentSort === "oldest" ? icon("check") : '<span class="icon-placeholder"></span>'}
+            <span>Plus anciens</span>
+          </button>
+        `;
+      }
+      if (!itemsHtml) return;
       menu.innerHTML = itemsHtml;
       menu.addEventListener("click", async (event) => {
         const sortButton = event.target.closest("[data-sort]");
@@ -1770,30 +1947,93 @@
       } catch (error) {
         $("#move-error").textContent = error instanceof Error ? error.message : "Le déplacement MEGA a échoué.";
         console.error("Échec du déplacement d’un média dans MEGA.", error);
+        submit.textContent = items.length === 1 ? "Déplacer dans MEGA" : `Déplacer ${items.length} médias`;
       } finally {
         submit.disabled = false;
-        if (!$("#move-form").dataset.fileKeys) submit.textContent = "Déplacer dans MEGA";
       }
     });
-    function openMenu(id, button, position, { viewer = false } = {}) {
+    async function executeRenameMedia(item) {
+      if (!megaConnected || !item) return;
+      const name = window.prompt("Nouveau nom du média :", item.title);
+      if (name === null || !name.trim()) return;
+      try {
+        const renamed = await window.megaConnector.renameFile(item.id, name);
+        showToast(`Média renommé en « ${renamed} » dans MEGA.`);
+      } catch (error) {
+        console.error("Échec du renommage d’un média MEGA.", error);
+        showToast(error instanceof Error ? error.message : "Impossible de renommer ce média dans MEGA.");
+      }
+    }
+    async function executeFavoriteMedia(actionItems) {
+      if (!megaConnected || !actionItems?.length) return;
+      const favorite = !actionItems.every((entry) => entry.favorite);
+      try {
+        const result = await window.megaConnector.setFavoriteFiles(actionItems.map((entry) => entry.id), favorite);
+        if (result.failed.length) {
+          const failureMessage = `${result.succeeded.length} favori${result.succeeded.length === 1 ? "" : "s"} modifié${result.succeeded.length === 1 ? "" : "s"} ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
+          showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
+          console.error("Échec partiel de la mise à jour des favoris MEGA.", result.failed);
+        } else {
+          showToast(result.refreshWarning || `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "ajouté" : "retiré"}${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "aux" : "des"} favoris MEGA.`);
+        }
+      } catch (error) {
+        console.error("Échec de la mise à jour du favori MEGA.", error);
+        showToast(error instanceof Error ? error.message : "Impossible de modifier ce favori MEGA.");
+      }
+    }
+    async function executeDeleteMedia(actionItems) {
+      if (!megaConnected || !actionItems?.length) return false;
+      const names = actionItems.length === 1 ? `« ${actionItems[0].title} »` : `ces ${actionItems.length} médias sélectionnés`;
+      const permanent = actionItems.every((entry) => entry.trashed);
+      const confirmMessage = permanent
+        ? `Supprimer définitivement ${names} de MEGA ? Cette action est irréversible.`
+        : `Placer ${names} dans la corbeille MEGA ? Vous pourrez ${actionItems.length === 1 ? "le" : "les"} restaurer tant que la corbeille n’est pas vidée.`;
+      if (!window.confirm(confirmMessage)) return false;
+      try {
+        const result = await window.megaConnector.deleteFiles(actionItems.map((entry) => entry.id));
+        for (const deleted of result.succeeded) selectedMediaKeys.delete(deleted.fileKey);
+        updateSelectedMediaCards();
+        const permanentCount = result.succeeded.filter((entry) => entry.permanentlyDeleted).length;
+        const allPermanent = result.succeeded.length > 0 && permanentCount === result.succeeded.length;
+        if (result.failed.length) {
+          const actionPast = allPermanent
+            ? `supprimé${result.succeeded.length === 1 ? "" : "s"} définitivement`
+            : `placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille`;
+          const failureMessage = `${result.succeeded.length} ${actionPast} ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
+          showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
+          console.error("Échec partiel de la suppression MEGA.", result.failed);
+        } else {
+          const successMessage = allPermanent
+            ? `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} supprimé${result.succeeded.length === 1 ? "" : "s"} définitivement de MEGA.`
+            : `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille MEGA.`;
+          showToast(result.refreshWarning || successMessage);
+        }
+        return result.succeeded.length > 0;
+      } catch (error) {
+        console.error("Échec de la suppression MEGA.", error);
+        showToast(error instanceof Error ? error.message : "Impossible de supprimer ce média dans MEGA.");
+        return false;
+      }
+    }
+    function openMenu(id, button, position) {
       if (!megaConnected) return;
       closeMenu();
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
       const selectedItems = media.filter((entry) => selectedMediaKeys.has(selectionKeyFor(entry)));
-      const actionItems = !viewer && selectedMediaKeys.has(selectionKeyFor(item)) ? selectedItems : [item];
+      const actionItems = selectedMediaKeys.has(selectionKeyFor(item)) ? selectedItems : [item];
       const actionFavorite = !actionItems.every((entry) => entry.favorite);
       const favoriteLabel = actionItems.length > 1
         ? `${actionFavorite ? "Ajouter aux" : "Retirer des"} favoris (${actionItems.length})`
         : `${actionFavorite ? "Ajouter aux" : "Retirer des"} favoris`;
+      const allInTrash = actionItems.every((entry) => entry.trashed);
       const rect = position ? null : button.getBoundingClientRect();
       const menu = document.createElement("div");
-      menu.className = viewer ? "context-menu viewer-context-menu" : "context-menu";
-      menu.returnFocusTarget = viewer ? button : null;
-      if (viewer) menu.id = "viewer-action-menu";
+      menu.className = "context-menu";
       menu.setAttribute("role", "menu");
       const moveLabel = actionItems.length > 1 ? `Déplacer (${actionItems.length})` : "Déplacer";
-      const deleteLabel = actionItems.length > 1 ? `Supprimer (${actionItems.length})` : "Supprimer";
+      const deleteBase = allInTrash ? "Supprimer définitivement" : "Supprimer";
+      const deleteLabel = actionItems.length > 1 ? `${deleteBase} (${actionItems.length})` : deleteBase;
       const tagsLabel = actionItems.length > 1 ? `Gérer les tags (${actionItems.length})` : "Gérer les tags";
       menu.innerHTML = `<button type="button" role="menuitem" data-action="tags">${icon("tag")}<span>${tagsLabel}</span></button>${actionItems.length === 1 ? `<button type="button" role="menuitem" data-action="rename">${icon("edit")}<span>Renommer</span></button>` : ""}<button type="button" role="menuitem" data-action="move">${icon("folder")}<span>${moveLabel}</span></button><button type="button" role="menuitem" data-action="favorite">${icon("heart")}<span>${favoriteLabel}</span></button><button type="button" role="menuitem" class="danger" data-action="delete">${icon("trash")}<span>${deleteLabel}</span></button>`;
       const top = position?.y ?? rect.bottom;
@@ -1803,74 +2043,23 @@
       menu.addEventListener("click", async (event) => {
         const action = event.target.closest("[data-action]")?.dataset.action;
         if (!action) return;
-        if (megaConnected && action === "move") {
-          closeMenu();
+        closeMenu();
+        if (!megaConnected) return;
+        if (action === "move") {
           openMoveDialog(actionItems);
-          return;
-        }
-        if (megaConnected && action === "rename") {
-          closeMenu();
-          const name = window.prompt("Nouveau nom du média :", item.title);
-          if (name === null || !name.trim()) return;
-          try {
-            const renamed = await window.megaConnector.renameFile(item.id, name);
-            showToast(`Média renommé en « ${renamed} » dans MEGA.`);
-          } catch (error) {
-            console.error("Échec du renommage d’un média MEGA.", error);
-            showToast(error instanceof Error ? error.message : "Impossible de renommer ce média dans MEGA.");
-          }
-          return;
-        }
-        if (megaConnected && action === "tags") {
-          closeMenu();
+        } else if (action === "rename") {
+          await executeRenameMedia(item);
+        } else if (action === "tags") {
           if (actionItems.length > 1) openBulkTagsDialog(actionItems);
           else openTagsDialog(item);
-          return;
+        } else if (action === "favorite") {
+          await executeFavoriteMedia(actionItems);
+        } else if (action === "delete") {
+          await executeDeleteMedia(actionItems);
         }
-        if (megaConnected && action === "favorite") {
-          const favorite = actionFavorite;
-          closeMenu();
-          try {
-            const result = await window.megaConnector.setFavoriteFiles(actionItems.map((entry) => entry.id), favorite);
-            if (result.failed.length) {
-              const failureMessage = `${result.succeeded.length} favori${result.succeeded.length === 1 ? "" : "s"} modifié${result.succeeded.length === 1 ? "" : "s"} ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
-              showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
-              console.error("Échec partiel de la mise à jour des favoris MEGA.", result.failed);
-            } else {
-              showToast(result.refreshWarning || `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "ajouté" : "retiré"}${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "aux" : "des"} favoris MEGA.`);
-            }
-          } catch (error) {
-            console.error("Échec de la mise à jour du favori MEGA.", error);
-            showToast(error instanceof Error ? error.message : "Impossible de modifier ce favori MEGA.");
-          }
-          return;
-        }
-        if (megaConnected && action === "delete") {
-          const names = actionItems.length === 1 ? `« ${item.title} »` : `ces ${actionItems.length} médias sélectionnés`;
-          if (!window.confirm(`Placer ${names} dans la corbeille MEGA ? Vous pourrez les restaurer tant que la corbeille n’est pas vidée.`)) return;
-          closeMenu();
-          try {
-            const result = await window.megaConnector.deleteFiles(actionItems.map((entry) => entry.id));
-            for (const deleted of result.succeeded) selectedMediaKeys.delete(deleted.fileKey);
-            updateSelectedMediaCards();
-            if (result.failed.length) {
-              const failureMessage = `${result.succeeded.length} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
-              showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
-              console.error("Échec partiel de la suppression MEGA.", result.failed);
-            } else {
-              showToast(result.refreshWarning || `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille MEGA.`);
-            }
-          } catch (error) {
-            console.error("Échec de la suppression MEGA.", error);
-            showToast(error instanceof Error ? error.message : "Impossible de supprimer ce média dans MEGA.");
-          }
-          return;
-        }
-        closeMenu();
       });
       $("#menu-root").append(menu);
       activeContextMenu = menu;
-      if (viewer) menu.querySelector("button")?.focus();
       const menuBounds = menu.getBoundingClientRect();
       menu.style.top = `${Math.max(8, Math.min(top, window.innerHeight - menuBounds.height - 8))}px`;
       menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - menuBounds.width - 8))}px`;
@@ -1943,27 +2132,29 @@
     });
     $("main").addEventListener("contextmenu", (event) => {
       if (event.target.closest(".topbar")) return;
-      const cover = event.target.closest(".photo-cover[data-open]");
-      if (cover) {
-        const item = media.find((entry) => entry.id === Number(cover.dataset.open));
+      const mediaCard = event.target.closest(".photo-card[data-card]");
+      if (mediaCard) {
+        const item = media.find((entry) => entry.id === Number(mediaCard.dataset.card));
         if (!item) return;
         event.preventDefault();
         openMenu(item.id, null, { x: event.clientX, y: event.clientY });
         return;
       }
-      const folderCard = event.target.closest(".folder-card [data-open-folder]");
-      if (folderCard) {
-        event.preventDefault();
-        const path = folderCard.dataset.openFolder;
-        openFolderContextMenu(path, { x: event.clientX, y: event.clientY }, {
-          folderPath: path,
-          onChanged: refreshFolderNavigation
-        });
+      const folderArticle = event.target.closest(".folder-card");
+      if (folderArticle) {
+        const folderButton = folderArticle.querySelector("[data-open-folder]");
+        if (folderButton) {
+          event.preventDefault();
+          const path = folderButton.dataset.openFolder;
+          openFolderContextMenu(path, { x: event.clientX, y: event.clientY }, {
+            folderPath: path,
+            onChanged: refreshFolderNavigation
+          });
+        }
         return;
       }
-      if (event.target.closest(".photo-card, .folder-card")) return;
       event.preventDefault();
-      const parentPath = currentView === "folder" ? currentFolder : "__root__";
+      const parentPath = currentView === "folder" ? (currentFolder || "__root__") : "__root__";
       openGalleryContextMenu(parentPath, { x: event.clientX, y: event.clientY });
     });
     $("#sidebar").addEventListener("contextmenu", (event) => {
@@ -2087,11 +2278,12 @@
         currentTag = null;
         if (currentView === "folder-index" || currentView === "tag-index") $("#search").value = "";
         render();
+        $("main").scrollTop = 0;
         $("#sidebar").classList.remove("open");
         $("#scrim").classList.remove("visible");
         return;
       }
-      const tagCard = event.target.closest("[data-open-tag]");
+      const tagCard = event.target.closest("[data-open-tag]") || event.target.closest(".folder-card")?.querySelector("[data-open-tag]");
       if (tagCard) {
         mediaPageSize = 120;
         currentView = "tag";
@@ -2099,11 +2291,12 @@
         currentTag = tagCard.dataset.openTag;
         $("#search").value = "";
         render();
+        $("main").scrollTop = 0;
         $("#sidebar").classList.remove("open");
         $("#scrim").classList.remove("visible");
         return;
       }
-      const folder = event.target.closest("[data-folder], [data-open-folder]");
+      const folder = event.target.closest("[data-folder], [data-open-folder]") || event.target.closest(".folder-card")?.querySelector("[data-open-folder]");
       if (folder) {
         mediaPageSize = 120;
         const fromFolderIndex = currentView === "folder-index";
@@ -2117,7 +2310,11 @@
           currentTag = null;
           if (fromFolderIndex) $("#search").value = "";
         }
-        render(); $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("visible"); return;
+        render();
+        $("main").scrollTop = 0;
+        $("#sidebar").classList.remove("open");
+        $("#scrim").classList.remove("visible");
+        return;
       }
       const menu = event.target.closest("[data-menu]");
       if (menu) { openMenu(menu.dataset.menu, menu); return; }
@@ -2149,11 +2346,6 @@
       if (viewer) {
         if (event.key === "Escape") {
           event.preventDefault();
-          if (activeContextMenu?.classList.contains("viewer-context-menu")) {
-            closeMenu();
-            $("#viewer-actions-menu")?.focus();
-            return;
-          }
           closeViewer();
           return;
         }
@@ -2164,14 +2356,10 @@
           return;
         }
         if (event.key === "Tab") {
-          const viewerMenu = activeContextMenu?.classList.contains("viewer-context-menu") ? activeContextMenu : null;
-          const focusable = [
-            ...viewer.querySelectorAll("button:not(:disabled), video[controls]"),
-            ...(viewerMenu ? viewerMenu.querySelectorAll("button:not(:disabled)") : [])
-          ];
+          const focusable = [...viewer.querySelectorAll("button:not(:disabled), video[controls]")];
           const first = focusable[0];
           const last = focusable[focusable.length - 1];
-          if (first && last && (!viewer.contains(document.activeElement) && !viewerMenu?.contains(document.activeElement) ||
+          if (first && last && (!viewer.contains(document.activeElement) ||
             (event.shiftKey && document.activeElement === first) ||
             (!event.shiftKey && document.activeElement === last))) {
             event.preventDefault();
@@ -2240,8 +2428,7 @@
     });
     $("#tag-cancel").addEventListener("click", () => $("#tag-dialog").close());
     $("#tag-dialog").addEventListener("close", () => {
-      editingMediaId = null;
-      editingMediaIds = [];
+      editingMediaKeys = [];
       bulkMediaItems = [];
       bulkTagMode = false;
       bulkTagAdditions = [];
@@ -2250,9 +2437,16 @@
     });
     $("#tag-form").addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (editingMediaId === null && !bulkTagMode) return;
+      if (!editingMediaKeys.length) return;
       if (bulkTagMode && !bulkTagAdditions.length && !bulkTagRemovals.length) {
         $("#tag-error").textContent = "Ajoutez ou retirez au moins un tag avant d’enregistrer.";
+        return;
+      }
+      const resolvedItems = editingMediaKeys
+        .map((key) => media.find((entry) => selectionKeyFor(entry) === key))
+        .filter(Boolean);
+      if (!resolvedItems.length) {
+        $("#tag-error").textContent = "Le média sélectionné n’est plus disponible.";
         return;
       }
       const submit = $("#tag-submit");
@@ -2261,7 +2455,7 @@
       $("#tag-error").textContent = "";
       try {
         if (bulkTagMode) {
-          const result = await window.megaConnector.updateMediaTags(editingMediaIds, {
+          const result = await window.megaConnector.updateMediaTags(resolvedItems.map((entry) => entry.id), {
             add: bulkTagAdditions,
             remove: bulkTagRemovals
           });
@@ -2274,7 +2468,7 @@
             showToast(`${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} mis à jour dans MEGA.`);
           }
         } else {
-          const tags = await window.megaConnector.setMediaTags(editingMediaId, draftTags);
+          const tags = await window.megaConnector.setMediaTags(resolvedItems[0].id, draftTags);
           $("#tag-dialog").close();
           showToast(tags.length ? "Tags enregistrés dans MEGA." : "Tags supprimés de ce média.");
         }
@@ -2305,8 +2499,25 @@
         btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span>`;
       }
     }
+    function updateProfileUI(accountName = "", accountEmail = "") {
+      const displayName = accountName || accountEmail || "Espace personnel";
+      const caption = accountEmail && accountEmail !== displayName ? accountEmail : "Compte MEGA";
+      const initial = displayName.trim().charAt(0).toLocaleUpperCase("fr") || "M";
+      const avatarEl = $("#profile-avatar");
+      const nameEl = $("#profile-name");
+      const captionEl = $("#profile-caption");
+      if (avatarEl) avatarEl.textContent = initial;
+      if (nameEl) {
+        nameEl.textContent = displayName;
+        nameEl.title = displayName;
+      }
+      if (captionEl) {
+        captionEl.textContent = caption;
+        captionEl.title = caption;
+      }
+    }
     window.megaGallery = {
-      setLibrary({ files, folders: remoteFolders }) {
+      setLibrary({ files, folders: remoteFolders, accountName = "", accountEmail = "" }) {
         window.megaConnector.releaseAllThumbnails();
         megaConnected = true;
         selectedMediaKeys.clear();
@@ -2317,15 +2528,63 @@
         currentTag = null;
         mediaPageSize = 120;
         updateConnectionUI("connected");
+        updateProfileUI(accountName, accountEmail);
         document.body.classList.remove("unauthenticated");
         render();
       },
       refreshLibrary({ files, folders: remoteFolders }) {
-        window.megaConnector.releaseAllThumbnails();
+        window.megaConnector.syncLibraryThumbnails();
+        const viewerOpen = Boolean($("#viewer-overlay"));
+        const previousViewerKey = viewerOpen
+          ? (viewerActiveKey || (viewerIndex >= 0 && viewerItems[viewerIndex] ? selectionKeyFor(viewerItems[viewerIndex]) : null))
+          : null;
+        const previousViewerIndex = viewerIndex;
+
         media = files;
         folders = remoteFolders;
+
+        const validKeys = new Set(files.map(selectionKeyFor));
+        for (const key of [...selectedMediaKeys]) {
+          if (!validKeys.has(key)) selectedMediaKeys.delete(key);
+        }
+
+        if (currentView === "folder" && currentFolder && currentFolder !== "__root__") {
+          const activeFoldersByPath = new Set(remoteFolders.filter((entry) => !entry.trashed).map((entry) => entry.path));
+          if (!activeFoldersByPath.has(currentFolder)) {
+            const parts = currentFolder.split("/");
+            parts.pop();
+            while (parts.length && !activeFoldersByPath.has(parts.join("/"))) {
+              parts.pop();
+            }
+            if (parts.length) currentFolder = parts.join("/");
+            else {
+              currentView = "folder-index";
+              currentFolder = null;
+            }
+          }
+        } else if (currentView === "trash" && currentFolder && currentFolder !== "__trash__") {
+          const trashFoldersByPath = new Set(remoteFolders.filter((entry) => entry.trashed).map((entry) => entry.path));
+          if (!trashFoldersByPath.has(currentFolder)) currentFolder = null;
+        }
+
         render();
-        window.megaConnector.updateCacheStatus();
+
+        if (viewerOpen && previousViewerKey) {
+          const nextVisible = visibleMedia();
+          const updatedInViewIndex = nextVisible.findIndex((entry) => selectionKeyFor(entry) === previousViewerKey);
+          if (updatedInViewIndex >= 0) {
+            viewerItems = nextVisible;
+            viewerIndex = updatedInViewIndex;
+            syncViewerChrome(nextVisible[updatedInViewIndex]);
+          } else if (nextVisible.length > 0) {
+            const fallbackIndex = Math.max(0, Math.min(previousViewerIndex, nextVisible.length - 1));
+            viewerItems = nextVisible;
+            viewerIndex = fallbackIndex;
+            openViewer(nextVisible[fallbackIndex].id, true);
+          } else {
+            closeViewer();
+          }
+        }
       },
       clearLibrary() {
         window.megaConnector.releaseAllThumbnails();
@@ -2337,12 +2596,12 @@
         currentFolder = null;
         currentTag = null;
         updateConnectionUI("disconnected");
+        updateProfileUI();
         document.body.classList.add("unauthenticated");
         render();
       },
       isConnected() { return megaConnected; },
       showToast,
-      setCacheStatus: updateCacheStatus,
       observeThumbnails(root) { window.megaConnector.observeThumbnails(root); },
       downloadPreview(id) { return window.megaConnector.downloadPreview(id); }
     };
@@ -2366,17 +2625,6 @@
         button.classList.remove("is-refreshing");
         button.removeAttribute("aria-busy");
         button.title = "Synchroniser depuis MEGA";
-      }
-    });
-    $("#clear-thumbnail-cache").addEventListener("click", async () => {
-      try {
-        await window.megaConnector.clearPersistentCache();
-        await window.megaConnector.updateCacheStatus();
-        showToast("Cache local des miniatures vidé.");
-      } catch (error) {
-        updateCacheStatus({ available: false, error: "Impossible de vider le cache local." });
-        showToast("Impossible de vider le cache local.");
-        console.error("Échec du vidage du cache des aperçus.", error);
       }
     });
     render();

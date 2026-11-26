@@ -16,25 +16,42 @@ const gifThumbnailLimit = 30 * 1024 * 1024;
 const videoThumbnailLimit = 100 * 1024 * 1024;
 const photoPreviewLimit = 30 * 1024 * 1024;
 const videoPreviewLimit = 100 * 1024 * 1024;
-const cacheDatabaseName = "mega-gallery-preview-cache";
-const cacheStoreName = "previews";
-const cacheMetadataStoreName = "preview-metadata";
-const cacheLimit = 200 * 1024 * 1024;
+const legacyCacheDatabaseName = "mega-gallery-preview-cache";
+const sessionPreviewCacheLimit = 96 * 1024 * 1024;
+const sessionFullPhotoCacheLimit = 90 * 1024 * 1024;
+const maxMegaAttributeConcurrency = 6;
+const maxFallbackThumbnailConcurrency = 2;
 const sessionStorageKey = "mega-gallery-session";
 const mediaTagsAttribute = "t";
 const maxMediaTagCount = 10;
 const maxMediaTagsBytes = 3000;
-const thumbnailUrls = new Map();
+const sessionPreviewCache = new Map();
+let sessionPreviewCacheBytes = 0;
+const sessionFullPhotoCache = new Map();
+let sessionFullPhotoCacheBytes = 0;
+const fullPhotoRequests = new Map();
 const thumbnailRequests = new Map();
 const previewBlobRequests = new Map();
-const thumbnailQueue = [];
-let activeThumbnailDownloads = 0;
-let thumbnailObserver = null;
+const megaAttributeQueue = [];
+const fallbackThumbnailQueue = [];
+let activeMegaAttributeDownloads = 0;
+let activeFallbackThumbnailDownloads = 0;
+let preloadObserver = null;
+let visibilityObserver = null;
+let observerScrollRoot = null;
 let thumbnailGeneration = 0;
-let cacheDatabasePromise = null;
-let cacheUnavailableReason = "";
-let localCacheNotice = "";
-let cachePersistent = null;
+let preferredUfaSuffixMode = null;
+let activeRefreshPromise = null;
+let liveSyncTimer = null;
+
+function purgeLegacyLocalCache() {
+  if (!("indexedDB" in window)) return;
+  try {
+    indexedDB.deleteDatabase(legacyCacheDatabaseName);
+  } catch (error) {
+    console.warn("Impossible de supprimer l’ancien cache local.", error);
+  }
+}
 const escapeAttribute = (value) => String(value).replace(/[&<>"']/g, (char) => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
 ));
@@ -102,12 +119,21 @@ function getWebCryptoError() {
 function formatDate(node) {
   const seconds = getTimestamp(node);
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  return new Date(seconds * 1000).toISOString().slice(0, 10);
+  const date = new Date(seconds * 1000);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getTimestamp(node) {
-  const seconds = Number(node.timestamp || node.createdAt);
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  if (Number.isFinite(Number(node?.timestamp)) && Number(node.timestamp) > 0) {
+    return Number(node.timestamp);
+  }
+  if (Number.isFinite(Number(node?.createdAt)) && Number(node.createdAt) > 0) {
+    return Math.floor(Number(node.createdAt) / 1000);
+  }
+  return 0;
 }
 
 function getMimeType(name, type) {
@@ -142,33 +168,240 @@ function getMimeType(name, type) {
   })[extension] || "application/octet-stream";
 }
 
-function runThumbnailDownload(task) {
+function scheduleLiveLibrarySync(candidate) {
+  window.clearTimeout(liveSyncTimer);
+  liveSyncTimer = window.setTimeout(() => {
+    liveSyncTimer = null;
+    if (storage !== candidate || activeRefreshPromise) return;
+    if (!window.megaGallery?.isConnected?.()) return;
+    const library = buildLibrary(candidate.root, candidate.trash);
+    window.megaGallery.refreshLibrary(library);
+  }, 450);
+}
+
+function attachFileAttributesTracker(candidate) {
+  if (!candidate || candidate.__faTrackerAttached) return candidate;
+  candidate.__faTrackerAttached = true;
+  const originalImportFile = candidate._importFile.bind(candidate);
+  candidate._importFile = (rawNode) => {
+    const file = originalImportFile(rawNode);
+    if (file && rawNode && typeof rawNode === "object") {
+      if (typeof rawNode.fa === "string") {
+        file.fa = rawNode.fa;
+      } else if (typeof file.fa !== "string") {
+        file.fa = "";
+      }
+    }
+    return file;
+  };
+  candidate.api.on("sc", (events) => {
+    if (!Array.isArray(events)) return;
+    let attributesUpdated = false;
+    for (const event of events) {
+      if (event?.a === "fa" && event.n && typeof event.fa === "string") {
+        const target = candidate.files?.[event.n];
+        if (target && target.fa !== event.fa) {
+          target.fa = event.fa;
+          attributesUpdated = true;
+        }
+      }
+    }
+    if (attributesUpdated) scheduleLiveLibrarySync(candidate);
+  });
+  for (const eventName of ["add", "update", "move", "delete"]) {
+    candidate.on(eventName, () => scheduleLiveLibrarySync(candidate));
+  }
+  return candidate;
+}
+
+function getFileCacheKey(file) {
+  if (!file) return "";
+  const owner = file.storage?.user || storage?.user || "mega";
+  const faToken = typeof file.fa === "string" ? file.fa : "";
+  if (file.nodeId) {
+    return `${owner}:${file.nodeId}:${file.size || 0}:${faToken}`;
+  }
+  const existing = cacheKeysByFile.get(file);
+  if (existing) return existing;
+  const fallbackKey = `${owner}:${file.name || ""}:${file.timestamp || 0}:${file.size || 0}:${faToken}`;
+  cacheKeysByFile.set(file, fallbackKey);
+  return fallbackKey;
+}
+
+function isUrlMountedInDom(url) {
+  if (!url) return false;
+  for (const element of document.querySelectorAll("img[src], video[src]")) {
+    if (element.isConnected && element.getAttribute("src") === url) return true;
+  }
+  return false;
+}
+
+function getSessionPreviewEntry(file) {
+  const key = getFileCacheKey(file);
+  if (!key) return null;
+  const entry = sessionPreviewCache.get(key);
+  if (!entry) return null;
+  entry.lastUsed = Date.now();
+  return entry;
+}
+
+function storeSessionPreviewBlob(file, blob) {
+  const key = getFileCacheKey(file);
+  if (!key || !blob) return null;
+  const existing = sessionPreviewCache.get(key);
+  if (existing) {
+    existing.lastUsed = Date.now();
+    return existing;
+  }
+  if (blob.size > sessionPreviewCacheLimit) {
+    return { blob, url: URL.createObjectURL(blob), bytes: blob.size, lastUsed: Date.now(), transient: true };
+  }
+  if (sessionPreviewCacheBytes + blob.size > sessionPreviewCacheLimit) {
+    const candidates = [...sessionPreviewCache.entries()]
+      .sort((first, second) => first[1].lastUsed - second[1].lastUsed);
+    for (const [candidateKey, candidate] of candidates) {
+      if (sessionPreviewCacheBytes + blob.size <= sessionPreviewCacheLimit) break;
+      if (isUrlMountedInDom(candidate.url)) continue;
+      URL.revokeObjectURL(candidate.url);
+      sessionPreviewCache.delete(candidateKey);
+      sessionPreviewCacheBytes = Math.max(0, sessionPreviewCacheBytes - candidate.bytes);
+    }
+  }
+  const entry = {
+    blob,
+    url: URL.createObjectURL(blob),
+    bytes: blob.size,
+    lastUsed: Date.now(),
+    transient: false
+  };
+  sessionPreviewCache.set(key, entry);
+  sessionPreviewCacheBytes += blob.size;
+  return entry;
+}
+
+function getSessionFullPhotoEntry(file) {
+  const key = getFileCacheKey(file);
+  if (!key) return null;
+  const entry = sessionFullPhotoCache.get(key);
+  if (!entry) return null;
+  entry.lastUsed = Date.now();
+  return entry;
+}
+
+function storeSessionFullPhotoBlob(file, blob) {
+  const key = getFileCacheKey(file);
+  if (!key || !blob) return null;
+  const existing = sessionFullPhotoCache.get(key);
+  if (existing) {
+    existing.lastUsed = Date.now();
+    return existing;
+  }
+  if (blob.size > sessionFullPhotoCacheLimit) {
+    return { blob, url: URL.createObjectURL(blob), bytes: blob.size, lastUsed: Date.now(), revokeOnClose: true };
+  }
+  if (sessionFullPhotoCacheBytes + blob.size > sessionFullPhotoCacheLimit) {
+    const candidates = [...sessionFullPhotoCache.entries()]
+      .sort((first, second) => first[1].lastUsed - second[1].lastUsed);
+    for (const [candidateKey, candidate] of candidates) {
+      if (sessionFullPhotoCacheBytes + blob.size <= sessionFullPhotoCacheLimit) break;
+      if (isUrlMountedInDom(candidate.url)) continue;
+      URL.revokeObjectURL(candidate.url);
+      sessionFullPhotoCache.delete(candidateKey);
+      sessionFullPhotoCacheBytes = Math.max(0, sessionFullPhotoCacheBytes - candidate.bytes);
+    }
+  }
+  const entry = {
+    blob,
+    url: URL.createObjectURL(blob),
+    bytes: blob.size,
+    lastUsed: Date.now(),
+    revokeOnClose: false
+  };
+  sessionFullPhotoCache.set(key, entry);
+  sessionFullPhotoCacheBytes += blob.size;
+  return entry;
+}
+
+function getThumbnailImagesForId(id) {
+  return [...document.querySelectorAll(`#photo-grid [data-thumbnail="${id}"]`)];
+}
+
+function isThumbnailIdRelevant(id) {
+  if (id == null) return true;
+  const images = getThumbnailImagesForId(id);
+  return images.some((img) => img.isConnected && (img.dataset.inView === "true" || img.dataset.inPreload === "true"));
+}
+
+function isThumbnailIdInViewport(id) {
+  if (id == null) return false;
+  const images = getThumbnailImagesForId(id);
+  return images.some((img) => img.isConnected && img.dataset.inView === "true");
+}
+
+function pickNextThumbnailTask(queue) {
+  while (queue.length) {
+    let bestIndex = -1;
+    for (let index = 0; index < queue.length; index += 1) {
+      const candidate = queue[index];
+      if (!candidate.alwaysRun && !isThumbnailIdRelevant(candidate.id)) {
+        queue.splice(index, 1);
+        if (candidate.id != null) thumbnailRequests.delete(candidate.id);
+        candidate.resolve(null);
+        index -= 1;
+        continue;
+      }
+      if (candidate.highPriority || isThumbnailIdInViewport(candidate.id)) {
+        bestIndex = index;
+        break;
+      }
+      if (bestIndex < 0) bestIndex = index;
+    }
+    if (bestIndex >= 0) {
+      return queue.splice(bestIndex, 1)[0];
+    }
+  }
+  return null;
+}
+
+function scheduleThumbnailTask(task, { fastLane = true, id = null, highPriority = false, alwaysRun = false } = {}) {
   return new Promise((resolve, reject) => {
-    thumbnailQueue.push({ task, resolve, reject });
-    processThumbnailQueue();
+    const entry = { task, resolve, reject, id, highPriority, alwaysRun };
+    if (fastLane) {
+      megaAttributeQueue.push(entry);
+      processMegaAttributeQueue();
+    } else {
+      fallbackThumbnailQueue.push(entry);
+      processFallbackThumbnailQueue();
+    }
   });
 }
 
-function processThumbnailQueue() {
-  while (activeThumbnailDownloads < 2 && thumbnailQueue.length) {
-    const request = thumbnailQueue.shift();
-    activeThumbnailDownloads += 1;
+function processMegaAttributeQueue() {
+  while (activeMegaAttributeDownloads < maxMegaAttributeConcurrency && megaAttributeQueue.length) {
+    const request = pickNextThumbnailTask(megaAttributeQueue);
+    if (!request) break;
+    activeMegaAttributeDownloads += 1;
     request.task().then(request.resolve, request.reject).finally(() => {
-      activeThumbnailDownloads -= 1;
-      processThumbnailQueue();
+      activeMegaAttributeDownloads -= 1;
+      processMegaAttributeQueue();
     });
   }
 }
 
-function revokeThumbnail(id, image) {
-  const url = thumbnailUrls.get(id);
-  if (!url) return;
-  if (image?.getAttribute("src") === url) image.removeAttribute("src");
-  URL.revokeObjectURL(url);
-  thumbnailUrls.delete(id);
+function processFallbackThumbnailQueue() {
+  while (activeFallbackThumbnailDownloads < maxFallbackThumbnailConcurrency && fallbackThumbnailQueue.length) {
+    const request = pickNextThumbnailTask(fallbackThumbnailQueue);
+    if (!request) break;
+    activeFallbackThumbnailDownloads += 1;
+    request.task().then(request.resolve, request.reject).finally(() => {
+      activeFallbackThumbnailDownloads -= 1;
+      processFallbackThumbnailQueue();
+    });
+  }
 }
 
 function showThumbnailFallback(image, message) {
+  if (!image?.isConnected) return;
   const placeholder = document.createElement("div");
   placeholder.className = "remote-file-placeholder";
   placeholder.title = message;
@@ -192,79 +425,279 @@ function downloadBuffer(file) {
   return file.downloadBuffer({});
 }
 
-function getMegaAttributeHandle(attributes, type) {
-  if (typeof attributes !== "string") return null;
-  for (const entry of attributes.split("/")) {
-    const match = entry.match(/(?:^|:)(\d+)\*([A-Za-z0-9_-]+)/);
-    if (match && Number(match[1]) === type) return match[2];
+function parseMegaAttributeHandles(attributes) {
+  const handles = new Map();
+  if (typeof attributes !== "string" || !attributes) return handles;
+  for (const match of attributes.matchAll(/(?:^|[/:])(\d+)\*([A-Za-z0-9_-]+)/g)) {
+    const type = Number(match[1]);
+    const handle = match[2];
+    if (Number.isInteger(type) && handle && !handles.has(type)) {
+      handles.set(type, handle);
+    }
+  }
+  return handles;
+}
+
+function fileLikelyHasMegaPreview(file) {
+  if (!file) return false;
+  if (typeof file.fa !== "string") return true;
+  const handles = parseMegaAttributeHandles(file.fa);
+  return handles.has(1) || handles.has(0);
+}
+
+function decodeMegaBase64Url(value) {
+  const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function normalizeSecureMegaUrl(rawUrl) {
+  if (typeof rawUrl !== "string" || !rawUrl) return null;
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || !/(^|\.)mega\.(?:co\.nz|nz|io)$/i.test(parsed.hostname)) {
+    return null;
+  }
+  return parsed.toString().replace(/\/+$/, "");
+}
+
+function resolveMegaAttributeUrls(location, attrType) {
+  const candidates = [];
+  const pushUnique = (url, mode) => {
+    if (!url || candidates.some((entry) => entry.url === url)) return;
+    candidates.push({ url, mode });
+  };
+  const addCandidate = (rawUrl, allowTypedVariant) => {
+    const clean = normalizeSecureMegaUrl(rawUrl);
+    if (!clean) return;
+    const hasNumericSuffix = /\/\d+$/.test(new URL(clean).pathname);
+    if (!allowTypedVariant || hasNumericSuffix) {
+      pushUnique(clean, "direct");
+      return;
+    }
+    const typed = `${clean}/${attrType}`;
+    if (preferredUfaSuffixMode === "bare") {
+      pushUnique(clean, "bare");
+      pushUnique(typed, "typed");
+    } else {
+      pushUnique(typed, "typed");
+      pushUnique(clean, "bare");
+    }
+  };
+
+  if (typeof location?.p === "string") {
+    addCandidate(location.p, true);
+  } else if (Array.isArray(location?.p)) {
+    if (typeof location.p[attrType] === "string") {
+      addCandidate(location.p[attrType], false);
+    }
+    for (const entry of location.p) {
+      if (typeof entry === "string") addCandidate(entry, true);
+    }
+  }
+  return candidates;
+}
+
+function extractMegaAttributeRecords(payload, handle) {
+  const candidates = [];
+  let offset = 0;
+  let parsedHeaderStream = true;
+  while (offset + 12 <= payload.byteLength) {
+    const recordHandle = payload.subarray(offset, offset + 8);
+    const length = new DataView(
+      payload.buffer,
+      payload.byteOffset + offset + 8,
+      4
+    ).getUint32(0, true);
+    if (length === 0 || length % 16 !== 0 || length > 8 * 1024 * 1024 || offset + 12 + length > payload.byteLength) {
+      parsedHeaderStream = false;
+      break;
+    }
+    offset += 12;
+    if (recordHandle.every((byte, index) => byte === handle[index])) {
+      candidates.push(payload.subarray(offset, offset + length));
+    }
+    offset += length;
+  }
+  if ((!parsedHeaderStream || !candidates.length) && payload.byteLength >= 16 && payload.byteLength % 16 === 0) {
+    candidates.push(payload);
+  }
+  return candidates;
+}
+
+function unpackImagePayload(bytes) {
+  if (!bytes || bytes.byteLength < 16) return null;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    let end = bytes.byteLength;
+    const minSearch = Math.max(2, bytes.byteLength - 16);
+    while (end > minSearch && bytes[end - 1] === 0x00) {
+      end -= 1;
+    }
+    const trimmed = bytes[end - 2] === 0xff && bytes[end - 1] === 0xd9
+      ? bytes.subarray(0, end)
+      : bytes;
+    return new Blob([trimmed], { type: "image/jpeg" });
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    let end = bytes.byteLength;
+    const minSearch = Math.max(8, bytes.byteLength - 16);
+    while (end > minSearch && bytes[end - 1] === 0x00) {
+      end -= 1;
+    }
+    return new Blob([bytes.subarray(0, end)], { type: "image/png" });
+  }
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    const riffSize = new DataView(bytes.buffer, bytes.byteOffset + 4, 4).getUint32(0, true);
+    const exactEnd = riffSize > 0 ? Math.min(bytes.byteLength, riffSize + 8) : bytes.byteLength;
+    return new Blob([bytes.subarray(0, exactEnd)], { type: "image/webp" });
+  }
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+    return new Blob([bytes], { type: "image/gif" });
   }
   return null;
 }
 
-async function createMegaAttributeThumbnail(file) {
-  if (!file.nodeId || !file.key || file.key.length !== 32) return null;
-
-  const metadata = await file.api.request({ a: "g", g: 1, n: file.nodeId });
-  const attributeHandle = getMegaAttributeHandle(metadata.fa, 1)
-    || getMegaAttributeHandle(metadata.fa, 0);
-  if (!attributeHandle) return null;
-
-  const handle = Uint8Array.from(
-    atob(attributeHandle.replace(/-/g, "+").replace(/_/g, "/")),
-    (character) => character.charCodeAt(0)
-  );
-  if (handle.length !== 8) throw new Error("Identifiant de miniature MEGA invalide.");
-
-  const location = await file.api.request({
-    a: "ufa",
-    fah: attributeHandle,
-    ssl: 2,
-    r: 1,
-    v: 3
-  });
-  if (typeof location.p !== "string") throw new Error("Adresse de miniature MEGA invalide.");
-
-  const url = new URL(location.p);
-  if (url.protocol !== "https:" || !/(^|\.)mega\.(?:co\.nz|nz)$/i.test(url.hostname)) {
-    throw new Error("Adresse de miniature MEGA non sécurisée.");
+function decryptMegaAttributeRecord(file, encryptedSlice) {
+  const aesSource = file.storage?.aes || storage?.aes;
+  if (!aesSource || !file.key || file.key.length < 32) {
+    throw new Error("Clé de déchiffrement MEGA indisponible.");
   }
-
-  const response = await file.api.fetch(url.toString(), { method: "POST", body: handle });
-  if (!response.ok) throw new Error(`Téléchargement de la miniature MEGA impossible (${response.status}).`);
-
-  const encryptedAttributes = new Uint8Array(await response.arrayBuffer());
-  if (encryptedAttributes.length > 8 * 1024 * 1024) {
-    throw new Error("La miniature MEGA dépasse la taille maximale autorisée.");
-  }
-
-  let offset = 0;
-  let encryptedThumbnail = null;
-  while (offset + 12 <= encryptedAttributes.length) {
-    const recordHandle = encryptedAttributes.subarray(offset, offset + 8);
-    const length = new DataView(
-      encryptedAttributes.buffer,
-      encryptedAttributes.byteOffset + offset + 8,
-      4
-    ).getUint32(0, true);
-    offset += 12;
-    if (length % 16 !== 0 || length > 8 * 1024 * 1024 || offset + length > encryptedAttributes.length) {
-      throw new Error("Réponse de miniature MEGA invalide.");
-    }
-    if (recordHandle.every((byte, index) => byte === handle[index])) {
-      encryptedThumbnail = encryptedAttributes.slice(offset, offset + length);
-      break;
-    }
-    offset += length;
-  }
-  if (!encryptedThumbnail) throw new Error("Miniature MEGA introuvable.");
-
-  const foldedKey = file.key.constructor.from(file.key.slice(0, 16));
+  const BufferCtor = file.key.constructor;
+  const foldedKey = BufferCtor.from(file.key.slice(0, 16));
   for (let index = 0; index < 16; index += 1) {
     foldedKey[index] ^= file.key[index + 16];
   }
-  const decryptedThumbnail = file.key.constructor.from(encryptedThumbnail);
-  new storage.aes.constructor(foldedKey).decryptCBC(decryptedThumbnail);
-  return new Blob([decryptedThumbnail], { type: "image/jpeg" });
+  const decrypted = BufferCtor.from(encryptedSlice);
+  new aesSource.constructor(foldedKey).decryptCBC(decrypted);
+  return unpackImagePayload(new Uint8Array(decrypted.buffer, decrypted.byteOffset, decrypted.byteLength));
+}
+
+async function ensureFileAttributeString(file) {
+  if (typeof file.fa === "string") return file.fa;
+  if (!file.nodeId) return "";
+  try {
+    const metadata = await file.api.request({ a: "g", n: file.nodeId });
+    file.fa = typeof metadata?.fa === "string" ? metadata.fa : "";
+  } catch {
+    file.fa = "";
+  }
+  return file.fa;
+}
+
+async function withSingleRetry(operation) {
+  try {
+    return await operation();
+  } catch (firstError) {
+    await new Promise((resolve) => window.setTimeout(resolve, 320));
+    return operation().catch(() => {
+      throw firstError;
+    });
+  }
+}
+
+async function fetchSingleMegaAttribute(file, attrType, attributeHandle) {
+  const handle = decodeMegaBase64Url(attributeHandle);
+  if (handle.byteLength !== 8) {
+    throw new Error("Identifiant de miniature MEGA invalide.");
+  }
+
+  let location = null;
+  try {
+    location = await withSingleRetry(() => file.api.request({
+      a: "ufa",
+      fah: attributeHandle,
+      ssl: 2,
+      r: 1
+    }));
+  } catch {
+    location = await file.api.request({
+      a: "ufa",
+      fah: attributeHandle,
+      ssl: 2,
+      r: 1,
+      v: 2
+    });
+  }
+
+  const candidateUrls = resolveMegaAttributeUrls(location, attrType);
+  if (!candidateUrls.length) {
+    throw new Error("Adresse de miniature MEGA invalide.");
+  }
+
+  let lastError = null;
+  for (const candidate of candidateUrls) {
+    try {
+      const response = await withSingleRetry(async () => {
+        const res = await file.api.fetch(candidate.url, {
+          method: "POST",
+          body: handle
+        });
+        if (res.status >= 500 || res.status === 429) {
+          throw new Error(`Serveur de miniatures MEGA occupé (${res.status}).`);
+        }
+        return res;
+      });
+      if (!response.ok) {
+        lastError = new Error(`Téléchargement de la miniature MEGA impossible (${response.status}).`);
+        continue;
+      }
+      const payload = new Uint8Array(await response.arrayBuffer());
+      if (payload.byteLength < 16) {
+        lastError = new Error("Miniature MEGA vide.");
+        continue;
+      }
+      if (payload.byteLength > 8 * 1024 * 1024) {
+        throw new Error("La miniature MEGA dépasse la taille maximale autorisée.");
+      }
+      const records = extractMegaAttributeRecords(payload, handle);
+      for (const record of records) {
+        const blob = decryptMegaAttributeRecord(file, record);
+        if (blob) {
+          if (candidate.mode === "typed" || candidate.mode === "bare") {
+            preferredUfaSuffixMode = candidate.mode;
+          }
+          return blob;
+        }
+      }
+      lastError = new Error("Données de miniature MEGA non reconnues.");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Miniature MEGA introuvable.");
+}
+
+async function createMegaAttributeThumbnail(file, preferredTypes = [1, 0]) {
+  if (!file?.nodeId || !file.key || file.key.length < 32) return null;
+  const faString = await ensureFileAttributeString(file);
+  const handles = parseMegaAttributeHandles(faString);
+  if (!handles.size) return null;
+
+  let lastError = null;
+  for (const attrType of preferredTypes) {
+    const attributeHandle = handles.get(attrType);
+    if (!attributeHandle) continue;
+    try {
+      const blob = await fetchSingleMegaAttribute(file, attrType, attributeHandle);
+      if (blob) return blob;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) throw lastError;
+  return null;
 }
 
 async function createImageThumbnail(file) {
@@ -288,207 +721,22 @@ async function createImageThumbnail(file) {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
       else reject(new Error("Impossible de compresser la miniature de cette image."));
-    }, "image/jpeg", 0.78);
+    }, "image/jpeg", 0.8);
   });
 }
 
-function getCacheDatabase() {
-  if (cacheUnavailableReason) return Promise.reject(new Error(cacheUnavailableReason));
-  if (!("indexedDB" in window)) {
-    cacheUnavailableReason = "IndexedDB n’est pas disponible dans ce navigateur.";
-    return Promise.reject(new Error(cacheUnavailableReason));
-  }
-  if (!cacheDatabasePromise) {
-    cacheDatabasePromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(cacheDatabaseName, 3);
-      request.onupgradeneeded = () => {
-        const database = request.result;
-        if (!database.objectStoreNames.contains(cacheStoreName)) {
-          const store = database.createObjectStore(cacheStoreName, { keyPath: "key" });
-          store.createIndex("lastUsed", "lastUsed");
-        }
-        if (!database.objectStoreNames.contains(cacheMetadataStoreName)) {
-          const metadata = database.createObjectStore(cacheMetadataStoreName, { keyPath: "key" });
-          const cursorRequest = request.transaction.objectStore(cacheStoreName).openCursor();
-          cursorRequest.onsuccess = () => {
-            const cursor = cursorRequest.result;
-            if (!cursor) return;
-            const record = cursor.value;
-            metadata.put({
-              key: record.key,
-              bytes: record.bytes || record.blob?.size || 0,
-              lastUsed: record.lastUsed || 0
-            });
-            cursor.continue();
-          };
-          cursorRequest.onerror = () => request.transaction.abort();
-        }
-      };
-      request.onsuccess = () => {
-        const database = request.result;
-        database.onversionchange = () => database.close();
-        requestPersistentCache();
-        resolve(database);
-      };
-      request.onerror = () => reject(request.error || new Error("Impossible d’ouvrir IndexedDB."));
-      request.onblocked = () => reject(new Error("L’ouverture du cache est bloquée par un autre onglet."));
-    }).catch((error) => {
-      cacheUnavailableReason = error.message || "Cache local indisponible.";
-      cacheDatabasePromise = null;
-      throw error;
-    });
-  }
-  return cacheDatabasePromise;
-}
+async function createOrLoadThumbnailEntry(file) {
+  const cached = getSessionPreviewEntry(file);
+  if (cached) return cached;
 
-async function requestPersistentCache() {
-  if (!navigator.storage?.persist || !navigator.storage?.persisted) return;
-  if (cachePersistent !== null) return;
-  try {
-    cachePersistent = await navigator.storage.persisted();
-    if (!cachePersistent) cachePersistent = await navigator.storage.persist();
-  } catch (error) {
-    cachePersistent = false;
-    console.warn("Impossible de demander une protection durable du cache local.", error);
-  }
-}
-
-function requestResult(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error("Erreur de lecture du cache local."));
-  });
-}
-
-function transactionResult(transaction, errorMessage) {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error || new Error(errorMessage));
-    transaction.onabort = () => reject(transaction.error || new Error(errorMessage));
-  });
-}
-
-async function getCachedBlob(key) {
-  if (!key || cacheUnavailableReason) return null;
-  const database = await getCacheDatabase();
-  const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
-  const done = transactionResult(transaction, "Erreur de lecture du cache local.");
-  const recordRequest = transaction.objectStore(cacheStoreName).get(key);
-  const metadataRequest = transaction.objectStore(cacheMetadataStoreName).get(key);
-  let record;
-  let metadata;
-  try {
-    [record, metadata] = await Promise.all([requestResult(recordRequest), requestResult(metadataRequest)]);
-  } catch (error) {
-    await done.catch(() => {});
-    throw error;
-  }
-  if (record && metadata) {
-    metadata.lastUsed = Date.now();
-    transaction.objectStore(cacheMetadataStoreName).put(metadata);
-  }
-  await done;
-  return record?.blob || null;
-}
-
-async function storeCachedBlob(key, blob) {
-  if (!key || !blob || blob.size > cacheLimit || cacheUnavailableReason) return false;
-  const database = await getCacheDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
-    const done = transactionResult(transaction, "Impossible d’enregistrer le cache local.");
-    const store = transaction.objectStore(cacheStoreName);
-    const metadataStore = transaction.objectStore(cacheMetadataStoreName);
-    let saved = false;
-    const request = metadataStore.getAll();
-    request.onsuccess = () => {
-      const records = request.result;
-      const existing = records.find((record) => record.key === key);
-      let totalBytes = records.reduce((sum, record) => sum + (record.bytes || 0), 0) - (existing?.bytes || 0);
-      const evictable = records.filter((record) => record.key !== key).sort((a, b) => a.lastUsed - b.lastUsed);
-
-      while (totalBytes + blob.size > cacheLimit && evictable.length) {
-        const oldest = evictable.shift();
-        store.delete(oldest.key);
-        metadataStore.delete(oldest.key);
-        totalBytes -= oldest.bytes || 0;
-      }
-
-      if (totalBytes + blob.size > cacheLimit) return;
-      store.put({ key, blob });
-      metadataStore.put({ key, bytes: blob.size, lastUsed: Date.now() });
-      saved = true;
-    };
-    request.onerror = () => reject(request.error || new Error("Impossible de préparer le cache local."));
-    done.then(() => resolve(saved), reject);
-  });
-}
-
-async function getCacheStats() {
-  if (cacheUnavailableReason) {
-    return { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0, persistent: false };
-  }
-  await requestPersistentCache();
-  const database = await getCacheDatabase();
-  const transaction = database.transaction(cacheMetadataStoreName, "readonly");
-  const records = await requestResult(transaction.objectStore(cacheMetadataStoreName).getAll());
-  return {
-    available: true,
-    bytes: records.reduce((sum, record) => sum + (record.bytes || 0), 0),
-    entries: records.length,
-    persistent: cachePersistent === true,
-    warning: localCacheNotice
-  };
-}
-
-async function updateCacheStatus() {
-  try {
-    const stats = await getCacheStats();
-    window.megaGallery.setCacheStatus(stats);
-    return stats;
-  } catch (error) {
-    cacheUnavailableReason = error.message || "Cache local indisponible.";
-    const stats = { available: false, error: cacheUnavailableReason, bytes: 0, entries: 0, persistent: false };
-    window.megaGallery.setCacheStatus(stats);
-    return stats;
-  }
-}
-
-async function clearPersistentCache() {
-  const database = await getCacheDatabase();
-  await new Promise((resolve, reject) => {
-    const transaction = database.transaction([cacheStoreName, cacheMetadataStoreName], "readwrite");
-    transaction.objectStore(cacheStoreName).clear();
-    transaction.objectStore(cacheMetadataStoreName).clear();
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error || new Error("Impossible de vider IndexedDB."));
-    transaction.onabort = () => reject(transaction.error || new Error("Vidage du cache annulé."));
-  });
-  localCacheNotice = "";
-}
-
-async function createOrLoadThumbnailBlob(file) {
-  const key = cacheKeysByFile.get(file);
   const extension = getExtension(file.name);
   const isVideo = videoExtensions.has(extension);
   let blob = null;
-  if (key) {
-    try {
-      const cachedBlob = await getCachedBlob(key);
-      if (cachedBlob) blob = cachedBlob;
-    } catch (error) {
-      localCacheNotice = "Lecture du cache local impossible ; les aperçus seront rechargés depuis MEGA.";
-      console.warn("Lecture du cache des aperçus impossible ; téléchargement direct utilisé.", error);
-      await updateCacheStatus();
-    }
-  }
 
-  if (!blob) {
-    try {
-      blob = await createMegaAttributeThumbnail(file);
-    } catch (error) {
-      console.warn("Aperçu MEGA natif indisponible ; génération locale utilisée.", error);
-    }
+  try {
+    blob = await createMegaAttributeThumbnail(file, [1, 0]);
+  } catch (error) {
+    console.warn("Aperçu MEGA natif indisponible ; génération locale utilisée.", file.name, error);
   }
 
   if (!blob) {
@@ -496,34 +744,23 @@ async function createOrLoadThumbnailBlob(file) {
     const sizeLimit = isVideo ? videoThumbnailLimit : isGif ? gifThumbnailLimit : imageThumbnailLimit;
     if (Number(file.size) > sizeLimit) {
       const limitInMb = sizeLimit / (1024 * 1024);
-      throw new Error(`Fichier trop volumineux pour une miniature (maximum ${limitInMb} Mo).`);
+      throw new Error(`Aperçu MEGA absent et fichier trop volumineux (${limitInMb} Mo max).`);
     }
     blob = isVideo
       ? await createVideoThumbnail(file)
       : await createImageThumbnail(file);
   }
 
-  if (key && blob) {
-    try {
-      const saved = await storeCachedBlob(key, blob);
-      localCacheNotice = saved
-        ? ""
-        : "Cache local plein ; l’aperçu reste temporaire sur cet appareil.";
-      await updateCacheStatus();
-    } catch (error) {
-      localCacheNotice = "Enregistrement local impossible ; l’aperçu reste temporaire sur cet appareil.";
-      console.warn("Écriture du cache des aperçus impossible ; l’aperçu reste en mémoire.", error);
-      await updateCacheStatus();
-    }
-  }
-  return blob;
+  return storeSessionPreviewBlob(file, blob);
 }
 
-function getOrCreateThumbnailBlob(file) {
-  const requestKey = cacheKeysByFile.get(file) || `${file.name}:${file.timestamp || 0}:${file.size || 0}`;
+function getOrCreateThumbnailEntry(file) {
+  const cached = getSessionPreviewEntry(file);
+  if (cached) return Promise.resolve(cached);
+  const requestKey = getFileCacheKey(file);
   const existingRequest = previewBlobRequests.get(requestKey);
   if (existingRequest) return existingRequest;
-  const request = createOrLoadThumbnailBlob(file);
+  const request = createOrLoadThumbnailEntry(file);
   previewBlobRequests.set(requestKey, request);
   return request.finally(() => {
     if (previewBlobRequests.get(requestKey) === request) previewBlobRequests.delete(requestKey);
@@ -589,7 +826,7 @@ async function createVideoThumbnail(file) {
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error("Impossible de générer l’image d’aperçu."));
-      }, "image/jpeg", 0.78);
+      }, "image/jpeg", 0.8);
     });
     return thumbnail;
   } finally {
@@ -599,99 +836,195 @@ async function createVideoThumbnail(file) {
   }
 }
 
-function loadThumbnail(image) {
-  const id = Number(image.dataset.thumbnail);
-  const existingUrl = thumbnailUrls.get(id);
-  if (existingUrl) {
-    image.src = existingUrl;
+function revealImageWithUrl(image, url) {
+  if (!image?.isConnected) return;
+  if (image.getAttribute("src") === url) {
+    if (image.complete && image.naturalWidth > 0) {
+      image.classList.add("is-loaded");
+    }
     return;
   }
-  const pendingRequest = thumbnailRequests.get(id);
-  if (pendingRequest) return;
+  image.src = url;
+  if (typeof image.decode === "function") {
+    image.decode().then(() => {
+      if (image.isConnected) image.classList.add("is-loaded");
+    }).catch(() => {
+      if (image.isConnected && image.complete && image.naturalWidth > 0) {
+        image.classList.add("is-loaded");
+      }
+    });
+  }
+}
+
+function applyThumbnailUrlToMatchingImages(id, url) {
+  for (const currentImage of getThumbnailImagesForId(id)) {
+    revealImageWithUrl(currentImage, url);
+  }
+}
+
+function loadThumbnail(image) {
+  const id = Number(image.dataset.thumbnail);
   const file = filesById.get(id);
   if (!file) return;
-  const extension = getExtension(file.name);
+
+  const cachedEntry = getSessionPreviewEntry(file);
+  if (cachedEntry) {
+    revealImageWithUrl(image, cachedEntry.url);
+    return;
+  }
+
+  if (thumbnailRequests.has(id)) return;
   const generation = thumbnailGeneration;
-  const request = runThumbnailDownload(async () => {
+  const fastLane = fileLikelyHasMegaPreview(file);
+  const request = scheduleThumbnailTask(async () => {
     if (generation !== thumbnailGeneration) return null;
-    return getOrCreateThumbnailBlob(file);
+    return getOrCreateThumbnailEntry(file);
+  }, {
+    fastLane,
+    id,
+    highPriority: image.dataset.inView === "true"
   });
+
   thumbnailRequests.set(id, request);
-  request.then((blob) => {
-    if (!blob) return;
-    const currentImage = document.querySelector(`#photo-grid [data-thumbnail="${id}"]`);
-    if (generation !== thumbnailGeneration || !currentImage || currentImage.dataset.inView !== "true") {
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    thumbnailUrls.set(id, url);
-    currentImage.src = url;
+  request.then((entry) => {
+    if (!entry || generation !== thumbnailGeneration) return;
+    applyThumbnailUrlToMatchingImages(id, entry.url);
   }).catch((error) => {
-    const currentImage = document.querySelector(`#photo-grid [data-thumbnail="${id}"]`);
-    if (currentImage) showThumbnailFallback(currentImage, error.message || "Miniature MEGA indisponible.");
-    console.warn("Impossible de charger la miniature MEGA.", error);
+    if (generation !== thumbnailGeneration) return;
+    const message = error instanceof Error && error.message
+      ? error.message
+      : "Miniature MEGA indisponible.";
+    for (const currentImage of getThumbnailImagesForId(id)) {
+      showThumbnailFallback(currentImage, message);
+    }
+    console.warn("Impossible de charger la miniature MEGA.", file.name, error);
   }).finally(() => {
     if (thumbnailRequests.get(id) === request) thumbnailRequests.delete(id);
   });
 }
 
-function observeThumbnails(root) {
-  if (!thumbnailObserver && "IntersectionObserver" in window) {
-    thumbnailObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const image = entry.target;
-        if (!image.isConnected) continue;
-        const id = Number(image.dataset.thumbnail);
-        image.dataset.inView = String(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          loadThumbnail(image);
-        }
-      }
-    }, { rootMargin: "100px", threshold: 0.01 });
-  }
+function ensureThumbnailObservers() {
+  if (!("IntersectionObserver" in window)) return;
+  const scrollRoot = document.querySelector("main") || null;
+  if (preloadObserver && observerScrollRoot === scrollRoot) return;
+  if (preloadObserver) preloadObserver.disconnect();
+  if (visibilityObserver) visibilityObserver.disconnect();
+  observerScrollRoot = scrollRoot;
 
-  for (const [id, url] of thumbnailUrls) {
-    const image = root.querySelector(`[data-thumbnail="${id}"]`);
-    if (image) image.src = url;
-    else revokeThumbnail(id);
-  }
+  visibilityObserver = new IntersectionObserver((entries) => {
+    let gainedVisibility = false;
+    for (const entry of entries) {
+      const image = entry.target;
+      if (!image.isConnected) continue;
+      image.dataset.inView = String(entry.isIntersecting);
+      if (entry.isIntersecting) {
+        image.dataset.inPreload = "true";
+        loadThumbnail(image);
+        gainedVisibility = true;
+      }
+    }
+    if (gainedVisibility) {
+      processMegaAttributeQueue();
+      processFallbackThumbnailQueue();
+    }
+  }, { root: scrollRoot, rootMargin: "60px 0px", threshold: 0 });
+
+  preloadObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const image = entry.target;
+      if (!image.isConnected) continue;
+      image.dataset.inPreload = String(entry.isIntersecting);
+      if (entry.isIntersecting) {
+        loadThumbnail(image);
+      }
+    }
+  }, { root: scrollRoot, rootMargin: "650px 0px", threshold: 0 });
+}
+
+function observeThumbnails(root) {
+  ensureThumbnailObservers();
+  if (preloadObserver) preloadObserver.disconnect();
+  if (visibilityObserver) visibilityObserver.disconnect();
+
   const images = root.querySelectorAll("[data-thumbnail]");
   for (const image of images) {
+    const id = Number(image.dataset.thumbnail);
+    const file = filesById.get(id);
     if (image.dataset.loadingBound !== "true") {
       image.dataset.loadingBound = "true";
       image.addEventListener("load", () => {
         if (image.isConnected) image.classList.add("is-loaded");
       });
       image.addEventListener("error", () => {
-        if (image.isConnected && image.dataset.inView === "true") {
+        if (image.isConnected && (image.dataset.inView === "true" || image.dataset.inPreload === "true")) {
           showThumbnailFallback(image, "Impossible d’afficher cette miniature.");
         }
       });
-      if (image.complete && image.naturalWidth > 0) image.classList.add("is-loaded");
     }
-    if (thumbnailObserver) thumbnailObserver.observe(image);
-    else {
+
+    const cachedEntry = file ? getSessionPreviewEntry(file) : null;
+    if (cachedEntry) {
+      revealImageWithUrl(image, cachedEntry.url);
+      continue;
+    }
+
+    if (preloadObserver && visibilityObserver) {
+      visibilityObserver.observe(image);
+      preloadObserver.observe(image);
+    } else {
       image.dataset.inView = "true";
+      image.dataset.inPreload = "true";
       loadThumbnail(image);
     }
   }
 }
 
-function releaseAllThumbnails() {
+function resetActiveThumbnailTasks() {
   thumbnailGeneration += 1;
-  if (thumbnailObserver) thumbnailObserver.disconnect();
-  for (const url of thumbnailUrls.values()) URL.revokeObjectURL(url);
-  thumbnailUrls.clear();
+  if (preloadObserver) preloadObserver.disconnect();
+  if (visibilityObserver) visibilityObserver.disconnect();
+  while (megaAttributeQueue.length) {
+    megaAttributeQueue.shift().resolve(null);
+  }
+  while (fallbackThumbnailQueue.length) {
+    fallbackThumbnailQueue.shift().resolve(null);
+  }
   thumbnailRequests.clear();
 }
 
-function buildLibrary(root, trashRoot = storage?.trash) {
+function releaseAllThumbnails() {
+  resetActiveThumbnailTasks();
+  for (const entry of sessionPreviewCache.values()) {
+    URL.revokeObjectURL(entry.url);
+  }
+  sessionPreviewCache.clear();
+  sessionPreviewCacheBytes = 0;
+
+  for (const entry of sessionFullPhotoCache.values()) {
+    URL.revokeObjectURL(entry.url);
+  }
+  sessionFullPhotoCache.clear();
+  sessionFullPhotoCacheBytes = 0;
+  fullPhotoRequests.clear();
+}
+
+function isNodeInTrash(node, trashRoot = storage?.trash) {
+  if (!node || !trashRoot) return false;
+  let current = node;
+  while (current) {
+    if (current === trashRoot) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function buildLibrary(root, trashRoot = storage?.trash, { commit = true, ownerUser = storage?.user } = {}) {
   const folders = [];
   const files = [];
-  filesById = new Map();
-  folderNodesByPath = new Map([["__root__", root]]);
-  if (trashRoot) folderNodesByPath.set("__trash__", trashRoot);
-  cacheKeysByFile = new WeakMap();
+  const nextFilesById = new Map();
+  const nextFolderNodesByPath = new Map([["__root__", root]]);
+  if (trashRoot) nextFolderNodesByPath.set("__trash__", trashRoot);
+  const nextCacheKeysByFile = new WeakMap();
   let nextFileId = 1;
   let nextFolderId = 1;
 
@@ -717,7 +1050,7 @@ function buildLibrary(root, trashRoot = storage?.trash) {
           emoji: isTrash ? "🗑" : "▰",
           trashed: isTrash
         });
-        folderNodesByPath.set(path, node);
+        nextFolderNodesByPath.set(path, node);
         visit(node, path, displayPath, isTrash);
         continue;
       }
@@ -727,8 +1060,8 @@ function buildLibrary(root, trashRoot = storage?.trash) {
       if (!type) continue;
 
       const id = nextFileId++;
-      const cacheKey = storage?.user && node.nodeId
-        ? `${storage.user}:${node.nodeId}:${node.timestamp || 0}:${node.size || 0}`
+      const cacheKey = ownerUser && node.nodeId
+        ? `${ownerUser}:${node.nodeId}:${node.size || 0}`
         : null;
       const record = {
         id,
@@ -745,8 +1078,8 @@ function buildLibrary(root, trashRoot = storage?.trash) {
         trashed: isTrash
       };
       files.push(record);
-      filesById.set(id, node);
-      if (cacheKey) cacheKeysByFile.set(node, cacheKey);
+      nextFilesById.set(id, node);
+      if (cacheKey) nextCacheKeysByFile.set(node, cacheKey);
     }
   }
 
@@ -754,10 +1087,17 @@ function buildLibrary(root, trashRoot = storage?.trash) {
   if (trashRoot) {
     visit(trashRoot, "", "", true);
   }
+  if (commit) {
+    filesById = nextFilesById;
+    folderNodesByPath = nextFolderNodesByPath;
+    cacheKeysByFile = nextCacheKeysByFile;
+  }
   return { files, folders };
 }
 
 function closeStorage() {
+  window.clearTimeout(liveSyncTimer);
+  liveSyncTimer = null;
   const previousStorage = storage;
   storage = null;
   filesById.clear();
@@ -789,10 +1129,10 @@ function displayConnectedLibrary(candidate) {
   const library = buildLibrary(storage.root, storage.trash);
   window.megaGallery.setLibrary({
     ...library,
-    accountName: storage.name || storage.email
+    accountName: storage.name || storage.email || "",
+    accountEmail: storage.email || ""
   });
   if (dialog.open) dialog.close();
-  updateCacheStatus();
 }
 
 function openLoginPage() {
@@ -807,19 +1147,21 @@ function closeStorageLocally(candidate) {
   candidate.api.close();
 }
 
-async function refreshMegaLibraryFromDrive() {
+async function performMegaLibraryRefresh(isSynchronized = null) {
+  window.clearTimeout(liveSyncTimer);
+  liveSyncTimer = null;
   const previousStorage = storage;
   if (!previousStorage) throw new Error("Connectez-vous à MEGA pour actualiser la bibliothèque.");
   const { key, sid, name, user } = previousStorage.toJSON();
   let candidate;
   try {
-    candidate = Storage.fromJSON({
+    candidate = attachFileAttributesTracker(Storage.fromJSON({
       key,
       sid,
       name,
       user,
       options: { email: previousStorage.email, keepalive: true }
-    });
+    }));
     await candidate.ready;
     candidate.status = "connecting";
     await candidate.reload(true);
@@ -831,22 +1173,47 @@ async function refreshMegaLibraryFromDrive() {
 
   if (storage !== previousStorage) {
     closeStorageLocally(candidate);
-    throw new Error("La connexion MEGA a changé pendant l’actualisation.");
+    if (!storage) throw new Error("La session MEGA a été fermée pendant l’actualisation.");
+    return buildLibrary(storage.root, storage.trash, { commit: false });
+  }
+
+  if (typeof isSynchronized === "function") {
+    const candidateSnapshot = buildLibrary(candidate.root, candidate.trash, {
+      commit: false,
+      ownerUser: candidate.user
+    });
+    if (!isSynchronized(candidateSnapshot)) {
+      closeStorageLocally(candidate);
+      return candidateSnapshot;
+    }
   }
 
   storage = candidate;
   closeStorageLocally(previousStorage);
   const library = buildLibrary(candidate.root, candidate.trash);
   window.megaGallery.refreshLibrary(library);
-  await updateCacheStatus();
   return library;
+}
+
+function enqueueMegaLibraryRefresh(isSynchronized = null) {
+  const run = activeRefreshPromise
+    ? activeRefreshPromise.catch(() => {}).then(() => performMegaLibraryRefresh(isSynchronized))
+    : performMegaLibraryRefresh(isSynchronized);
+  activeRefreshPromise = run.finally(() => {
+    if (activeRefreshPromise === run) activeRefreshPromise = null;
+  });
+  return run;
+}
+
+function refreshMegaLibraryFromDrive() {
+  return enqueueMegaLibraryRefresh(null);
 }
 
 async function refreshMegaLibraryUntil(isSynchronized) {
   let library;
-  for (const delay of [0, 300, 800]) {
+  for (const delay of [0, 350, 900, 1600]) {
     if (delay) await new Promise((resolve) => window.setTimeout(resolve, delay));
-    library = await refreshMegaLibraryFromDrive();
+    library = await enqueueMegaLibraryRefresh(isSynchronized);
     if (isSynchronized(library)) return library;
   }
   return library;
@@ -859,13 +1226,17 @@ async function refreshAfterMutation(actionLabel, isSynchronized = () => true) {
   try {
     const library = await refreshMegaLibraryUntil(isSynchronized);
     if (!isSynchronized(library)) {
-      window.megaGallery.refreshLibrary(optimisticLibrary);
+      const alignedLibrary = buildLibrary(storage.root, storage.trash);
+      window.megaGallery.refreshLibrary(alignedLibrary);
       return `L’action a été effectuée dans MEGA, mais sa synchronisation n’est pas encore confirmée. Utilisez « Synchroniser depuis MEGA » pour réessayer.`;
     }
     return null;
   } catch (error) {
     console.error(`L’action « ${actionLabel} » est effectuée, mais la bibliothèque MEGA n’a pas pu être synchronisée.`, error);
-    window.megaGallery.refreshLibrary(optimisticLibrary);
+    if (storage) {
+      const alignedLibrary = buildLibrary(storage.root, storage.trash);
+      window.megaGallery.refreshLibrary(alignedLibrary);
+    }
     return `L’action a été effectuée dans MEGA, mais la synchronisation a échoué. Utilisez « Synchroniser depuis MEGA » pour réessayer.`;
   }
 }
@@ -888,19 +1259,20 @@ async function restoreMegaSession() {
     }
   } catch (error) {
     console.error("Impossible de lire la session MEGA enregistrée.", error);
+    try { forgetMegaSession(); } catch {}
     window.megaGallery.showToast("La session MEGA enregistrée est illisible. Reconnectez-vous.");
     return;
   }
 
   let candidate;
   try {
-    candidate = Storage.fromJSON({
+    candidate = attachFileAttributesTracker(Storage.fromJSON({
       key: savedSession.key,
       sid: savedSession.sid,
       name: savedSession.name || "",
       user: savedSession.user || "",
       options: { email: savedSession.email, keepalive: true }
-    });
+    }));
     await candidate.ready;
     candidate.status = "connecting";
     await candidate.reload(true);
@@ -908,8 +1280,14 @@ async function restoreMegaSession() {
     displayConnectedLibrary(candidate);
   } catch (error) {
     if (candidate) closeStorageLocally(candidate);
+    const message = error instanceof Error ? error.message : "";
+    if (/ESID|-15|ENOENT|-9/i.test(message)) {
+      try { forgetMegaSession(); } catch {}
+      window.megaGallery.showToast("Session MEGA expirée. Reconnectez-vous.");
+    } else {
+      window.megaGallery.showToast("Session MEGA indisponible. Vérifiez votre connexion puis reconnectez-vous.");
+    }
     console.error("Échec de la restauration de la session MEGA.", error);
-    window.megaGallery.showToast("Session MEGA indisponible. Vérifiez votre connexion puis reconnectez-vous.");
   }
 }
 
@@ -964,11 +1342,11 @@ form.addEventListener("submit", async (event) => {
   let candidate;
 
   try {
-    candidate = new Storage({
+    candidate = attachFileAttributesTracker(new Storage({
       email,
       password,
       ...(secondFactorCode ? { secondFactorCode } : {})
-    });
+    }));
     await candidate.ready;
     displayConnectedLibrary(candidate);
     try {
@@ -998,9 +1376,44 @@ form.addEventListener("submit", async (event) => {
 window.megaConnector = {
   observeThumbnails,
   releaseAllThumbnails,
-  clearPersistentCache,
-  updateCacheStatus,
+  syncLibraryThumbnails: resetActiveThumbnailTasks,
   refreshFromMega: refreshMegaLibraryFromDrive,
+  getImmediatePreviewUrl(id) {
+    const file = filesById.get(Number(id));
+    if (!file) return null;
+    const fullEntry = getSessionFullPhotoEntry(file);
+    if (fullEntry) return { url: fullEntry.url, fullQuality: true };
+    const previewEntry = getSessionPreviewEntry(file);
+    if (previewEntry) return { url: previewEntry.url, fullQuality: false };
+    return null;
+  },
+  async loadQuickPreviewUrl(id) {
+    const file = filesById.get(Number(id));
+    if (!file || videoExtensions.has(getExtension(file.name))) return null;
+    const immediate = this.getImmediatePreviewUrl(id);
+    if (immediate) return immediate.url;
+    try {
+      const entry = await scheduleThumbnailTask(
+        () => getOrCreateThumbnailEntry(file),
+        { fastLane: true, highPriority: true, alwaysRun: true }
+      );
+      return entry?.url || null;
+    } catch {
+      return null;
+    }
+  },
+  prefetchViewerItems(ids) {
+    if (!Array.isArray(ids)) return;
+    for (const rawId of ids.slice(0, 3)) {
+      const file = filesById.get(Number(rawId));
+      if (!file || videoExtensions.has(getExtension(file.name))) continue;
+      if (getSessionFullPhotoEntry(file) || getSessionPreviewEntry(file)) continue;
+      scheduleThumbnailTask(
+        () => getOrCreateThumbnailEntry(file),
+        { fastLane: fileLikelyHasMegaPreview(file), alwaysRun: true }
+      ).catch(() => {});
+    }
+  },
   async renameFile(id, name) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de renommer un média.");
     const file = filesById.get(Number(id));
@@ -1015,12 +1428,15 @@ window.megaConnector = {
       throw new Error("Un élément portant ce nom existe déjà dans ce dossier.");
     }
     await file.rename(newName);
-    await refreshMegaLibraryUntil((library) =>
+    const syncedLibrary = await refreshMegaLibraryUntil((library) =>
       library.files.some((entry) => entry.fileKey === String(file.nodeId) && entry.title === newName)
     );
     const refreshedFile = storage.files[String(file.nodeId)];
     if (!refreshedFile || refreshedFile.name !== newName) {
       throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
+    }
+    if (!syncedLibrary?.files?.some((entry) => entry.fileKey === String(file.nodeId) && entry.title === newName)) {
+      window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
     }
     return newName;
   },
@@ -1041,24 +1457,74 @@ window.megaConnector = {
     const library = await refreshMegaLibraryUntil((currentLibrary) =>
       currentLibrary.folders.some((entry) => entry.path === String(path) && entry.name === newName)
     );
-    if (!library.folders.some((entry) => entry.path === String(path) && entry.name === newName)) {
+    const refreshedFolder = storage.files[String(folder.nodeId)];
+    if (!refreshedFolder || refreshedFolder.name !== newName) {
       throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
+    }
+    if (!library?.folders?.some((entry) => entry.path === String(path) && entry.name === newName)) {
+      window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
     }
     return newName;
   },
   async deleteFolder(path) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de supprimer un dossier.");
     const folder = folderNodesByPath.get(String(path));
-    if (!folder?.directory || folder === storage.root) throw new Error("Ce dossier n’existe plus dans MEGA.");
-    const folderName = folder.name;
-    await folder.delete(false);
-    const library = await refreshMegaLibraryUntil((currentLibrary) =>
-      !currentLibrary.folders.some((entry) => entry.path === String(path))
-    );
-    if (library.folders.some((entry) => entry.path === String(path))) {
-      throw new Error("La suppression a été envoyée, mais le dossier apparaît toujours dans MEGA.");
+    if (!folder?.directory || folder === storage.root || folder === storage.trash) {
+      throw new Error("Ce dossier n’existe plus dans MEGA.");
     }
-    return folderName;
+    const folderName = folder.name;
+    const folderNodeId = String(folder.nodeId);
+    const previousParent = folder.parent;
+    const inTrash = isNodeInTrash(folder, storage.trash);
+    await folder.delete(inTrash);
+    if (previousParent?.children) {
+      let idx;
+      while ((idx = previousParent.children.indexOf(folder)) >= 0) {
+        previousParent.children.splice(idx, 1);
+      }
+    }
+    if (inTrash) {
+      folder.parent = { children: [] };
+    } else {
+      if (storage.trash?.children && !storage.trash.children.includes(folder)) {
+        storage.trash.children.push(folder);
+      }
+      folder.parent = storage.trash;
+    }
+    const refreshWarning = await refreshAfterMutation("suppression de dossier", (currentLibrary) =>
+      inTrash
+        ? !currentLibrary.folders.some((entry) => entry.path.endsWith(folderNodeId))
+        : currentLibrary.folders.some((entry) => entry.trashed && entry.path === `__trash__/${folderNodeId}`)
+    );
+    return { name: folderName, permanentlyDeleted: inTrash, refreshWarning };
+  },
+  async restoreFolder(path) {
+    if (!storage) throw new Error("Connectez-vous à MEGA avant de restaurer un dossier.");
+    const folder = folderNodesByPath.get(String(path));
+    if (!folder?.directory || !isNodeInTrash(folder, storage.trash)) {
+      throw new Error("Ce dossier n’est plus dans la corbeille MEGA.");
+    }
+    const targetRoot = storage.root;
+    if ((targetRoot.children || []).some((sibling) =>
+      sibling !== folder && sibling.directory && sibling.name?.toLocaleLowerCase("fr") === folder.name?.toLocaleLowerCase("fr")
+    )) {
+      throw new Error(`Un dossier nommé « ${folder.name} » existe déjà à la racine de Mon Drive.`);
+    }
+    const previousParent = folder.parent;
+    const folderNodeId = String(folder.nodeId);
+    await folder.moveTo(targetRoot);
+    if (previousParent?.children) {
+      let idx;
+      while ((idx = previousParent.children.indexOf(folder)) >= 0) {
+        previousParent.children.splice(idx, 1);
+      }
+    }
+    if (!targetRoot.children.includes(folder)) targetRoot.children.push(folder);
+    folder.parent = targetRoot;
+    const refreshWarning = await refreshAfterMutation("restauration de dossier", (currentLibrary) =>
+      currentLibrary.folders.some((entry) => !entry.trashed && entry.path === folderNodeId)
+    );
+    return { name: folder.name, path: folderNodeId, refreshWarning };
   },
   async createFolder(parentPath, name) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de créer un dossier.");
@@ -1262,7 +1728,11 @@ window.megaConnector = {
     }
 
     try {
-      await refreshMegaLibraryFromDrive();
+      await refreshMegaLibraryUntil((library) =>
+        library.files.some((entry) =>
+          entry.fileKey === nodeId && JSON.stringify(entry.tags || []) === JSON.stringify(nextTags)
+        )
+      );
     } catch (error) {
       throw new Error(`Les tags ont été envoyés à MEGA, mais leur relecture a échoué : ${error instanceof Error ? error.message : "erreur inconnue"}`);
     }
@@ -1272,6 +1742,8 @@ window.megaConnector = {
     if (!refreshedFile || JSON.stringify(savedTags) !== JSON.stringify(nextTags)) {
       throw new Error("MEGA n’a pas confirmé l’enregistrement de l’attribut natif des tags. Les tags ne sont pas affichés comme enregistrés.");
     }
+    const alignedLibrary = buildLibrary(storage.root, storage.trash);
+    window.megaGallery.refreshLibrary(alignedLibrary);
     return savedTags;
   },
   async updateMediaTags(ids, { add = [], remove = [] } = {}) {
@@ -1347,7 +1819,12 @@ window.megaConnector = {
 
     if (changed.length) {
       try {
-        await refreshMegaLibraryFromDrive();
+        await refreshMegaLibraryUntil((library) =>
+          changed.every((update) => {
+            const found = library.files.find((entry) => entry.fileKey === update.fileKey);
+            return Boolean(found) && JSON.stringify(found.tags || []) === JSON.stringify(update.tags);
+          })
+        );
       } catch (error) {
         throw new Error(`Les tags ont été envoyés à MEGA, mais leur relecture a échoué : ${error instanceof Error ? error.message : "erreur inconnue"}`);
       }
@@ -1365,6 +1842,8 @@ window.megaConnector = {
           });
         }
       }
+      const alignedLibrary = buildLibrary(storage.root, storage.trash);
+      window.megaGallery.refreshLibrary(alignedLibrary);
     }
 
     return { succeeded, failed };
@@ -1382,21 +1861,21 @@ window.megaConnector = {
     for (const file of files) {
       const previousParent = file.parent;
       try {
-        const inTrash = file.parent === storage.trash || file.trashed;
-        await file.delete(inTrash ? true : false);
+        const inTrash = isNodeInTrash(file, storage.trash);
+        await file.delete(inTrash);
+        if (previousParent?.children) {
+          let previousIndex;
+          while ((previousIndex = previousParent.children.indexOf(file)) >= 0) {
+            previousParent.children.splice(previousIndex, 1);
+          }
+        }
         if (inTrash) {
-          if (storage.trash?.children) {
-            const idx = storage.trash.children.indexOf(file);
-            if (idx >= 0) storage.trash.children.splice(idx, 1);
-          }
+          // Keep a dummy parent array so megajs's /sc delete handler doesn't throw on null parent.
+          file.parent = { children: [] };
         } else {
-          if (previousParent && previousParent !== storage.trash) {
-            let previousIndex;
-            while ((previousIndex = previousParent.children?.indexOf(file) ?? -1) >= 0) {
-              previousParent.children.splice(previousIndex, 1);
-            }
+          if (storage.trash?.children && !storage.trash.children.includes(file)) {
+            storage.trash.children.push(file);
           }
-          if (storage.trash?.children && !storage.trash.children.includes(file)) storage.trash.children.push(file);
           file.parent = storage.trash;
         }
         succeeded.push({ fileKey: String(file.nodeId), title: file.name, permanentlyDeleted: inTrash });
@@ -1434,20 +1913,18 @@ window.megaConnector = {
           const index = trash.children.indexOf(item);
           if (index >= 0) trash.children.splice(index, 1);
         }
+        item.parent = { children: [] };
         count++;
       } catch (err) {
         console.error("Échec de la suppression définitive d’un élément de la corbeille :", item.name, err);
         errors.push(item.name);
       }
     }
-    let refreshWarning = null;
-    try {
-      await refreshMegaLibraryFromDrive();
-    } catch (refreshErr) {
-      console.error("La corbeille a été vidée, mais la synchronisation de la bibliothèque a échoué.", refreshErr);
-      window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
-      refreshWarning = "La corbeille a été vidée, mais la synchronisation a échoué. Utilisez « Synchroniser depuis MEGA » pour réessayer.";
-    }
+    const refreshWarning = count > 0
+      ? await refreshAfterMutation("vidage de la corbeille", (library) =>
+        errors.length > 0 || (!library.files.some((f) => f.trashed) && !library.folders.some((f) => f.trashed))
+      )
+      : null;
     if (errors.length) {
       throw new Error(`Certains éléments n’ont pas pu être supprimés (${errors.join(", ")}).`);
     }
@@ -1457,24 +1934,66 @@ window.megaConnector = {
     const file = filesById.get(Number(id));
     if (!file) throw new Error("Ce fichier n’est plus disponible dans la session MEGA.");
     const isVideo = videoExtensions.has(getExtension(file.name));
+    if (!isVideo) {
+      const cachedFull = getSessionFullPhotoEntry(file);
+      if (cachedFull) {
+        return { url: cachedFull.url, revokeOnClose: false, degraded: false };
+      }
+    }
+
     const limit = isVideo ? videoPreviewLimit : photoPreviewLimit;
     if (Number(file.size) > limit) {
+      if (!isVideo) {
+        try {
+          const previewEntry = await getOrCreateThumbnailEntry(file);
+          if (previewEntry?.url) {
+            return {
+              url: previewEntry.url,
+              revokeOnClose: Boolean(previewEntry.transient),
+              degraded: true,
+              notice: "Aperçu MEGA optimisé affiché (original supérieur à 30 Mo)."
+            };
+          }
+        } catch {}
+      }
       throw new Error(`Ce fichier dépasse la limite de lecture en mémoire de ${isVideo ? 100 : 30} Mo.`);
     }
+
     if (isVideo) {
       const video = document.createElement("video");
       if (!video.canPlayType(getMimeType(file.name, "video"))) {
         throw new Error("Ce format vidéo n’est pas pris en charge par le navigateur.");
       }
+      const blob = new Blob([await downloadBuffer(file)], {
+        type: getMimeType(file.name, "video")
+      });
+      return { url: URL.createObjectURL(blob), revokeOnClose: true, degraded: false };
     }
-    const blob = new Blob([await downloadBuffer(file)], {
-      type: getMimeType(file.name, isVideo ? "video" : "photo")
-    });
-    return URL.createObjectURL(blob);
+
+    const requestKey = getFileCacheKey(file);
+    let request = fullPhotoRequests.get(requestKey);
+    if (!request) {
+      request = (async () => {
+        const blob = new Blob([await downloadBuffer(file)], {
+          type: getMimeType(file.name, "photo")
+        });
+        return storeSessionFullPhotoBlob(file, blob);
+      })();
+      fullPhotoRequests.set(requestKey, request);
+      request.finally(() => {
+        if (fullPhotoRequests.get(requestKey) === request) fullPhotoRequests.delete(requestKey);
+      });
+    }
+    const entry = await request;
+    return {
+      url: entry.url,
+      revokeOnClose: Boolean(entry.revokeOnClose),
+      degraded: false
+    };
   }
 };
 
-updateCacheStatus();
+purgeLegacyLocalCache();
 restoreMegaSession();
 window.addEventListener("pagehide", () => {
   releaseAllThumbnails();
