@@ -184,6 +184,10 @@
     .connection-button.connected:hover .status-dot { background: #bd4d4d; box-shadow: 0 0 0 2px #bd4d4d2e; }
     .connection-button.connected:hover .status-text { display: none; }
     .connection-button.connected:hover .action-text { display: inline; }
+    .refresh-button[hidden] { display: none; }
+    .refresh-button:disabled { cursor: wait; opacity: .7; }
+    .refresh-button.is-refreshing .icon { animation: refresh-spin .8s linear infinite; }
+    @keyframes refresh-spin { to { transform: rotate(360deg); } }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #a5aaa3; flex-shrink: 0; transition: background .15s; }
     .offline .status-dot { background: #d29a43; }
     .disconnected .status-dot { background: #a5aaa3; }
@@ -518,6 +522,7 @@
     <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M3.8 10h16.4"/></symbol>
     <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 1-2-5l3 5"/></symbol>
     <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
     <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -572,6 +577,7 @@
         </div>
         <label class="search topbar-search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
         <div class="top-actions">
+          <button class="icon-button refresh-button" id="refresh-library" type="button" aria-label="Synchroniser depuis MEGA" title="Synchroniser depuis MEGA" hidden><svg class="icon" aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
           <button class="connection-button disconnected" id="mega-connect" type="button" title="Connexion à MEGA"><span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span></button>
           <button class="icon-button" id="theme-toggle" type="button" aria-label="Activer le thème sombre" aria-pressed="false" title="Activer le thème sombre"><svg class="icon" aria-hidden="true"><use href="#icon-moon"></use></svg></button>
         </div>
@@ -657,6 +663,7 @@
     }
     let media = [];
     let folders = [];
+    let librarySyncInProgress = false;
     let currentView = "all";
     let currentFolder = null;
     let currentTag = null;
@@ -1435,7 +1442,7 @@
           showToast("Vidage de la corbeille en cours…");
           const result = await window.megaConnector.emptyTrash();
           currentFolder = null;
-          showToast(`Corbeille vidée (${result.count} élément${result.count > 1 ? "s" : ""} supprimé${result.count > 1 ? "s" : ""}).`);
+          showToast(result.refreshWarning || `Corbeille vidée (${result.count} élément${result.count > 1 ? "s" : ""} supprimé${result.count > 1 ? "s" : ""}).`);
         } catch (error) {
           console.error("Échec du vidage de la corbeille MEGA.", error);
           showToast(error instanceof Error ? error.message : "Impossible de vider la corbeille MEGA.");
@@ -1721,6 +1728,7 @@
         if (result.failed.length) {
           const names = result.failed.map((item) => item.title).join(", ");
           $("#move-error").textContent = `${result.moved.length} déplacé${result.moved.length === 1 ? "" : "s"}. Échec pour ${names} : ${result.failed.map((item) => item.message).join("; ")}`;
+          if (result.refreshWarning) $("#move-error").textContent += ` ${result.refreshWarning}`;
           $("#move-form").dataset.fileKeys = JSON.stringify(result.failed.map((item) => item.fileKey));
           $("#move-description").textContent = "Les médias en échec restent sélectionnés. Choisissez une destination et réessayez.";
           $("#move-submit").textContent = result.failed.length === 1 ? "Réessayer le déplacement" : `Réessayer (${result.failed.length})`;
@@ -1728,9 +1736,9 @@
         } else {
           $("#move-dialog").close();
           const movedCount = result.moved.length;
-          showToast(movedCount === 1
+          showToast(result.refreshWarning || (movedCount === 1
             ? `« ${items[0].title} » déplacé dans « ${destinationName} » sur MEGA.`
-            : `${movedCount} médias déplacés dans « ${destinationName} » sur MEGA.`);
+            : `${movedCount} médias déplacés dans « ${destinationName} » sur MEGA.`));
         }
       } catch (error) {
         $("#move-error").textContent = error instanceof Error ? error.message : "Le déplacement MEGA a échoué.";
@@ -1796,10 +1804,11 @@
           try {
             const result = await window.megaConnector.setFavoriteFiles(actionItems.map((entry) => entry.id), favorite);
             if (result.failed.length) {
-              showToast(`${result.succeeded.length} favori${result.succeeded.length === 1 ? "" : "s"} modifié${result.succeeded.length === 1 ? "" : "s"} ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`);
+              const failureMessage = `${result.succeeded.length} favori${result.succeeded.length === 1 ? "" : "s"} modifié${result.succeeded.length === 1 ? "" : "s"} ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
+              showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
               console.error("Échec partiel de la mise à jour des favoris MEGA.", result.failed);
             } else {
-              showToast(`${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "ajouté" : "retiré"}${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "aux" : "des"} favoris MEGA.`);
+              showToast(result.refreshWarning || `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "ajouté" : "retiré"}${result.succeeded.length === 1 ? "" : "s"} ${favorite ? "aux" : "des"} favoris MEGA.`);
             }
           } catch (error) {
             console.error("Échec de la mise à jour du favori MEGA.", error);
@@ -1816,10 +1825,11 @@
             for (const deleted of result.succeeded) selectedMediaKeys.delete(deleted.fileKey);
             updateSelectedMediaCards();
             if (result.failed.length) {
-              showToast(`${result.succeeded.length} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`);
+              const failureMessage = `${result.succeeded.length} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille ; échec pour ${result.failed.map((entry) => entry.title).join(", ")}.`;
+              showToast(result.refreshWarning ? `${failureMessage} ${result.refreshWarning}` : failureMessage);
               console.error("Échec partiel de la suppression MEGA.", result.failed);
             } else {
-              showToast(`${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille MEGA.`);
+              showToast(result.refreshWarning || `${result.succeeded.length} média${result.succeeded.length === 1 ? "" : "s"} placé${result.succeeded.length === 1 ? "" : "s"} dans la corbeille MEGA.`);
             }
           } catch (error) {
             console.error("Échec de la suppression MEGA.", error);
@@ -2235,6 +2245,8 @@
       const btn = $("#mega-connect");
       if (!btn) return;
       btn.className = `connection-button ${status}`;
+      const refreshButton = $("#refresh-library");
+      if (refreshButton) refreshButton.hidden = status !== "connected";
       if (status === "connected") {
         btn.title = "Connecté à MEGA — Cliquer pour vous déconnecter";
         btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label"><span class="status-text">MEGA connecté</span><span class="action-text">Déconnexion</span></span>`;
@@ -2287,6 +2299,28 @@
       observeThumbnails(root) { window.megaConnector.observeThumbnails(root); },
       downloadPreview(id) { return window.megaConnector.downloadPreview(id); }
     };
+    $("#refresh-library").addEventListener("click", async () => {
+      if (!megaConnected || librarySyncInProgress) return;
+      const button = $("#refresh-library");
+      librarySyncInProgress = true;
+      button.disabled = true;
+      button.classList.add("is-refreshing");
+      button.setAttribute("aria-busy", "true");
+      button.title = "Synchronisation depuis MEGA…";
+      try {
+        await window.megaConnector.refreshFromMega();
+        showToast("Bibliothèque synchronisée depuis MEGA.");
+      } catch (error) {
+        console.error("Échec de la synchronisation manuelle depuis MEGA.", error);
+        showToast(`Synchronisation impossible : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+      } finally {
+        librarySyncInProgress = false;
+        button.disabled = false;
+        button.classList.remove("is-refreshing");
+        button.removeAttribute("aria-busy");
+        button.title = "Synchroniser depuis MEGA";
+      }
+    });
     $("#clear-thumbnail-cache").addEventListener("click", async () => {
       try {
         await window.megaConnector.clearPersistentCache();

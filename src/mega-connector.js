@@ -761,6 +761,34 @@ async function refreshMegaLibraryFromDrive() {
   return library;
 }
 
+async function refreshMegaLibraryUntil(isSynchronized) {
+  let library;
+  for (const delay of [0, 300, 800]) {
+    if (delay) await new Promise((resolve) => window.setTimeout(resolve, delay));
+    library = await refreshMegaLibraryFromDrive();
+    if (isSynchronized(library)) return library;
+  }
+  return library;
+}
+
+async function refreshAfterMutation(actionLabel, isSynchronized = () => true) {
+  if (!storage) throw new Error("Connectez-vous à MEGA pour actualiser la bibliothèque.");
+  const optimisticLibrary = buildLibrary(storage.root, storage.trash);
+  window.megaGallery.refreshLibrary(optimisticLibrary);
+  try {
+    const library = await refreshMegaLibraryUntil(isSynchronized);
+    if (!isSynchronized(library)) {
+      window.megaGallery.refreshLibrary(optimisticLibrary);
+      return `L’action a été effectuée dans MEGA, mais sa synchronisation n’est pas encore confirmée. Utilisez « Synchroniser depuis MEGA » pour réessayer.`;
+    }
+    return null;
+  } catch (error) {
+    console.error(`L’action « ${actionLabel} » est effectuée, mais la bibliothèque MEGA n’a pas pu être synchronisée.`, error);
+    window.megaGallery.refreshLibrary(optimisticLibrary);
+    return `L’action a été effectuée dans MEGA, mais la synchronisation a échoué. Utilisez « Synchroniser depuis MEGA » pour réessayer.`;
+  }
+}
+
 async function restoreMegaSession() {
   openLoginPage();
   const cryptoError = getWebCryptoError();
@@ -891,6 +919,7 @@ window.megaConnector = {
   releaseAllThumbnails,
   clearPersistentCache,
   updateCacheStatus,
+  refreshFromMega: refreshMegaLibraryFromDrive,
   async renameFile(id, name) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de renommer un média.");
     const file = filesById.get(Number(id));
@@ -905,7 +934,9 @@ window.megaConnector = {
       throw new Error("Un élément portant ce nom existe déjà dans ce dossier.");
     }
     await file.rename(newName);
-    await refreshMegaLibraryFromDrive();
+    await refreshMegaLibraryUntil((library) =>
+      library.files.some((entry) => entry.fileKey === String(file.nodeId) && entry.title === newName)
+    );
     const refreshedFile = storage.files[String(file.nodeId)];
     if (!refreshedFile || refreshedFile.name !== newName) {
       throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
@@ -926,7 +957,9 @@ window.megaConnector = {
       throw new Error("Un dossier portant ce nom existe déjà à cet emplacement.");
     }
     await folder.rename(newName);
-    const library = await refreshMegaLibraryFromDrive();
+    const library = await refreshMegaLibraryUntil((currentLibrary) =>
+      currentLibrary.folders.some((entry) => entry.path === String(path) && entry.name === newName)
+    );
     if (!library.folders.some((entry) => entry.path === String(path) && entry.name === newName)) {
       throw new Error("Le renommage a été envoyé, mais le nouveau nom n’a pas été confirmé par MEGA.");
     }
@@ -938,7 +971,9 @@ window.megaConnector = {
     if (!folder?.directory || folder === storage.root) throw new Error("Ce dossier n’existe plus dans MEGA.");
     const folderName = folder.name;
     await folder.delete(false);
-    const library = await refreshMegaLibraryFromDrive();
+    const library = await refreshMegaLibraryUntil((currentLibrary) =>
+      !currentLibrary.folders.some((entry) => entry.path === String(path))
+    );
     if (library.folders.some((entry) => entry.path === String(path))) {
       throw new Error("La suppression a été envoyée, mais le dossier apparaît toujours dans MEGA.");
     }
@@ -962,12 +997,16 @@ window.megaConnector = {
     if (!folder?.directory) throw new Error("MEGA n’a pas confirmé la création du dossier.");
     if (!parent.children.includes(folder)) parent.children.push(folder);
     folder.parent = parent;
-    const library = await refreshMegaLibraryFromDrive();
     const expectedParentPath = parentPath === "__root__" ? "" : String(parentPath);
+    const library = await refreshMegaLibraryUntil((currentLibrary) =>
+      currentLibrary.folders.some((entry) =>
+        entry.parentPath === expectedParentPath && entry.name === folderName
+      )
+    );
     const created = library.folders.find((entry) =>
       entry.parentPath === expectedParentPath && entry.name === folderName
     );
-    if (!created) throw new Error("Le dossier a été créé dans MEGA, mais il n’a pas pu être rechargé dans l’arborescence.");
+    if (!created) throw new Error("Le dossier a été créé dans MEGA, mais il n’a pas pu être rechargé dans l’arborescence. Utilisez « Synchroniser depuis MEGA » pour réessayer.");
     return created;
   },
   async uploadFiles(parentPath, browserFiles, onProgress = () => {}) {
@@ -1020,14 +1059,16 @@ window.megaConnector = {
 
     if (uploaded.length) {
       try {
-        await refreshMegaLibraryFromDrive();
+        await refreshMegaLibraryUntil((library) =>
+          uploaded.every((entry) => library.files.some((file) => file.fileKey === entry.nodeId))
+        );
       } catch (error) {
-        throw new Error(`Les fichiers ont été envoyés, mais la bibliothèque n’a pas pu être actualisée : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+        throw new Error(`Les fichiers ont été envoyés, mais la bibliothèque n’a pas pu être actualisée : ${error instanceof Error ? error.message : "erreur inconnue"}. Utilisez « Synchroniser depuis MEGA » pour réessayer.`);
       }
       const refreshedParent = folderNodesByPath.get(String(parentPath));
       for (const entry of uploaded) {
         if (!(refreshedParent?.children || []).some((child) => String(child.nodeId) === entry.nodeId)) {
-          failed.push({ title: entry.title, message: "L’envoi a été effectué, mais le fichier n’a pas été retrouvé après actualisation." });
+          failed.push({ title: entry.title, message: "L’envoi a été effectué, mais le fichier n’a pas été retrouvé après actualisation. Utilisez « Synchroniser depuis MEGA » pour réessayer." });
         }
       }
     }
@@ -1071,8 +1112,13 @@ window.megaConnector = {
       }
     }
 
-    if (moved.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
-    return { moved, failed };
+    const expectedFolderPath = destinationPath === "__root__" ? "" : String(destinationPath);
+    const refreshWarning = moved.length ? await refreshAfterMutation("déplacement", (library) =>
+      moved.every((entry) => library.files.some((file) =>
+        file.fileKey === entry.fileKey && file.folderPath === expectedFolderPath
+      ))
+    ) : null;
+    return { moved, failed, refreshWarning };
   },
   async moveFile(id, destinationPath) {
     const result = await this.moveFiles([id], destinationPath);
@@ -1105,8 +1151,12 @@ window.megaConnector = {
       }
     }
 
-    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
-    return { succeeded, failed };
+    const refreshWarning = succeeded.length ? await refreshAfterMutation("mise à jour des favoris", (library) =>
+      succeeded.every((entry) => library.files.some((file) =>
+        file.fileKey === entry.fileKey && file.favorite === favorite
+      ))
+    ) : null;
+    return { succeeded, failed, refreshWarning };
   },
   async setMediaTags(id, tags) {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de modifier les tags.");
@@ -1268,7 +1318,7 @@ window.megaConnector = {
           if (storage.trash?.children && !storage.trash.children.includes(file)) storage.trash.children.push(file);
           file.parent = storage.trash;
         }
-        succeeded.push({ fileKey: String(file.nodeId), title: file.name });
+        succeeded.push({ fileKey: String(file.nodeId), title: file.name, permanentlyDeleted: inTrash });
       } catch (error) {
         failed.push({
           fileKey: String(file.nodeId),
@@ -1278,8 +1328,13 @@ window.megaConnector = {
       }
     }
 
-    if (succeeded.length) window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
-    return { succeeded, failed };
+    const refreshWarning = succeeded.length ? await refreshAfterMutation("suppression", (library) =>
+      succeeded.every((entry) => {
+        const file = library.files.find((candidate) => candidate.fileKey === entry.fileKey);
+        return entry.permanentlyDeleted ? !file : Boolean(file?.trashed);
+      })
+    ) : null;
+    return { succeeded, failed, refreshWarning };
   },
   async emptyTrash() {
     if (!storage) throw new Error("Connectez-vous à MEGA avant de vider la corbeille.");
@@ -1304,16 +1359,18 @@ window.megaConnector = {
         errors.push(item.name);
       }
     }
+    let refreshWarning = null;
     try {
       await refreshMegaLibraryFromDrive();
     } catch (refreshErr) {
-      console.warn("Actualisation après vidage de corbeille :", refreshErr);
+      console.error("La corbeille a été vidée, mais la synchronisation de la bibliothèque a échoué.", refreshErr);
       window.megaGallery.refreshLibrary(buildLibrary(storage.root, storage.trash));
+      refreshWarning = "La corbeille a été vidée, mais la synchronisation a échoué. Utilisez « Synchroniser depuis MEGA » pour réessayer.";
     }
     if (errors.length) {
       throw new Error(`Certains éléments n’ont pas pu être supprimés (${errors.join(", ")}).`);
     }
-    return { count };
+    return { count, refreshWarning };
   },
   async downloadPreview(id) {
     const file = filesById.get(Number(id));
