@@ -156,7 +156,43 @@
       border-bottom: 1px solid var(--line); background: var(--canvas);
     }
     .topbar-left { min-width: 0; display: flex; align-items: center; }
-    .topbar-search { width: min(520px, 42vw); min-width: 220px; flex: 1 1 520px; height: 36px; padding: 0 13px; }
+    .topbar-search-wrap { position: relative; width: min(560px, 46vw); min-width: 220px; flex: 1 1 560px; }
+    .topbar-search { width: 100%; height: 36px; padding: 0 8px 0 12px; transition: border-color .15s, box-shadow .15s; }
+    .topbar-search:focus-within { border-color: #9eb9a3; box-shadow: 0 0 0 3px var(--field-focus); }
+    .topbar-search input::-webkit-search-cancel-button,
+    .topbar-search input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+    .search-count { flex: 0 0 auto; padding: 3px 7px; color: var(--green-dark); border-radius: 999px; background: var(--green-soft); font-size: 10px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .search-count.is-empty { color: var(--muted); background: var(--surface-subtle); }
+    .search-clear { width: 22px; height: 22px; flex: 0 0 22px; display: grid; place-items: center; padding: 0; color: var(--muted); border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
+    .search-clear:hover { color: var(--ink); background: var(--surface-hover); }
+    .search-clear .icon { width: 14px; height: 14px; }
+    .search-clear[hidden], .search-count[hidden], .search-popover[hidden] { display: none; }
+    .search-popover {
+      position: absolute; z-index: 25; top: calc(100% + 7px); left: 0; right: 0;
+      padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper);
+      box-shadow: 0 16px 40px #00000024, 0 2px 8px #0000000f; animation: menu-in .12s ease-out;
+    }
+    .search-popover-section + .search-popover-section { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
+    .search-popover-title { margin-bottom: 6px; color: var(--nav-muted); font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+    .search-popover-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+    .search-suggestion {
+      width: 100%; min-height: 31px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 5px 8px; color: var(--ink); border: 0; border-radius: 7px; background: transparent;
+      text-align: left; font-size: 12px; cursor: pointer;
+    }
+    .search-suggestion:hover, .search-suggestion.is-active { background: var(--green-soft); color: var(--green-dark); }
+    .search-suggestion-main { min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+    .search-suggestion-main .icon { width: 14px; height: 14px; flex: 0 0 14px; color: var(--green); }
+    .search-suggestion-token { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .search-suggestion-meta { flex: 0 0 auto; color: var(--muted); font-size: 10px; }
+    .search-syntax-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .search-syntax-chip {
+      display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px;
+      color: var(--control-text); border: 1px solid var(--line); border-radius: 7px;
+      background: var(--canvas); font-size: 10px; cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+    }
+    .search-syntax-chip code { color: var(--green-dark); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; font-weight: 700; }
+    .search-syntax-chip:hover { color: var(--green-dark); border-color: var(--connected-border); background: var(--green-soft); }
     .breadcrumb { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
     .breadcrumb-link { padding: 3px 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; font-size: inherit; white-space: nowrap; }
     .breadcrumb-link:hover { color: var(--green-dark); text-decoration: underline; }
@@ -474,7 +510,8 @@
       .topbar { height: auto; min-height: 63px; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
       .mobile-menu { display: grid; margin-right: 9px; }
       .topbar-left { display: flex; flex: 1; align-items: center; }
-      .topbar-search { width: 100%; min-width: 0; max-width: none; flex: 0 0 100%; order: 3; padding: 0 12px; height: 35px; }
+      .topbar-search-wrap { width: 100%; min-width: 0; max-width: none; flex: 0 0 100%; order: 3; }
+      .topbar-search { width: 100%; padding: 0 8px 0 12px; height: 35px; }
       .connection-button { height: 35px; padding: 0 10px; font-size: 11px; }
       .icon-button, .mobile-menu { width: 35px; height: 35px; }
       .top-actions { gap: 7px; }
@@ -582,7 +619,15 @@
           <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir le menu"><svg class="icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
           <nav class="breadcrumb" id="breadcrumb" aria-label="Fil d’Ariane"></nav>
         </div>
-        <label class="search topbar-search"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg><input id="search" type="search" placeholder="Rechercher un média…" aria-label="Rechercher un média"></label>
+        <div class="topbar-search-wrap" id="topbar-search-wrap">
+          <label class="search topbar-search" for="search">
+            <svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+            <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Rechercher un média…" aria-label="Rechercher un média" aria-expanded="false" aria-controls="search-popover">
+            <span class="search-count" id="search-count" hidden></span>
+            <button class="search-clear" id="search-clear" type="button" aria-label="Effacer la recherche" title="Effacer la recherche (Échap)" hidden><svg class="icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+          </label>
+          <div class="search-popover" id="search-popover" role="listbox" aria-label="Suggestions et aide de recherche" hidden></div>
+        </div>
         <div class="top-actions">
           <button class="icon-button refresh-button" id="refresh-library" type="button" aria-label="Synchroniser depuis MEGA" title="Synchroniser depuis MEGA" hidden><svg class="icon" aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
           <button class="connection-button disconnected" id="mega-connect" type="button" title="Connexion à MEGA"><span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span></button>
@@ -970,19 +1015,607 @@
       $("#tag-dialog").showModal();
       $("#tag-input").focus();
     }
-    function visibleMedia() {
-      const query = $("#search").value.trim().toLocaleLowerCase("fr");
-      const sort = currentSort;
-      const globalSearch = megaConnected && Boolean(query);
-      let items = media.filter((item) => {
-        if (currentView === "trash") {
-          const inTrash = Boolean(item.trashed);
-          if (!inTrash) return false;
-          if (query) return `${item.title} ${item.folder} ${item.date} ${(item.tags || []).join(" ")}`.toLocaleLowerCase("fr").includes(query);
-          const targetParent = currentFolder || "__trash__";
-          return item.folderPath === targetParent;
+    const frenchMonthsByNumber = ["", "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+    function normalizeSearchText(value) {
+      return String(value || "")
+        .toLocaleLowerCase("fr")
+        .replace(/œ/g, "oe")
+        .replace(/æ/g, "ae")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+    }
+    function getMediaExtensionNormalized(item) {
+      if (item.ext) return normalizeSearchText(item.ext);
+      const title = String(item.title || "");
+      const dot = title.lastIndexOf(".");
+      return dot < 0 ? "" : normalizeSearchText(title.slice(dot + 1));
+    }
+    function buildMediaSearchEntry(item) {
+      const title = normalizeSearchText(item.title);
+      const dot = title.lastIndexOf(".");
+      const stem = dot > 0 ? title.slice(0, dot) : title;
+      const folder = normalizeSearchText(item.folder);
+      const tags = (item.tags || []).map(normalizeSearchText).filter(Boolean);
+      const tagsJoined = tags.join(" ");
+      const ext = getMediaExtensionNormalized(item);
+      const isoDate = String(item.date || "");
+      let dateTokens = isoDate;
+      const dateMatch = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (dateMatch) {
+        const [, year, month, day] = dateMatch;
+        const monthName = frenchMonthsByNumber[Number(month)] || "";
+        dateTokens = `${isoDate} ${day}/${month}/${year} ${month}/${year} ${year} ${monthName}`;
+      }
+      const isGif = ext === "gif";
+      const mediaType = item.type || "photo";
+      const typeTokens = mediaType === "video"
+        ? "video videos"
+        : isGif
+          ? "photo photos image images gif gifs"
+          : "photo photos image images";
+      return {
+        title,
+        stem,
+        folder,
+        tags,
+        tagsJoined,
+        ext,
+        date: isoDate,
+        dateTokens,
+        typeTokens,
+        bytes: Number(item.bytes) || 0,
+        type: mediaType,
+        isGif,
+        favorite: Boolean(item.favorite),
+        hasTags: tags.length > 0,
+        all: `${title} ${folder} ${tagsJoined} ${dateTokens} ${ext} ${typeTokens}`
+      };
+    }
+    function rebuildSearchIndex() {
+      for (const item of media) {
+        item._search = buildMediaSearchEntry(item);
+      }
+      for (const folder of folders) {
+        folder._search = {
+          name: normalizeSearchText(folder.name),
+          path: normalizeSearchText(folder.displayPath || folder.name)
+        };
+      }
+      cachedCompiledQueryRaw = null;
+      cachedCompiledQueryAst = null;
+    }
+
+    function escapeRegexLiteral(text) {
+      return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    function createTextPatternMatcher(rawPattern, exactOption = false) {
+      const norm = normalizeSearchText(rawPattern);
+      if (!norm) return null;
+      if (norm.includes("*")) {
+        const stripped = norm.replace(/\*+/g, "");
+        if (!stripped) return () => true;
+        const parts = norm.split("*").map(escapeRegexLiteral);
+        const anchoredStart = !norm.startsWith("*");
+        const anchoredEnd = !norm.endsWith("*");
+        const regexSource = `${anchoredStart ? "(?:^|[^a-z0-9])" : ""}${parts.join("[^\\s]*")}${anchoredEnd ? "(?:$|[^a-z0-9])" : ""}`;
+        const fullRegex = new RegExp(`^${parts.join(".*")}$`);
+        const tokenRegex = new RegExp(regexSource);
+        return (haystack, isSingleToken = false) => isSingleToken ? fullRegex.test(haystack) : (fullRegex.test(haystack) || tokenRegex.test(haystack));
+      }
+      if (exactOption) {
+        return (haystack) => haystack.includes(norm);
+      }
+      return (haystack) => haystack.includes(norm);
+    }
+
+    function parseSizeBytesSpec(spec) {
+      const match = normalizeSearchText(spec).match(/^([0-9]+(?:[.,][0-9]+)?)\s*(o|b|ko|kb|k|mo|mb|m|go|gb|g)?$/);
+      if (!match) return null;
+      const amount = Number(match[1].replace(",", "."));
+      if (!Number.isFinite(amount) || amount < 0) return null;
+      const unit = match[2] || "mo";
+      const multipliers = {
+        o: 1, b: 1,
+        k: 1024, ko: 1024, kb: 1024,
+        m: 1024 * 1024, mo: 1024 * 1024, mb: 1024 * 1024,
+        g: 1024 * 1024 * 1024, go: 1024 * 1024 * 1024, gb: 1024 * 1024 * 1024
+      };
+      return Math.round(amount * (multipliers[unit] || (1024 * 1024)));
+    }
+
+    function parsePartialIsoDate(rawSpec, mode = "start") {
+      const cleaned = normalizeSearchText(rawSpec);
+      if (!cleaned) return null;
+      let match = cleaned.match(/^(\d{4})$/);
+      if (match) return mode === "end" ? `${match[1]}-12-31` : `${match[1]}-01-01`;
+      match = cleaned.match(/^(\d{4})[-/](\d{1,2})$/);
+      if (match) {
+        const m = match[2].padStart(2, "0");
+        return mode === "end" ? `${match[1]}-${m}-31` : `${match[1]}-${m}-01`;
+      }
+      match = cleaned.match(/^(\d{1,2})\/(\d{4})$/);
+      if (match) {
+        const m = match[1].padStart(2, "0");
+        return mode === "end" ? `${match[2]}-${m}-31` : `${match[2]}-${m}-01`;
+      }
+      match = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+      if (match) {
+        return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+      }
+      match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (match) {
+        return `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+      }
+      const monthIdx = frenchMonthsByNumber.indexOf(cleaned);
+      if (monthIdx > 0) {
+        return { monthOnly: String(monthIdx).padStart(2, "0") };
+      }
+      return null;
+    }
+
+    function tokenizeSearchQuery(input) {
+      const tokens = [];
+      const length = input.length;
+      let i = 0;
+      while (i < length) {
+        const ch = input[i];
+        if (/\s/.test(ch)) {
+          i += 1;
+          continue;
         }
-        if (item.trashed) return false;
+        if (ch === "+") {
+          tokens.push({ type: "AND" });
+          i += 1;
+          continue;
+        }
+        if (ch === "|") {
+          const spaceBefore = i > 0 && /\s/.test(input[i - 1]);
+          const spaceAfter = i + 1 < length && /\s/.test(input[i + 1]);
+          tokens.push({ type: spaceBefore || spaceAfter ? "OR_LOOSE" : "OR_TIGHT" });
+          i += 1;
+          continue;
+        }
+        if (ch === "(") {
+          tokens.push({ type: "LPAREN" });
+          i += 1;
+          continue;
+        }
+        if (ch === ")") {
+          tokens.push({ type: "RPAREN" });
+          i += 1;
+          continue;
+        }
+        if ((ch === "-" || ch === "!") && i + 1 < length && !/\s|[+|)]/.test(input[i + 1])) {
+          tokens.push({ type: "NOT" });
+          i += 1;
+          continue;
+        }
+        if ((ch === "-" || ch === "!") && (i + 1 >= length || /\s|[+|)]/.test(input[i + 1]))) {
+          i += 1;
+          continue;
+        }
+        let value = "";
+        let hadQuotes = false;
+        while (i < length) {
+          const cur = input[i];
+          if (cur === '"') {
+            hadQuotes = true;
+            i += 1;
+            while (i < length && input[i] !== '"') {
+              value += input[i];
+              i += 1;
+            }
+            if (i < length && input[i] === '"') i += 1;
+            continue;
+          }
+          if (/\s|[+|()]/.test(cur)) break;
+          value += cur;
+          i += 1;
+        }
+        if (value || hadQuotes) {
+          tokens.push({ type: "TERM", value, quoted: hadQuotes });
+        }
+      }
+      return tokens;
+    }
+
+    function compileLeafTerm(token) {
+      const raw = token.value;
+      if (!raw) return null;
+
+      if (!token.quoted || raw.startsWith("#") || raw.startsWith("/") || raw.startsWith("@") || /^[a-zA-Zéèêà]+:/.test(raw)) {
+        if (raw.startsWith("#")) {
+          const tagValue = normalizeSearchText(raw.slice(1));
+          if (!tagValue) return null;
+          if (tagValue === "vide" || tagValue === "aucun" || tagValue === "sans") {
+            return (idx) => (!idx.hasTags ? 18 : 0);
+          }
+          const matcher = createTextPatternMatcher(tagValue);
+          if (!matcher) return null;
+          return (idx) => {
+            if (!idx.hasTags) return 0;
+            for (const tag of idx.tags) {
+              if (tag === tagValue) return 45;
+              if (matcher(tag, true)) return 28;
+            }
+            return 0;
+          };
+        }
+
+        if (raw.startsWith("/")) {
+          const folderValue = normalizeSearchText(raw.slice(1));
+          if (!folderValue) return null;
+          const matcher = createTextPatternMatcher(folderValue);
+          if (!matcher) return null;
+          return (idx) => (matcher(idx.folder) ? 22 : 0);
+        }
+
+        if (raw.startsWith("@")) {
+          const flag = normalizeSearchText(raw.slice(1));
+          if (!flag) return null;
+          if (flag === "fav" || flag.startsWith("favori") || flag === "coeur") {
+            return (idx) => (idx.favorite ? 20 : 0);
+          }
+          if (flag === "photo" || flag === "photos" || flag === "image" || flag === "images") {
+            return (idx) => (idx.type === "photo" ? 15 : 0);
+          }
+          if (flag === "video" || flag === "videos") {
+            return (idx) => (idx.type === "video" ? 15 : 0);
+          }
+          if (flag === "gif" || flag === "gifs") {
+            return (idx) => (idx.isGif ? 20 : 0);
+          }
+          if (flag === "sanstag" || flag === "sans-tag" || flag === "untagged") {
+            return (idx) => (!idx.hasTags ? 18 : 0);
+          }
+        }
+
+        const colonIndex = raw.indexOf(":");
+        if (colonIndex > 0) {
+          const prefix = normalizeSearchText(raw.slice(0, colonIndex));
+          const argRaw = raw.slice(colonIndex + 1);
+          const arg = normalizeSearchText(argRaw);
+
+          if (prefix === "tag" || prefix === "tags") {
+            if (!arg) return null;
+            if (arg === "aucun" || arg === "vide" || arg === "non" || arg === "0") {
+              return (idx) => (!idx.hasTags ? 18 : 0);
+            }
+            const matcher = createTextPatternMatcher(arg);
+            return matcher ? (idx) => (idx.tags.some((t) => t === arg || matcher(t, true)) ? 35 : 0) : null;
+          }
+          if (prefix === "sans" || prefix === "no") {
+            if (!arg) return null;
+            if (arg === "tag" || arg === "tags") return (idx) => (!idx.hasTags ? 18 : 0);
+            if (arg === "fav" || arg.startsWith("favori")) return (idx) => (!idx.favorite ? 15 : 0);
+          }
+          if (prefix === "dossier" || prefix === "folder" || prefix === "in" || prefix === "chemin") {
+            if (!arg) return null;
+            const matcher = createTextPatternMatcher(arg);
+            return matcher ? (idx) => (matcher(idx.folder) ? 22 : 0) : null;
+          }
+          if (prefix === "nom" || prefix === "fichier" || prefix === "file" || prefix === "titre") {
+            if (!arg) return null;
+            const matcher = createTextPatternMatcher(arg);
+            return matcher ? (idx) => (matcher(idx.title) ? 30 : 0) : null;
+          }
+          if (prefix === "type" || prefix === "is") {
+            if (!arg) return null;
+            if (arg === "fav" || arg.startsWith("favori")) return (idx) => (idx.favorite ? 20 : 0);
+            if (arg === "photo" || arg === "photos" || arg === "image") return (idx) => (idx.type === "photo" ? 15 : 0);
+            if (arg === "video" || arg === "videos") return (idx) => (idx.type === "video" ? 15 : 0);
+            if (arg === "gif" || arg === "gifs") return (idx) => (idx.isGif ? 20 : 0);
+          }
+          if (prefix === "fav" || prefix === "favori") {
+            if (!arg) return null;
+            const wantFav = !(arg === "non" || arg === "0" || arg === "false");
+            return (idx) => (idx.favorite === wantFav ? 20 : 0);
+          }
+          if (prefix === "ext" || prefix === "format") {
+            const cleanExt = arg.replace(/^\.+/, "");
+            if (!cleanExt) return null;
+            const equivalents = cleanExt === "jpg" || cleanExt === "jpeg"
+              ? new Set(["jpg", "jpeg"])
+              : cleanExt === "mpg" || cleanExt === "mpeg"
+                ? new Set(["mpg", "mpeg"])
+                : new Set([cleanExt]);
+            return (idx) => (equivalents.has(idx.ext) ? 22 : 0);
+          }
+          if (prefix === "taille" || prefix === "size" || prefix === "poids") {
+            if (!arg) return null;
+            if (arg.includes("..")) {
+              const [minStr, maxStr] = arg.split("..");
+              const minBytes = minStr ? parseSizeBytesSpec(minStr) : 0;
+              const maxBytes = maxStr ? parseSizeBytesSpec(maxStr) : Infinity;
+              if (minBytes === null || maxBytes === null) return null;
+              return (idx) => (idx.bytes >= minBytes && idx.bytes <= maxBytes ? 16 : 0);
+            }
+            const opMatch = arg.match(/^(>=|<=|>|<|=)?\s*(.+)$/);
+            if (!opMatch) return null;
+            const op = opMatch[1] || ">=";
+            const targetBytes = parseSizeBytesSpec(opMatch[2]);
+            if (targetBytes === null) return null;
+            return (idx) => {
+              if (op === ">") return idx.bytes > targetBytes ? 16 : 0;
+              if (op === ">=") return idx.bytes >= targetBytes ? 16 : 0;
+              if (op === "<") return idx.bytes > 0 && idx.bytes < targetBytes ? 16 : 0;
+              if (op === "<=") return idx.bytes > 0 && idx.bytes <= targetBytes ? 16 : 0;
+              return Math.abs(idx.bytes - targetBytes) <= targetBytes * 0.1 ? 16 : 0;
+            };
+          }
+          if (prefix === "apres" || prefix === "after" || prefix === "depuis") {
+            if (!arg) return null;
+            const bound = parsePartialIsoDate(arg, "start");
+            if (!bound || typeof bound !== "string") return null;
+            return (idx) => (idx.date && idx.date >= bound ? 16 : 0);
+          }
+          if (prefix === "avant" || prefix === "before") {
+            if (!arg) return null;
+            const isExactDay = /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$|^\d{1,2}\/\d{1,2}\/\d{4}$/.test(arg);
+            const bound = parsePartialIsoDate(arg, isExactDay ? "end" : "start");
+            if (!bound || typeof bound !== "string") return null;
+            return (idx) => (idx.date && (isExactDay ? idx.date <= bound : idx.date < bound) ? 16 : 0);
+          }
+          if (prefix === "date" || prefix === "annee" || prefix === "year") {
+            if (!arg) return null;
+            if (arg.includes("..")) {
+              const [startSpec, endSpec] = arg.split("..");
+              const lower = startSpec ? parsePartialIsoDate(startSpec, "start") : "0000-01-01";
+              const upper = endSpec ? parsePartialIsoDate(endSpec, "end") : "9999-12-31";
+              if (typeof lower !== "string" || typeof upper !== "string") return null;
+              return (idx) => (idx.date && idx.date >= lower && idx.date <= upper ? 18 : 0);
+            }
+            const cmpMatch = arg.match(/^(>=|<=|>|<)\s*(.+)$/);
+            if (cmpMatch) {
+              const op = cmpMatch[1];
+              const bound = parsePartialIsoDate(cmpMatch[2], op === ">" || op === "<=" ? "end" : "start");
+              if (typeof bound !== "string") return null;
+              return (idx) => {
+                if (!idx.date) return 0;
+                if (op === ">") return idx.date > bound ? 18 : 0;
+                if (op === ">=") return idx.date >= bound ? 18 : 0;
+                if (op === "<") return idx.date < bound ? 18 : 0;
+                return idx.date <= bound ? 18 : 0;
+              };
+            }
+            const parsed = parsePartialIsoDate(arg, "start");
+            if (parsed && typeof parsed === "object" && parsed.monthOnly) {
+              const needle = `-${parsed.monthOnly}-`;
+              return (idx) => (idx.date.includes(needle) ? 18 : 0);
+            }
+            const parsedEnd = parsePartialIsoDate(arg, "end");
+            if (typeof parsed === "string" && typeof parsedEnd === "string") {
+              const scoreVal = parsed === parsedEnd ? 20 : 18;
+              return (idx) => (idx.date && idx.date >= parsed && idx.date <= parsedEnd ? scoreVal : 0);
+            }
+            return (idx) => (idx.dateTokens.includes(arg) ? 18 : 0);
+          }
+        }
+      }
+
+      const normTerm = normalizeSearchText(raw);
+      if (!normTerm) return null;
+      const matcher = createTextPatternMatcher(normTerm, token.quoted);
+      if (!matcher) return null;
+      const hasWildcard = normTerm.includes("*");
+      return (idx) => {
+        if (!hasWildcard && !idx.all.includes(normTerm)) return 0;
+        let score = 0;
+        for (const tag of idx.tags) {
+          if (tag === normTerm) { score = Math.max(score, 42); break; }
+          if (matcher(tag, true)) score = Math.max(score, 28);
+        }
+        if (idx.stem === normTerm || idx.title === normTerm) score = Math.max(score, 38);
+        else if (!hasWildcard && idx.title.startsWith(normTerm)) score = Math.max(score, 30);
+        else if (matcher(idx.title)) score = Math.max(score, 22);
+        if (matcher(idx.folder)) score = Math.max(score, 14);
+        if (matcher(idx.dateTokens) || idx.ext === normTerm || matcher(idx.typeTokens)) score = Math.max(score, 12);
+        if (!score && hasWildcard && matcher(idx.all)) score = 10;
+        return score;
+      };
+    }
+
+    let cachedCompiledQueryRaw = null;
+    let cachedCompiledQueryAst = null;
+
+    function compileSearchQuery(rawInput) {
+      const trimmed = String(rawInput || "").trim();
+      if (!trimmed) return null;
+      if (trimmed === cachedCompiledQueryRaw) return cachedCompiledQueryAst;
+
+      const tokens = tokenizeSearchQuery(trimmed);
+      let cursor = 0;
+
+      function parseLooseOr() {
+        const branches = [parseAnd()];
+        while (cursor < tokens.length && tokens[cursor].type === "OR_LOOSE") {
+          cursor += 1;
+          branches.push(parseAnd());
+        }
+        const valid = branches.filter(Boolean);
+        if (!valid.length) return null;
+        if (valid.length === 1) return valid[0];
+        return (idx) => {
+          let best = 0;
+          for (const branch of valid) {
+            const s = branch(idx);
+            if (s > best) best = s;
+          }
+          return best;
+        };
+      }
+
+      function parseAnd() {
+        const factors = [];
+        while (cursor < tokens.length) {
+          const tok = tokens[cursor];
+          if (tok.type === "RPAREN" || tok.type === "OR_LOOSE") break;
+          if (tok.type === "AND") {
+            cursor += 1;
+            continue;
+          }
+          const factor = parseTightOr();
+          if (factor) factors.push(factor);
+        }
+        if (!factors.length) return null;
+        if (factors.length === 1) return factors[0];
+        return (idx) => {
+          let total = 0;
+          for (const factor of factors) {
+            const s = factor(idx);
+            if (s <= 0) return 0;
+            total += s;
+          }
+          return total;
+        };
+      }
+
+      function parseTightOr() {
+        const options = [parseUnary()];
+        while (cursor < tokens.length && tokens[cursor].type === "OR_TIGHT") {
+          cursor += 1;
+          options.push(parseUnary());
+        }
+        const valid = options.filter(Boolean);
+        if (!valid.length) return null;
+        if (valid.length === 1) return valid[0];
+        return (idx) => {
+          let best = 0;
+          for (const opt of valid) {
+            const s = opt(idx);
+            if (s > best) best = s;
+          }
+          return best;
+        };
+      }
+
+      function parseUnary() {
+        if (cursor >= tokens.length) return null;
+        const tok = tokens[cursor];
+        if (tok.type === "NOT") {
+          cursor += 1;
+          const operand = parseUnary();
+          if (!operand) return null;
+          return (idx) => (operand(idx) > 0 ? 0 : 5);
+        }
+        if (tok.type === "LPAREN") {
+          cursor += 1;
+          const inner = parseLooseOr();
+          if (cursor < tokens.length && tokens[cursor].type === "RPAREN") {
+            cursor += 1;
+          }
+          return inner;
+        }
+        if (tok.type === "TERM") {
+          cursor += 1;
+          return compileLeafTerm(tok);
+        }
+        cursor += 1;
+        return null;
+      }
+
+      const rootGroups = [];
+      while (cursor < tokens.length) {
+        if (tokens[cursor].type === "RPAREN" || tokens[cursor].type === "AND") {
+          cursor += 1;
+          continue;
+        }
+        const group = parseLooseOr();
+        if (group) rootGroups.push(group);
+      }
+
+      const compiled = !rootGroups.length
+        ? null
+        : rootGroups.length === 1
+          ? rootGroups[0]
+          : (idx) => {
+              let sum = 0;
+              for (const g of rootGroups) {
+                const s = g(idx);
+                if (s <= 0) return 0;
+                sum += s;
+              }
+              return sum;
+            };
+
+      cachedCompiledQueryRaw = trimmed;
+      cachedCompiledQueryAst = compiled;
+      return compiled;
+    }
+
+    function matchSimpleEntitySearch(rawQuery, primaryText, secondaryText = "") {
+      const trimmed = String(rawQuery || "").trim();
+      if (!trimmed) return true;
+      const hay = `${normalizeSearchText(primaryText)} ${normalizeSearchText(secondaryText)}`.trim();
+      const tokens = tokenizeSearchQuery(trimmed);
+      let cursor = 0;
+      const evalSimple = () => {
+        const andParts = [];
+        while (cursor < tokens.length) {
+          const tok = tokens[cursor];
+          if (tok.type === "AND" || tok.type === "LPAREN" || tok.type === "RPAREN") { cursor += 1; continue; }
+          if (tok.type === "OR_LOOSE" || tok.type === "OR_TIGHT") {
+            cursor += 1;
+            const right = evalSimple();
+            const leftOk = andParts.every(Boolean);
+            return leftOk || right;
+          }
+          if (tok.type === "NOT") {
+            cursor += 1;
+            const next = tokens[cursor];
+            if (next?.type === "TERM") {
+              cursor += 1;
+              const needle = normalizeSearchText(next.value.replace(/^[#/@]/, ""));
+              if (needle) andParts.push(!hay.includes(needle));
+            }
+            continue;
+          }
+          if (tok.type === "TERM") {
+            cursor += 1;
+            const needle = normalizeSearchText(tok.value.replace(/^[#/@]/, ""));
+            if (needle) {
+              const matcher = createTextPatternMatcher(needle);
+              andParts.push(matcher ? matcher(hay) : true);
+            }
+          }
+        }
+        return andParts.every(Boolean);
+      };
+      return evalSimple();
+    }
+
+    function compareMediaByActiveSort(a, b) {
+      if (currentSort === "name") return a.title.localeCompare(b.title, "fr");
+      const firstTimestamp = Number(a.timestamp) || Date.parse(a.date) || 0;
+      const secondTimestamp = Number(b.timestamp) || Date.parse(b.date) || 0;
+      return currentSort === "oldest"
+        ? firstTimestamp - secondTimestamp
+        : secondTimestamp - firstTimestamp;
+    }
+
+    function visibleMedia() {
+      const rawQuery = $("#search").value.trim();
+      const compiledQuery = compileSearchQuery(rawQuery);
+      const hasActiveQuery = Boolean(compiledQuery);
+      const globalSearch = megaConnected && hasActiveQuery;
+      const scored = [];
+
+      for (const item of media) {
+        const idx = item._search || (item._search = buildMediaSearchEntry(item));
+        if (currentView === "trash") {
+          if (!item.trashed) continue;
+          if (!hasActiveQuery) {
+            const targetParent = currentFolder || "__trash__";
+            if (item.folderPath !== targetParent) continue;
+            scored.push({ item, score: 1 });
+          } else {
+            const score = compiledQuery(idx);
+            if (score > 0) scored.push({ item, score });
+          }
+          continue;
+        }
+        if (item.trashed) continue;
         const matchesView = globalSearch || currentView === "all" ||
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
@@ -993,21 +1626,24 @@
           (currentView === "folder" && (megaConnected
             ? item.folderPath === (currentFolder === "__root__" ? "" : currentFolder)
             : item.folder === currentFolder));
-        return matchesView && (!query || `${item.title} ${item.folder} ${item.date} ${(item.tags || []).join(" ")}`.toLocaleLowerCase("fr").includes(query));
-      });
-      if (sort === "name") items.sort((a, b) => a.title.localeCompare(b.title, "fr"));
-      else items.sort((a, b) => {
-        const firstTimestamp = Number(a.timestamp) || Date.parse(a.date) || 0;
-        const secondTimestamp = Number(b.timestamp) || Date.parse(b.date) || 0;
-        return sort === "oldest"
-          ? firstTimestamp - secondTimestamp
-          : secondTimestamp - firstTimestamp;
-      });
-      return items;
+        if (!matchesView) continue;
+        if (!hasActiveQuery) {
+          scored.push({ item, score: 1 });
+        } else {
+          const score = compiledQuery(idx);
+          if (score > 0) scored.push({ item, score });
+        }
+      }
+
+      if (hasActiveQuery) {
+        scored.sort((first, second) => (second.score - first.score) || compareMediaByActiveSort(first.item, second.item));
+      } else {
+        scored.sort((first, second) => compareMediaByActiveSort(first.item, second.item));
+      }
+      return scored.map((entry) => entry.item);
     }
     function visibleSubfolders() {
-      const query = $("#search").value.trim().toLocaleLowerCase("fr");
-      if (query) return [];
+      if (compileSearchQuery($("#search").value)) return [];
       if (currentView === "trash") {
         const targetParent = currentFolder || "__trash__";
         return folders
@@ -1074,14 +1710,34 @@
           </div>
         </article>`;
     }
+    function updateSearchBarIndicators(resultCount) {
+      const raw = $("#search").value;
+      const hasText = raw.trim().length > 0;
+      const isExplorerIndex = currentView === "folder-index" || currentView === "tag-index";
+      const showCount = isExplorerIndex ? hasText : Boolean(compileSearchQuery(raw));
+      const clearBtn = $("#search-clear");
+      const countBadge = $("#search-count");
+      if (clearBtn) clearBtn.hidden = !hasText;
+      if (countBadge) {
+        if (!showCount) {
+          countBadge.hidden = true;
+          countBadge.textContent = "";
+        } else {
+          countBadge.hidden = false;
+          countBadge.classList.toggle("is-empty", resultCount === 0);
+          countBadge.textContent = `${resultCount} résultat${resultCount > 1 ? "s" : ""}`;
+        }
+      }
+    }
     function renderMedia() {
       const grid = $("#photo-grid");
-      const query = $("#search").value.trim().toLocaleLowerCase("fr");
+      const rawQuery = $("#search").value.trim();
       if (currentView === "tag-index") {
-        const tags = getTagSummaries().filter((tag) => !query || tag.name.toLocaleLowerCase("fr").includes(query));
+        const tags = getTagSummaries().filter((tag) => matchSimpleEntitySearch(rawQuery, tag.name));
+        updateSearchBarIndicators(tags.length);
         grid.innerHTML = tags.length
           ? renderTagCards(tags)
-          : `<div class="empty-state">${query ? "Aucun tag ne correspond à cette recherche." : "Aucun tag pour le moment."}</div>`;
+          : `<div class="empty-state">${rawQuery ? "Aucun tag ne correspond à cette recherche." : "Aucun tag pour le moment."}</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
@@ -1090,17 +1746,19 @@
         const rootFolders = folders
           .filter((folder) => !folder.trashed && !folder.parentPath)
           .sort(compareFoldersByName)
-          .filter((folder) => !query || folder.name.toLocaleLowerCase("fr").includes(query));
+          .filter((folder) => matchSimpleEntitySearch(rawQuery, folder.name, folder.displayPath));
+        updateSearchBarIndicators(rootFolders.length);
         const folderCards = rootFolders.map((folder) => renderFolderCard(folder)).join("");
-        grid.innerHTML = folderCards || `<div class="empty-state">${query ? "Aucun dossier ne correspond à cette recherche." : "Aucun dossier trouvé."}</div>`;
+        grid.innerHTML = folderCards || `<div class="empty-state">${rawQuery ? "Aucun dossier ne correspond à cette recherche." : "Aucun dossier trouvé."}</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
       }
       const items = visibleMedia();
       const subfolders = visibleSubfolders();
+      updateSearchBarIndicators(items.length);
       if (!items.length && !subfolders.length) {
-        grid.innerHTML = `<div class="empty-state">${currentView === "trash" ? "La corbeille est vide." : "Aucun média trouvé. Essayez une autre recherche."}</div>`;
+        grid.innerHTML = `<div class="empty-state">${currentView === "trash" && !rawQuery ? "La corbeille est vide." : "Aucun média trouvé. Essayez par exemple « soleil+montagne », « #tag », « /dossier » ou « @fav »."}</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
@@ -1154,12 +1812,12 @@
       renderMedia();
       const query = $("#search").value.trim();
       const isExplorerIndex = currentView === "folder-index" || currentView === "tag-index";
-      const globalSearchActive = megaConnected && Boolean(query) && !isExplorerIndex;
+      const globalSearchActive = megaConnected && Boolean(compileSearchQuery(query)) && !isExplorerIndex && currentView !== "trash";
       $("#search").placeholder = currentView === "folder-index"
-        ? "Rechercher un dossier…"
+        ? "Rechercher un dossier (ex. vacances+2025)…"
         : currentView === "tag-index"
           ? "Rechercher un tag…"
-          : megaConnected ? "Rechercher dans tout le drive…" : "Rechercher un média…";
+          : megaConnected ? "Rechercher : soleil+montagne, #tag, /dossier, @fav…" : "Rechercher un média…";
       $("#search").setAttribute("aria-label", isExplorerIndex ? $("#search").placeholder : megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
       const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", "folder-index": "Dossiers", "tag-index": "Tags", tag: currentTag || "Tags", folder: currentFolder };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
@@ -2276,7 +2934,8 @@
         currentView = nav.dataset.view;
         currentFolder = null;
         currentTag = null;
-        if (currentView === "folder-index" || currentView === "tag-index") $("#search").value = "";
+        $("#search").value = "";
+        closeSearchPopover();
         render();
         $("main").scrollTop = 0;
         $("#sidebar").classList.remove("open");
@@ -2290,6 +2949,7 @@
         currentFolder = null;
         currentTag = tagCard.dataset.openTag;
         $("#search").value = "";
+        closeSearchPopover();
         render();
         $("main").scrollTop = 0;
         $("#sidebar").classList.remove("open");
@@ -2299,7 +2959,6 @@
       const folder = event.target.closest("[data-folder], [data-open-folder]") || event.target.closest(".folder-card")?.querySelector("[data-open-folder]");
       if (folder) {
         mediaPageSize = 120;
-        const fromFolderIndex = currentView === "folder-index";
         const targetPath = folder.dataset.folder || folder.dataset.openFolder;
         if (currentView === "trash" || targetPath.startsWith("__trash__")) {
           currentView = "trash";
@@ -2308,8 +2967,9 @@
           currentView = "folder";
           currentFolder = targetPath;
           currentTag = null;
-          if (fromFolderIndex) $("#search").value = "";
         }
+        $("#search").value = "";
+        closeSearchPopover();
         render();
         $("main").scrollTop = 0;
         $("#sidebar").classList.remove("open");
@@ -2332,6 +2992,7 @@
         return;
       }
       if (!event.target.closest(".context-menu")) closeMenu();
+      if (!event.target.closest("#topbar-search-wrap")) closeSearchPopover();
     });
     document.addEventListener("keydown", (event) => {
       const openDialog = event.target instanceof Element ? event.target.closest("dialog[open]") : null;
@@ -2368,8 +3029,28 @@
         }
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" && megaConnected) {
+        event.preventDefault();
+        const searchInput = $("#search");
+        searchInput.focus();
+        searchInput.select();
+        renderSearchPopover();
+        return;
+      }
       if (event.key === "Escape") {
         closeMenu();
+        if (!$("#search-popover").hidden) {
+          event.preventDefault();
+          closeSearchPopover();
+          return;
+        }
+        if (document.activeElement === $("#search") && $("#search").value) {
+          event.preventDefault();
+          $("#search").value = "";
+          mediaPageSize = 120;
+          render();
+          return;
+        }
         if (selectedMediaKeys.size) {
           selectedMediaKeys.clear();
           updateSelectedMediaCards();
@@ -2381,7 +3062,302 @@
         openViewer(open.dataset.open);
       }
     });
-    $("#search").addEventListener("input", () => { mediaPageSize = 120; render(); });
+
+    let activeSearchSuggestionIndex = -1;
+    let activeSearchSuggestions = [];
+    let searchRenderFrame = 0;
+
+    function formatSearchTokenArg(prefix, rawValue) {
+      const clean = String(rawValue || "").trim();
+      if (!clean) return prefix;
+      return /[\s+|()"]/.test(clean)
+        ? `${prefix}"${clean.replace(/"/g, "")}"`
+        : `${prefix}${clean}`;
+    }
+
+    function getSearchTokenRangeAtCursor(inputEl) {
+      const value = inputEl.value;
+      const cursor = inputEl.selectionStart ?? value.length;
+      let inQuotes = false;
+      let tokenStart = 0;
+      for (let idx = 0; idx < cursor; idx += 1) {
+        const ch = value[idx];
+        if (ch === '"') inQuotes = !inQuotes;
+        else if (!inQuotes && (/\s/.test(ch) || ch === "+" || ch === "|" || ch === "(")) {
+          tokenStart = idx + 1;
+        }
+      }
+      let tokenEnd = cursor;
+      let outQuotes = inQuotes;
+      while (tokenEnd < value.length) {
+        const ch = value[tokenEnd];
+        if (ch === '"') outQuotes = !outQuotes;
+        else if (!outQuotes && (/\s/.test(ch) || ch === "+" || ch === "|" || ch === ")")) break;
+        tokenEnd += 1;
+      }
+      let negationPrefix = "";
+      let coreStart = tokenStart;
+      if ((value[coreStart] === "-" || value[coreStart] === "!") && coreStart < cursor) {
+        negationPrefix = value[coreStart];
+        coreStart += 1;
+      }
+      return {
+        tokenStart,
+        coreStart,
+        tokenEnd,
+        negationPrefix,
+        fragment: value.slice(coreStart, cursor).replace(/"/g, "")
+      };
+    }
+
+    function closeSearchPopover() {
+      const popover = $("#search-popover");
+      if (!popover || popover.hidden) return;
+      popover.hidden = true;
+      $("#search").setAttribute("aria-expanded", "false");
+      activeSearchSuggestionIndex = -1;
+      activeSearchSuggestions = [];
+    }
+
+    function applySearchSuggestion(replacementToken, appendOperator = "") {
+      const input = $("#search");
+      if (appendOperator) {
+        const current = input.value;
+        const needsSeparator = current.length > 0 && !/[\s+|(-]$/.test(current);
+        const nextVal = `${current}${needsSeparator ? "+" : ""}${replacementToken}`;
+        input.value = nextVal;
+        input.focus();
+        input.setSelectionRange(nextVal.length, nextVal.length);
+      } else {
+        const range = getSearchTokenRangeAtCursor(input);
+        const before = input.value.slice(0, range.coreStart);
+        const after = input.value.slice(range.tokenEnd);
+        const inserted = `${before}${replacementToken}${after}`;
+        const caret = before.length + replacementToken.length;
+        input.value = inserted;
+        input.focus();
+        input.setSelectionRange(caret, caret);
+      }
+      mediaPageSize = 120;
+      render();
+      renderSearchPopover();
+    }
+
+    function renderSearchPopover() {
+      const input = $("#search");
+      const popover = $("#search-popover");
+      if (!popover || !megaConnected || document.activeElement !== input || currentView === "tag-index" || currentView === "folder-index") {
+        closeSearchPopover();
+        return;
+      }
+
+      const { fragment } = getSearchTokenRangeAtCursor(input);
+      const normFrag = normalizeSearchText(fragment);
+      const suggestions = [];
+      let sectionTitle = "";
+
+      if (fragment.startsWith("#") || /^tags?:/i.test(fragment)) {
+        const needle = normalizeSearchText(fragment.replace(/^(#|tags?:)/i, ""));
+        const prefix = fragment.startsWith("#") ? "#" : "tag:";
+        sectionTitle = "Tags MEGA";
+        for (const tag of getTagSummaries()) {
+          if (!needle || normalizeSearchText(tag.name).includes(needle)) {
+            suggestions.push({
+              icon: "tag",
+              label: `#${tag.name}`,
+              meta: `${tag.count} média${tag.count > 1 ? "s" : ""}`,
+              replacement: formatSearchTokenArg(prefix, tag.name)
+            });
+            if (suggestions.length >= 7) break;
+          }
+        }
+        if (!needle || "vide".includes(needle) || "sans".includes(needle)) {
+          suggestions.push({
+            icon: "tag",
+            label: "#vide",
+            meta: "Médias sans aucun tag",
+            replacement: "#vide"
+          });
+        }
+      } else if (fragment.startsWith("/") || /^(dossier|folder|in):/i.test(fragment)) {
+        const needle = normalizeSearchText(fragment.replace(/^(\/|(?:dossier|folder|in):)/i, ""));
+        const prefix = fragment.startsWith("/") ? "/" : "dossier:";
+        sectionTitle = "Dossiers MEGA";
+        const activeFolders = folders.filter((f) => !f.trashed).sort((a, b) => a.displayPath.localeCompare(b.displayPath, "fr"));
+        for (const folder of activeFolders) {
+          if (!needle || normalizeSearchText(folder.displayPath).includes(needle)) {
+            suggestions.push({
+              icon: "folder",
+              label: `/${folder.displayPath}`,
+              meta: "Dossier",
+              replacement: formatSearchTokenArg(prefix, folder.displayPath)
+            });
+            if (suggestions.length >= 7) break;
+          }
+        }
+      } else if (fragment.startsWith("@")) {
+        const needle = normalizeSearchText(fragment.slice(1));
+        sectionTitle = "Filtres rapides";
+        const presets = [
+          { icon: "heart", label: "@fav", meta: "Favoris uniquement", replacement: "@fav" },
+          { icon: "photo", label: "@photo", meta: "Photos uniquement", replacement: "@photo" },
+          { icon: "video", label: "@video", meta: "Vidéos uniquement", replacement: "@video" },
+          { icon: "photo", label: "@gif", meta: "GIF animés uniquement", replacement: "@gif" },
+          { icon: "tag", label: "@sanstag", meta: "Médias sans tag", replacement: "@sanstag" }
+        ];
+        for (const preset of presets) {
+          if (!needle || normalizeSearchText(preset.label).includes(needle) || normalizeSearchText(preset.meta).includes(needle)) {
+            suggestions.push(preset);
+          }
+        }
+      } else if (normFrag.length >= 2 && !normFrag.includes(":")) {
+        for (const tag of getTagSummaries()) {
+          if (normalizeSearchText(tag.name).includes(normFrag)) {
+            suggestions.push({
+              icon: "tag",
+              label: `#${tag.name}`,
+              meta: `Tag · ${tag.count}`,
+              replacement: formatSearchTokenArg("#", tag.name)
+            });
+            if (suggestions.length >= 3) break;
+          }
+        }
+        const activeFolders = folders.filter((f) => !f.trashed);
+        for (const folder of activeFolders) {
+          if (normalizeSearchText(folder.name).includes(normFrag)) {
+            suggestions.push({
+              icon: "folder",
+              label: `/${folder.displayPath}`,
+              meta: "Dossier",
+              replacement: formatSearchTokenArg("/", folder.displayPath)
+            });
+            if (suggestions.length >= 6) break;
+          }
+        }
+        if (suggestions.length) sectionTitle = "Cibler précisément";
+      }
+
+      activeSearchSuggestions = suggestions;
+      if (activeSearchSuggestionIndex >= suggestions.length) {
+        activeSearchSuggestionIndex = suggestions.length ? 0 : -1;
+      }
+
+      const suggestionsHtml = suggestions.length
+        ? `<div class="search-popover-section">
+            <div class="search-popover-title">${escapeHtml(sectionTitle)}</div>
+            <div class="search-popover-list">
+              ${suggestions.map((item, idx) => `
+                <button type="button" role="option" aria-selected="${idx === activeSearchSuggestionIndex}" class="search-suggestion ${idx === activeSearchSuggestionIndex ? "is-active" : ""}" data-search-suggestion="${idx}">
+                  <span class="search-suggestion-main">${icon(item.icon)}<span class="search-suggestion-token">${escapeHtml(item.label)}</span></span>
+                  <span class="search-suggestion-meta">${escapeHtml(item.meta)}</span>
+                </button>`).join("")}
+            </div>
+          </div>`
+        : "";
+
+      const showSyntaxGuide = !input.value.trim() || (!suggestions.length && normFrag.length < 2);
+      const syntaxHtml = showSyntaxGuide
+        ? `<div class="search-popover-section">
+            <div class="search-popover-title">Raccourcis de recherche combinables</div>
+            <div class="search-syntax-chips">
+              <button type="button" class="search-syntax-chip" data-insert-chip="+"><code>+</code><span>ET (mot1+mot2)</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-chip="|"><code>|</code><span>OU (mer|montagne)</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-chip="-"><code>-</code><span>Exclure (-flou)</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-chip="#"><code>#</code><span>Tag</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-chip="/"><code>/</code><span>Dossier</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-token="@fav"><code>@fav</code><span>Favoris</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-token="@video"><code>@video</code><span>Vidéos</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-token="apres:2024"><code>apres:2024</code><span>Date</span></button>
+              <button type="button" class="search-syntax-chip" data-insert-token="taille:>10mo"><code>taille:&gt;10mo</code><span>Poids</span></button>
+            </div>
+          </div>`
+        : "";
+
+      if (!suggestionsHtml && !syntaxHtml) {
+        closeSearchPopover();
+        return;
+      }
+
+      popover.innerHTML = `${suggestionsHtml}${syntaxHtml}`;
+      popover.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    }
+
+    $("#search").addEventListener("focus", () => renderSearchPopover());
+    $("#search").addEventListener("click", () => renderSearchPopover());
+    $("#search").addEventListener("input", () => {
+      mediaPageSize = 120;
+      activeSearchSuggestionIndex = -1;
+      if (searchRenderFrame) cancelAnimationFrame(searchRenderFrame);
+      searchRenderFrame = requestAnimationFrame(() => {
+        searchRenderFrame = 0;
+        render();
+        renderSearchPopover();
+      });
+    });
+    $("#search").addEventListener("keydown", (event) => {
+      const popover = $("#search-popover");
+      if (!popover.hidden && activeSearchSuggestions.length) {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          activeSearchSuggestionIndex = (activeSearchSuggestionIndex + 1) % activeSearchSuggestions.length;
+          renderSearchPopover();
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          activeSearchSuggestionIndex = (activeSearchSuggestionIndex - 1 + activeSearchSuggestions.length) % activeSearchSuggestions.length;
+          renderSearchPopover();
+          return;
+        }
+        if ((event.key === "Enter" || event.key === "Tab") && activeSearchSuggestionIndex >= 0) {
+          event.preventDefault();
+          applySearchSuggestion(activeSearchSuggestions[activeSearchSuggestionIndex].replacement);
+          return;
+        }
+      }
+      if (event.key === "Enter") {
+        closeSearchPopover();
+      }
+    });
+    $("#search-clear").addEventListener("click", (event) => {
+      event.preventDefault();
+      const input = $("#search");
+      input.value = "";
+      mediaPageSize = 120;
+      render();
+      input.focus();
+      renderSearchPopover();
+    });
+    $("#search-popover").addEventListener("mousedown", (event) => {
+      // Keep focus inside #search when clicking a suggestion
+      event.preventDefault();
+    });
+    $("#search-popover").addEventListener("click", (event) => {
+      const suggestionBtn = event.target.closest("[data-search-suggestion]");
+      if (suggestionBtn) {
+        const chosen = activeSearchSuggestions[Number(suggestionBtn.dataset.searchSuggestion)];
+        if (chosen) applySearchSuggestion(chosen.replacement);
+        return;
+      }
+      const tokenChip = event.target.closest("[data-insert-token]");
+      if (tokenChip) {
+        applySearchSuggestion(tokenChip.dataset.insertToken, "append");
+        return;
+      }
+      const rawChip = event.target.closest("[data-insert-chip]");
+      if (rawChip) {
+        const input = $("#search");
+        const chip = rawChip.dataset.insertChip;
+        const current = input.value;
+        const needsPlus = (chip === "#" || chip === "/" || chip === "-") && current.length > 0 && !/[\s+|(]$/.test(current);
+        const nextVal = `${current}${needsPlus ? "+" : ""}${chip}`;
+        input.value = nextVal;
+        input.focus();
+        input.setSelectionRange(nextVal.length, nextVal.length);
+        renderSearchPopover();
+      }
+    });
     $("#tag-input").addEventListener("input", updateTagSuggestions);
     $("#tag-input").addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
@@ -2542,6 +3518,7 @@
         selectedMediaKeys.clear();
         media = files;
         folders = remoteFolders;
+        rebuildSearchIndex();
         currentView = "all";
         currentFolder = null;
         currentTag = null;
@@ -2564,6 +3541,7 @@
 
         media = files;
         folders = remoteFolders;
+        rebuildSearchIndex();
 
         const validKeys = new Set(files.map(selectionKeyFor));
         for (const key of [...selectedMediaKeys]) {
@@ -2614,6 +3592,8 @@
         selectedMediaKeys.clear();
         media = [];
         folders = [];
+        rebuildSearchIndex();
+        closeSearchPopover();
         currentView = "all";
         currentFolder = null;
         currentTag = null;

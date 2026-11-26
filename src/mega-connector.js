@@ -1071,6 +1071,8 @@ function buildLibrary(root, trashRoot = storage?.trash, { commit = true, ownerUs
         folderPath: isTrash ? (parentPath || "__trash__") : parentPath,
         timestamp: getTimestamp(node),
         date: formatDate(node),
+        bytes: Number(node.size) || 0,
+        ext: extension,
         size: formatSize(Number(node.size)),
         type,
         favorite: Boolean(node.favorited),
