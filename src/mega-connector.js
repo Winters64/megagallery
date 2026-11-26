@@ -1109,12 +1109,95 @@ function closeStorage() {
   }
 }
 
+function decodeUtf8MegaAttribute(rawValue) {
+  if (typeof rawValue !== "string") return "";
+  const trimmedRaw = rawValue.trim();
+  if (!trimmedRaw) return "";
+  try {
+    const bytes = decodeMegaBase64Url(trimmedRaw);
+    let end = bytes.byteLength;
+    while (end > 0 && bytes[end - 1] === 0) end -= 1;
+    if (end === 0) return "";
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, end)).trim();
+    if (decoded && !/[\u0000-\u001f\u007f]/.test(decoded)) {
+      return decoded;
+    }
+  } catch {
+    // Ignore invalid base64 or non-UTF-8 payloads
+  }
+  return "";
+}
+
+async function fetchMegaUserAttribute(candidate, attrName) {
+  if (!candidate?.user) return "";
+  try {
+    const res = await candidate.api.request({
+      a: "uga",
+      u: candidate.user,
+      ua: attrName,
+      v: 1
+    });
+    if (typeof res?.av === "string") return decodeUtf8MegaAttribute(res.av);
+    if (Array.isArray(res?.av) && typeof res.av[0] === "string") return decodeUtf8MegaAttribute(res.av[0]);
+    if (typeof res?.[attrName] === "string") return decodeUtf8MegaAttribute(res[attrName]);
+    if (Array.isArray(res) && typeof res[0] === "string") return decodeUtf8MegaAttribute(res[0]);
+    if (typeof res === "string") return decodeUtf8MegaAttribute(res);
+  } catch {
+    // Attribute may not exist on the account (-9 ENOENT)
+  }
+  return "";
+}
+
+async function resolveMegaAccountProfile(candidate) {
+  if (!candidate || candidate.api?.closed) return null;
+  let ugInfo = null;
+  if (!candidate.user || !candidate.email || !candidate.name) {
+    try {
+      ugInfo = await candidate.api.request({ a: "ug" });
+      if (ugInfo?.u && !candidate.user) candidate.user = ugInfo.u;
+      if (typeof ugInfo?.email === "string" && ugInfo.email && !candidate.email) {
+        candidate.email = ugInfo.email;
+      }
+    } catch {
+      // Non-blocking if ug fails
+    }
+  }
+
+  const [fetchedFirst, fetchedLast] = await Promise.all([
+    fetchMegaUserAttribute(candidate, "*firstname"),
+    fetchMegaUserAttribute(candidate, "*lastname")
+  ]);
+
+  const firstName = fetchedFirst || (typeof candidate.firstName === "string" ? candidate.firstName.trim() : "");
+  const lastName = fetchedLast || (typeof candidate.lastName === "string" ? candidate.lastName.trim() : "");
+  const combinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const legacyName = typeof ugInfo?.name === "string" && ugInfo.name.trim()
+    ? ugInfo.name.trim()
+    : typeof candidate.name === "string" && candidate.name.trim()
+      ? candidate.name.trim()
+      : "";
+
+  const fullName = combinedName || legacyName;
+  if (fullName) candidate.name = fullName;
+  candidate.firstName = firstName;
+  candidate.lastName = lastName;
+
+  return {
+    firstName,
+    lastName,
+    accountName: fullName,
+    accountEmail: candidate.email || ""
+  };
+}
+
 function saveMegaSession(candidate) {
   const { key, sid, name, user } = candidate.toJSON();
   sessionStorage.setItem(sessionStorageKey, JSON.stringify({
     key,
     sid,
-    name,
+    name: candidate.name || name || "",
+    firstName: candidate.firstName || "",
+    lastName: candidate.lastName || "",
     user,
     email: candidate.email
   }));
@@ -1129,10 +1212,19 @@ function displayConnectedLibrary(candidate) {
   const library = buildLibrary(storage.root, storage.trash);
   window.megaGallery.setLibrary({
     ...library,
-    accountName: storage.name || storage.email || "",
+    firstName: storage.firstName || "",
+    lastName: storage.lastName || "",
+    accountName: storage.name || "",
     accountEmail: storage.email || ""
   });
   if (dialog.open) dialog.close();
+  resolveMegaAccountProfile(candidate).then((profile) => {
+    if (!profile || storage !== candidate) return;
+    window.megaGallery.setProfile?.(profile);
+    try {
+      saveMegaSession(candidate);
+    } catch {}
+  }).catch(() => {});
 }
 
 function openLoginPage() {
@@ -1162,6 +1254,8 @@ async function performMegaLibraryRefresh(isSynchronized = null) {
       user,
       options: { email: previousStorage.email, keepalive: true }
     }));
+    candidate.firstName = previousStorage.firstName || "";
+    candidate.lastName = previousStorage.lastName || "";
     await candidate.ready;
     candidate.status = "connecting";
     await candidate.reload(true);
@@ -1273,6 +1367,8 @@ async function restoreMegaSession() {
       user: savedSession.user || "",
       options: { email: savedSession.email, keepalive: true }
     }));
+    candidate.firstName = savedSession.firstName || "";
+    candidate.lastName = savedSession.lastName || "";
     await candidate.ready;
     candidate.status = "connecting";
     await candidate.reload(true);

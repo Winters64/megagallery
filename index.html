@@ -13,7 +13,7 @@
       if (useDarkTheme) document.documentElement.dataset.theme = "dark";
       const savedSidebarWidth = Number(localStorage.getItem("mega-gallery-sidebar-width"));
       if (Number.isFinite(savedSidebarWidth) && savedSidebarWidth > 0) {
-        document.documentElement.style.setProperty("--sidebar-width", `${Math.min(800, Math.max(200, savedSidebarWidth))}px`);
+        document.documentElement.style.setProperty("--sidebar-width", `${Math.min(800, Math.max(280, savedSidebarWidth))}px`);
       }
     } catch (error) {
       console.warn("Les préférences d’affichage n’ont pas pu être lues.", error);
@@ -21,7 +21,7 @@
   </script>
   <style>
     :root {
-      --sidebar-width: 246px;
+      --sidebar-width: 280px;
       color-scheme: light;
       --ink: #20231f;
       --muted: #898d86;
@@ -135,7 +135,7 @@
     .nav-item {
       width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin: 2px 0;
       color: var(--nav-text); border: 0; border-radius: 9px; background: transparent; text-align: left;
-      cursor: pointer; font-size: 13px; transition: background .16s, color .16s;
+      cursor: pointer; font-size: 13px; white-space: nowrap; transition: background .16s, color .16s;
     }
     .nav-item:hover { background: var(--surface-hover); color: var(--ink); }
     .nav-item.active { color: var(--green-dark); background: var(--green-soft); font-weight: 650; }
@@ -466,7 +466,7 @@
       main { padding-right: 28px; padding-left: 28px; }
     }
     @media (max-width: 720px) {
-      .sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; height: 100vh; width: 260px; flex-basis: 260px; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 12px 0 35px #0001; }
+      .sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; height: 100vh; width: min(280px, calc(100vw - 32px)); flex-basis: 280px; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 12px 0 35px #0001; }
       .sidebar-resizer { display: none; }
       .sidebar.open { transform: translateX(0); }
       .mobile-scrim.visible { position: fixed; z-index: 24; inset: 0; display: block; background: #10151055; }
@@ -574,7 +574,7 @@
         </div>
       </div>
     </aside>
-    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Redimensionner le panneau des dossiers" aria-orientation="vertical" aria-valuemin="200" aria-valuemax="800" aria-valuenow="246" aria-valuetext="246 pixels" tabindex="0" title="Glisser pour redimensionner (double-clic pour réinitialiser)"></div>
+    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Redimensionner le panneau des dossiers" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="800" aria-valuenow="280" aria-valuetext="280 pixels" tabindex="0" title="Glisser pour redimensionner (double-clic pour réinitialiser)"></div>
     <div class="mobile-scrim" id="scrim"></div>
     <main>
       <header class="topbar">
@@ -2191,8 +2191,8 @@
 
     const sidebar = $("#sidebar");
     const sidebarResizer = $("#sidebar-resizer");
-    const minSidebarWidth = 200;
-    const defaultSidebarWidth = 246;
+    const minSidebarWidth = 280;
+    const defaultSidebarWidth = 280;
     function getMaxSidebarWidth() {
       return Math.max(minSidebarWidth, Math.min(800, window.innerWidth - 360));
     }
@@ -2499,14 +2499,33 @@
         btn.innerHTML = `<span class="status-dot"></span><span class="btn-text" id="connection-label">Connexion MEGA</span>`;
       }
     }
-    function updateProfileUI(accountName = "", accountEmail = "") {
-      const displayName = accountName || accountEmail || "Espace personnel";
-      const caption = accountEmail && accountEmail !== displayName ? accountEmail : "Compte MEGA";
-      const initial = displayName.trim().charAt(0).toLocaleUpperCase("fr") || "M";
+    function updateProfileUI({ firstName = "", lastName = "", accountName = "", accountEmail = "" } = {}) {
+      const cleanFirst = String(firstName || "").trim();
+      const cleanLast = String(lastName || "").trim();
+      const combined = [cleanFirst, cleanLast].filter(Boolean).join(" ").trim();
+      const cleanAccountName = combined || String(accountName || "").trim();
+      const cleanEmail = String(accountEmail || "").trim();
+      const hasDistinctName = Boolean(cleanAccountName && cleanAccountName.toLocaleLowerCase("fr") !== cleanEmail.toLocaleLowerCase("fr"));
+      const displayName = hasDistinctName ? cleanAccountName : (cleanEmail || "Espace personnel");
+      const caption = hasDistinctName && cleanEmail ? cleanEmail : "Compte MEGA";
+
+      let initials = "M";
+      if (cleanFirst && cleanLast) {
+        initials = `${cleanFirst.charAt(0)}${cleanLast.charAt(0)}`.toLocaleUpperCase("fr");
+      } else if (hasDistinctName) {
+        const words = cleanAccountName.split(/\s+/).filter(Boolean);
+        initials = (words.length >= 2
+          ? `${words[0].charAt(0)}${words[words.length - 1].charAt(0)}`
+          : words[0]?.charAt(0) || "M"
+        ).toLocaleUpperCase("fr");
+      } else if (cleanEmail) {
+        initials = cleanEmail.charAt(0).toLocaleUpperCase("fr") || "M";
+      }
+
       const avatarEl = $("#profile-avatar");
       const nameEl = $("#profile-name");
       const captionEl = $("#profile-caption");
-      if (avatarEl) avatarEl.textContent = initial;
+      if (avatarEl) avatarEl.textContent = initials;
       if (nameEl) {
         nameEl.textContent = displayName;
         nameEl.title = displayName;
@@ -2517,7 +2536,7 @@
       }
     }
     window.megaGallery = {
-      setLibrary({ files, folders: remoteFolders, accountName = "", accountEmail = "" }) {
+      setLibrary({ files, folders: remoteFolders, firstName = "", lastName = "", accountName = "", accountEmail = "" }) {
         window.megaConnector.releaseAllThumbnails();
         megaConnected = true;
         selectedMediaKeys.clear();
@@ -2528,9 +2547,12 @@
         currentTag = null;
         mediaPageSize = 120;
         updateConnectionUI("connected");
-        updateProfileUI(accountName, accountEmail);
+        updateProfileUI({ firstName, lastName, accountName, accountEmail });
         document.body.classList.remove("unauthenticated");
         render();
+      },
+      setProfile(profile) {
+        updateProfileUI(profile || {});
       },
       refreshLibrary({ files, folders: remoteFolders }) {
         window.megaConnector.syncLibraryThumbnails();
