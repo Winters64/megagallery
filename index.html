@@ -199,6 +199,11 @@
     }
     .icon-button:hover, .mobile-menu:hover { background: var(--surface-hover); color: var(--ink); }
     .icon-button .icon, .mobile-menu .icon { width: 18px; height: 18px; }
+    .refresh-button { width: 40px; height: 40px; }
+    .refresh-button .icon {
+      width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.8;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
     .search > .icon { width: 19px; height: 19px; flex: 0 0 19px; }
     .mobile-menu { display: none; }
     .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 32px 0 23px; }
@@ -304,6 +309,7 @@
     .context-menu-divider { height: 1px; margin: 5px 0; background: var(--line); }
     .context-menu-label { padding: 6px 9px 3px; color: var(--nav-muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
     .context-menu .icon-placeholder { width: 16px; height: 16px; flex: 0 0 16px; display: inline-block; }
+    .context-menu.viewer-context-menu { z-index: 35; }
     @keyframes menu-in { from { opacity: 0; transform: translateY(-3px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 0; background: #090c0af7; backdrop-filter: blur(5px); }
     .viewer { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -316,6 +322,8 @@
     .viewer-position span { color: #78827a; }
     .viewer-actions { display: flex; flex: 0 0 auto; gap: 8px; pointer-events: auto; }
     .viewer-close { width: 40px; height: 40px; display: grid; place-items: center; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 11px; background: #ffffff0b; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+    .viewer-menu-button { width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; }
+    .viewer-menu-button .icon { width: 17px; height: 17px; }
     .viewer-close:hover { border-color: #ffffff45; background: #ffffff18; transform: translateY(-1px); }
     .viewer-close:focus-visible, .viewer-nav:focus-visible { outline: 2px solid #9cc9a5; outline-offset: 3px; }
     .viewer-close .icon { width: 18px; height: 18px; }
@@ -490,6 +498,7 @@
       .viewer-subtitle { font-size: 9px; }
       .viewer-position { gap: 4px; padding: 6px 8px; font-size: 9px; }
       .viewer-close { width: 36px; height: 36px; }
+      .viewer-menu-button { width: auto; padding: 0 9px; }
       .viewer-stage { padding: 0; }
       .viewer-nav { width: 35px; height: 35px; }
       .viewer-nav.previous { left: 3px; }
@@ -522,7 +531,7 @@
     <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M3.8 10h16.4"/></symbol>
     <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
-    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 1-2-5l3 5"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M6.5 7.8A8 8 0 0 1 19 11"/><path d="m14 7 5 4-5 4"/><path d="M17.5 16.2A8 8 0 0 1 5 13"/><path d="m10 9-5 4 5 4"/></symbol>
     <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
     <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -1283,6 +1292,7 @@
             </div>
             <div class="viewer-actions">
               ${megaConnected ? "" : `<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`}
+              ${megaConnected ? `<button class="viewer-close viewer-menu-button" id="viewer-actions-menu" type="button" title="Actions du média" aria-label="Actions du média" aria-haspopup="menu" aria-expanded="false" aria-controls="viewer-action-menu">${icon("more")}<span>Actions</span></button>` : ""}
               <button class="viewer-close" id="viewer-close" type="button" aria-label="Fermer">${icon("close")}</button>
             </div>
           </div>
@@ -1313,6 +1323,15 @@
         if (!mediaElement || !mediaElement.contains(event.target)) closeViewer();
       });
       $("#slideshow")?.addEventListener("click", () => startSlideshow(item.id));
+      $("#viewer-actions-menu")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (activeContextMenu?.classList.contains("viewer-context-menu")) {
+          closeMenu();
+        } else {
+          openMenu(item.id, event.currentTarget, null, { viewer: true });
+          event.currentTarget.setAttribute("aria-expanded", "true");
+        }
+      });
       $("#viewer-close").focus();
       const initialMedia = $("#viewer-media img, #viewer-media video");
       if (initialMedia) {
@@ -1343,6 +1362,7 @@
       openViewer(viewerItems[viewerIndex].id, true);
     }
     function closeViewer(keepSlideshow = false) {
+      if (activeContextMenu?.classList.contains("viewer-context-menu")) closeMenu();
       if (!keepSlideshow && slideTimer) { clearInterval(slideTimer); slideTimer = null; }
       megaPreviewRequest += 1;
       if (megaPreviewUrl) { URL.revokeObjectURL(megaPreviewUrl); megaPreviewUrl = null; }
@@ -1369,8 +1389,15 @@
     let uploadTargetPath = "__root__";
     let uploadInProgress = false;
     function closeMenu() {
-      activeContextMenu?.remove();
+      const menu = activeContextMenu;
+      const returnFocusTarget = menu?.returnFocusTarget;
+      const shouldRestoreFocus = menu?.contains(document.activeElement);
+      menu?.remove();
       activeContextMenu = null;
+      if (returnFocusTarget?.isConnected) {
+        returnFocusTarget.setAttribute("aria-expanded", "false");
+        if (shouldRestoreFocus) returnFocusTarget.focus({ preventScroll: true });
+      }
     }
     function openFolderContextMenu(parentPath, position, {
       container = $("#menu-root"),
@@ -1748,20 +1775,22 @@
         if (!$("#move-form").dataset.fileKeys) submit.textContent = "Déplacer dans MEGA";
       }
     });
-    function openMenu(id, button, position) {
+    function openMenu(id, button, position, { viewer = false } = {}) {
       if (!megaConnected) return;
       closeMenu();
       const item = media.find((entry) => entry.id === Number(id));
       if (!item) return;
       const selectedItems = media.filter((entry) => selectedMediaKeys.has(selectionKeyFor(entry)));
-      const actionItems = selectedMediaKeys.has(selectionKeyFor(item)) ? selectedItems : [item];
+      const actionItems = !viewer && selectedMediaKeys.has(selectionKeyFor(item)) ? selectedItems : [item];
       const actionFavorite = !actionItems.every((entry) => entry.favorite);
       const favoriteLabel = actionItems.length > 1
         ? `${actionFavorite ? "Ajouter aux" : "Retirer des"} favoris (${actionItems.length})`
         : `${actionFavorite ? "Ajouter aux" : "Retirer des"} favoris`;
       const rect = position ? null : button.getBoundingClientRect();
       const menu = document.createElement("div");
-      menu.className = "context-menu";
+      menu.className = viewer ? "context-menu viewer-context-menu" : "context-menu";
+      menu.returnFocusTarget = viewer ? button : null;
+      if (viewer) menu.id = "viewer-action-menu";
       menu.setAttribute("role", "menu");
       const moveLabel = actionItems.length > 1 ? `Déplacer (${actionItems.length})` : "Déplacer";
       const deleteLabel = actionItems.length > 1 ? `Supprimer (${actionItems.length})` : "Supprimer";
@@ -1841,6 +1870,7 @@
       });
       $("#menu-root").append(menu);
       activeContextMenu = menu;
+      if (viewer) menu.querySelector("button")?.focus();
       const menuBounds = menu.getBoundingClientRect();
       menu.style.top = `${Math.max(8, Math.min(top, window.innerHeight - menuBounds.height - 8))}px`;
       menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - menuBounds.width - 8))}px`;
@@ -2107,10 +2137,23 @@
       if (!event.target.closest(".context-menu")) closeMenu();
     });
     document.addEventListener("keydown", (event) => {
+      const openDialog = event.target instanceof Element ? event.target.closest("dialog[open]") : null;
+      if (openDialog) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          openDialog.close();
+        }
+        return;
+      }
       const viewer = $("#viewer-overlay");
       if (viewer) {
         if (event.key === "Escape") {
           event.preventDefault();
+          if (activeContextMenu?.classList.contains("viewer-context-menu")) {
+            closeMenu();
+            $("#viewer-actions-menu")?.focus();
+            return;
+          }
           closeViewer();
           return;
         }
@@ -2121,10 +2164,14 @@
           return;
         }
         if (event.key === "Tab") {
-          const focusable = [...viewer.querySelectorAll("button:not(:disabled), video[controls]")];
+          const viewerMenu = activeContextMenu?.classList.contains("viewer-context-menu") ? activeContextMenu : null;
+          const focusable = [
+            ...viewer.querySelectorAll("button:not(:disabled), video[controls]"),
+            ...(viewerMenu ? viewerMenu.querySelectorAll("button:not(:disabled)") : [])
+          ];
           const first = focusable[0];
           const last = focusable[focusable.length - 1];
-          if (first && last && (!viewer.contains(document.activeElement) ||
+          if (first && last && (!viewer.contains(document.activeElement) && !viewerMenu?.contains(document.activeElement) ||
             (event.shiftKey && document.activeElement === first) ||
             (!event.shiftKey && document.activeElement === last))) {
             event.preventDefault();

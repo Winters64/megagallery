@@ -192,6 +192,81 @@ function downloadBuffer(file) {
   return file.downloadBuffer({});
 }
 
+function getMegaAttributeHandle(attributes, type) {
+  if (typeof attributes !== "string") return null;
+  for (const entry of attributes.split("/")) {
+    const match = entry.match(/(?:^|:)(\d+)\*([A-Za-z0-9_-]+)/);
+    if (match && Number(match[1]) === type) return match[2];
+  }
+  return null;
+}
+
+async function createMegaAttributeThumbnail(file) {
+  if (!file.nodeId || !file.key || file.key.length !== 32) return null;
+
+  const metadata = await file.api.request({ a: "g", g: 1, n: file.nodeId });
+  const attributeHandle = getMegaAttributeHandle(metadata.fa, 1)
+    || getMegaAttributeHandle(metadata.fa, 0);
+  if (!attributeHandle) return null;
+
+  const handle = Uint8Array.from(
+    atob(attributeHandle.replace(/-/g, "+").replace(/_/g, "/")),
+    (character) => character.charCodeAt(0)
+  );
+  if (handle.length !== 8) throw new Error("Identifiant de miniature MEGA invalide.");
+
+  const location = await file.api.request({
+    a: "ufa",
+    fah: attributeHandle,
+    ssl: 2,
+    r: 1,
+    v: 3
+  });
+  if (typeof location.p !== "string") throw new Error("Adresse de miniature MEGA invalide.");
+
+  const url = new URL(location.p);
+  if (url.protocol !== "https:" || !/(^|\.)mega\.(?:co\.nz|nz)$/i.test(url.hostname)) {
+    throw new Error("Adresse de miniature MEGA non sécurisée.");
+  }
+
+  const response = await file.api.fetch(url.toString(), { method: "POST", body: handle });
+  if (!response.ok) throw new Error(`Téléchargement de la miniature MEGA impossible (${response.status}).`);
+
+  const encryptedAttributes = new Uint8Array(await response.arrayBuffer());
+  if (encryptedAttributes.length > 8 * 1024 * 1024) {
+    throw new Error("La miniature MEGA dépasse la taille maximale autorisée.");
+  }
+
+  let offset = 0;
+  let encryptedThumbnail = null;
+  while (offset + 12 <= encryptedAttributes.length) {
+    const recordHandle = encryptedAttributes.subarray(offset, offset + 8);
+    const length = new DataView(
+      encryptedAttributes.buffer,
+      encryptedAttributes.byteOffset + offset + 8,
+      4
+    ).getUint32(0, true);
+    offset += 12;
+    if (length % 16 !== 0 || length > 8 * 1024 * 1024 || offset + length > encryptedAttributes.length) {
+      throw new Error("Réponse de miniature MEGA invalide.");
+    }
+    if (recordHandle.every((byte, index) => byte === handle[index])) {
+      encryptedThumbnail = encryptedAttributes.slice(offset, offset + length);
+      break;
+    }
+    offset += length;
+  }
+  if (!encryptedThumbnail) throw new Error("Miniature MEGA introuvable.");
+
+  const foldedKey = file.key.constructor.from(file.key.slice(0, 16));
+  for (let index = 0; index < 16; index += 1) {
+    foldedKey[index] ^= file.key[index + 16];
+  }
+  const decryptedThumbnail = file.key.constructor.from(encryptedThumbnail);
+  new storage.aes.constructor(foldedKey).decryptCBC(decryptedThumbnail);
+  return new Blob([decryptedThumbnail], { type: "image/jpeg" });
+}
+
 async function createImageThumbnail(file) {
   const buffer = await downloadBuffer(file);
   const source = new Blob([buffer], { type: getMimeType(file.name, "photo") });
@@ -394,7 +469,8 @@ async function clearPersistentCache() {
 
 async function createOrLoadThumbnailBlob(file) {
   const key = cacheKeysByFile.get(file);
-  const isVideo = videoExtensions.has(getExtension(file.name));
+  const extension = getExtension(file.name);
+  const isVideo = videoExtensions.has(extension);
   let blob = null;
   if (key) {
     try {
@@ -408,6 +484,20 @@ async function createOrLoadThumbnailBlob(file) {
   }
 
   if (!blob) {
+    try {
+      blob = await createMegaAttributeThumbnail(file);
+    } catch (error) {
+      console.warn("Aperçu MEGA natif indisponible ; génération locale utilisée.", error);
+    }
+  }
+
+  if (!blob) {
+    const isGif = extension === "gif";
+    const sizeLimit = isVideo ? videoThumbnailLimit : isGif ? gifThumbnailLimit : imageThumbnailLimit;
+    if (Number(file.size) > sizeLimit) {
+      const limitInMb = sizeLimit / (1024 * 1024);
+      throw new Error(`Fichier trop volumineux pour une miniature (maximum ${limitInMb} Mo).`);
+    }
     blob = isVideo
       ? await createVideoThumbnail(file)
       : await createImageThumbnail(file);
@@ -521,15 +611,6 @@ function loadThumbnail(image) {
   const file = filesById.get(id);
   if (!file) return;
   const extension = getExtension(file.name);
-  const isVideo = videoExtensions.has(extension);
-  const isGif = extension === "gif";
-  const sizeLimit = isVideo ? videoThumbnailLimit : isGif ? gifThumbnailLimit : imageThumbnailLimit;
-  if (Number(file.size) > sizeLimit) {
-    const limitInMb = sizeLimit / (1024 * 1024);
-    showThumbnailFallback(image, `Fichier trop volumineux pour une miniature (maximum ${limitInMb} Mo).`);
-    return;
-  }
-
   const generation = thumbnailGeneration;
   const request = runThumbnailDownload(async () => {
     if (generation !== thumbnailGeneration) return null;
