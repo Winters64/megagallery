@@ -120,7 +120,7 @@
       background: var(--green);
     }
     body.resizing-sidebar, body.resizing-sidebar * { cursor: col-resize !important; user-select: none !important; }
-    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; margin-bottom: 34px; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; margin-bottom: 24px; }
     .brand-mark {
       width: 36px; height: 36px; display: grid; place-items: center; color: white;
       background: var(--green); border-radius: 12px;
@@ -130,10 +130,10 @@
     .brand-mark .icon { width: 22px; height: 22px; stroke-width: 2; }
     .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.5px; }
     .brand-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
-    .nav-label { padding: 0 12px; margin: 23px 0 9px; color: var(--nav-muted); font-size: 10px; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
-    .nav-divider { height: 1px; margin: 12px 8px; background: var(--line); }
+    .nav-label { padding: 0 12px; margin: 17px 0 7px; color: var(--nav-muted); font-size: 10px; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+    .nav-divider { height: 1px; margin: 10px 8px; background: var(--line); }
     .nav-item {
-      width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin: 2px 0;
+      width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 12px; margin: 1px 0;
       color: var(--nav-text); border: 0; border-radius: 9px; background: transparent; text-align: left;
       cursor: pointer; font-size: 13px; white-space: nowrap; transition: background .16s, color .16s;
     }
@@ -309,9 +309,23 @@
     .more-button { width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 auto; color: var(--muted); border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
     .more-button .icon { width: 17px; height: 17px; }
     .more-button:hover { background: var(--surface-hover); }
-    .photo-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .photo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .photo-folder-link {
+      min-width: 0; max-width: 100%; display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; margin-left: -5px;
+      overflow: hidden; color: var(--muted); border: 0; border-radius: 5px; background: transparent;
+      font: inherit; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color .14s, background .14s;
+    }
+    .photo-folder-link .icon { width: 11px; height: 11px; flex: 0 0 11px; opacity: .8; }
+    .photo-folder-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .photo-folder-link:hover, .photo-folder-link:focus-visible { outline: 0; color: var(--green-dark); background: var(--green-soft); }
+    .photo-meta-size { flex: 0 0 auto; white-space: nowrap; }
     .photo-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
-    .photo-tag { max-width: 100%; padding: 3px 7px; overflow: hidden; color: var(--green-dark); border-radius: 5px; background: var(--green-soft); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .photo-tag {
+      max-width: 100%; padding: 3px 7px; overflow: hidden; color: var(--green-dark); border: 1px solid transparent; border-radius: 5px;
+      background: var(--green-soft); font-family: inherit; font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer; transition: background .14s, border-color .14s, color .14s;
+    }
+    button.photo-tag:hover, button.photo-tag:focus-visible { outline: 0; border-color: var(--connected-border); background: var(--connected-background); }
     .empty-state { grid-column: 1 / -1; padding: 45px 15px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; text-align: center; font-size: 13px; }
     .media-load-sentinel { grid-column: 1 / -1; height: 1px; pointer-events: none; }
     .context-menu {
@@ -339,17 +353,35 @@
     .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 0; background: #090c0af7; backdrop-filter: blur(5px); }
     .viewer { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
     .viewer-top { position: absolute; z-index: 2; inset: 0 0 auto; min-height: 76px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 22px; color: white; background: linear-gradient(#090c0ae8, #090c0a99 65%, transparent); pointer-events: none; }
-    .viewer-heading { min-width: 0; display: flex; align-items: center; gap: 14px; }
+    .viewer-heading { min-width: 0; display: flex; align-items: center; gap: 14px; pointer-events: auto; }
     .viewer-title-copy { min-width: 0; }
     .viewer-title { display: block; overflow: hidden; color: #f5f7f5; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-    .viewer-subtitle { display: block; margin-top: 4px; overflow: hidden; color: #a4ada6; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-subtitle { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; overflow: hidden; color: #a4ada6; font-size: 11px; }
+    .viewer-subtitle-folder {
+      max-width: 240px; display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; margin-left: -6px;
+      overflow: hidden; color: #c4d5c8; border: 0; border-radius: 6px; background: transparent;
+      font: inherit; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; transition: color .14s, background .14s;
+    }
+    .viewer-subtitle-folder .icon { width: 12px; height: 12px; flex: 0 0 12px; }
+    .viewer-subtitle-folder span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-subtitle-folder:hover, .viewer-subtitle-folder:focus-visible { outline: 0; color: #fff; background: #ffffff1a; }
+    .viewer-top-tags { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
     .viewer-position { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 10px; color: #e6ebe7; border: 1px solid #ffffff1c; border-radius: 999px; background: #ffffff09; font-size: 11px; font-variant-numeric: tabular-nums; }
     .viewer-position span { color: #78827a; }
     .viewer-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 6px; pointer-events: auto; }
+    .viewer-zoom-controls { display: inline-flex; align-items: center; gap: 4px; }
+    .viewer-zoom-level {
+      min-width: 50px; height: 38px; padding: 0 8px; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 10px;
+      background: #ffffff0d; font-family: inherit; font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums;
+      cursor: pointer; transition: background .15s, border-color .15s, color .15s; backdrop-filter: blur(8px);
+    }
+    .viewer-zoom-level:hover:not(:disabled) { border-color: #ffffff45; background: #ffffff1c; }
+    .viewer-zoom-level:disabled { opacity: .55; cursor: default; }
+    .viewer-zoom-level:focus-visible { outline: 2px solid #9cc9a5; outline-offset: 3px; }
     .viewer-actions-divider { width: 1px; height: 22px; margin: 0 3px; background: #ffffff24; flex: 0 0 1px; }
     .viewer-close { width: 38px; height: 38px; display: grid; place-items: center; color: #eef2ee; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff0d; cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .15s; backdrop-filter: blur(8px); }
     .viewer-close:hover:not(:disabled) { border-color: #ffffff45; background: #ffffff1c; transform: translateY(-1px); }
-    .viewer-close:disabled { opacity: .45; cursor: wait; }
+    .viewer-close:disabled { opacity: .45; cursor: default; }
     .viewer-close.is-active { color: #f06d70; border-color: #f06d7066; background: #f06d701c; }
     .viewer-close.is-active .icon { fill: currentColor; }
     .viewer-close.is-active:hover:not(:disabled) { border-color: #f06d7099; background: #f06d702b; }
@@ -357,9 +389,11 @@
     .viewer-close:focus-visible, .viewer-nav:focus-visible { outline: 2px solid #9cc9a5; outline-offset: 3px; }
     .viewer-close .icon { width: 17px; height: 17px; }
     .viewer-stage { position: absolute; inset: 0; min-height: 0; display: grid; place-items: center; padding: 0; }
-    .viewer-media { width: 100%; height: 100%; min-height: 0; max-height: none; display: grid; place-items: center; overflow: hidden; }
-    .viewer-media img { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; object-fit: contain; }
-    .viewer-nav { position: absolute; z-index: 1; top: 50%; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; color: #f1f5f1; border: 1px solid #ffffff22; border-radius: 50%; background: #ffffff12; box-shadow: 0 8px 24px #0004; cursor: pointer; transform: translateY(-50%); transition: background .15s, border-color .15s, transform .15s; backdrop-filter: blur(10px); }
+    .viewer-media { width: 100%; height: 100%; min-height: 0; max-height: none; display: grid; place-items: center; overflow: hidden; touch-action: none; user-select: none; }
+    .viewer-media img { display: block; width: auto; height: auto; max-width: 100vw; max-height: 100vh; justify-self: center; align-self: center; object-fit: contain; transform-origin: center center; user-select: none; -webkit-user-drag: none; cursor: zoom-in; }
+    .viewer-media.is-zoomed img { cursor: grab; }
+    .viewer-media.is-panning img { cursor: grabbing; }
+    .viewer-nav { position: absolute; z-index: 2; top: 50%; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; color: #f1f5f1; border: 1px solid #ffffff22; border-radius: 50%; background: #ffffff12; box-shadow: 0 8px 24px #0004; cursor: pointer; transform: translateY(-50%); transition: background .15s, border-color .15s, transform .15s; backdrop-filter: blur(10px); }
     .viewer-nav:hover:not(:disabled) { border-color: #ffffff55; background: #ffffff24; transform: translateY(-50%) scale(1.05); }
     .viewer-nav:disabled { opacity: .25; cursor: default; }
     .viewer-nav.previous { left: 20px; }
@@ -368,12 +402,25 @@
     .viewer-nav.previous .icon { transform: rotate(180deg); }
     .viewer-bottom { position: absolute; z-index: 2; inset: auto 0 0; min-height: 58px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 22px; color: #d7ddd8; background: linear-gradient(transparent, #090c0ae8 35%, #090c0af5); pointer-events: none; }
     .viewer[data-kind="video"] .viewer-bottom { display: none; }
-    .viewer-context { min-width: 0; display: flex; align-items: center; gap: 12px; }
+    .viewer-context { min-width: 0; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
     .viewer-kind { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; color: #c1d9c5; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .5px; }
     .viewer-kind .icon { width: 15px; height: 15px; }
-    .viewer-folder { max-width: 180px; overflow: hidden; color: #a4ada6; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-    .viewer-tags { min-width: 0; display: flex; gap: 5px; overflow: hidden; }
-    .viewer-tag { max-width: 120px; padding: 4px 7px; overflow: hidden; color: #cde2d1; border: 1px solid #9cc9a52a; border-radius: 999px; background: #9cc9a510; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-folder {
+      max-width: 220px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px;
+      overflow: hidden; color: #d2dfd5; border: 1px solid #ffffff1c; border-radius: 999px; background: #ffffff0c;
+      font-family: inherit; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+      transition: background .14s, border-color .14s, color .14s;
+    }
+    .viewer-folder .icon { width: 12px; height: 12px; flex: 0 0 12px; color: #9cc9a5; }
+    .viewer-folder span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .viewer-folder:hover, .viewer-folder:focus-visible { outline: 0; color: #fff; border-color: #9cc9a566; background: #9cc9a524; }
+    .viewer-tags { min-width: 0; display: flex; flex-wrap: wrap; gap: 5px; overflow: hidden; }
+    .viewer-tag {
+      max-width: 140px; padding: 4px 8px; overflow: hidden; color: #cde2d1; border: 1px solid #9cc9a52a; border-radius: 999px;
+      background: #9cc9a510; font-family: inherit; font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer; transition: background .14s, border-color .14s, color .14s;
+    }
+    .viewer-tag:hover, .viewer-tag:focus-visible { outline: 0; color: #fff; border-color: #9cc9a577; background: #9cc9a52e; }
     .viewer-keyboard-hint { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; color: #89938b; font-size: 10px; white-space: nowrap; }
     .viewer-keyboard-hint kbd { min-width: 20px; padding: 3px 5px; color: #c8d0ca; border: 1px solid #ffffff20; border-radius: 5px; background: #ffffff08; font: inherit; text-align: center; }
     .viewer-video .icon { width: 38px; height: 38px; margin: auto; }
@@ -536,18 +583,19 @@
       .viewer-title { font-size: 12px; }
       .viewer-subtitle { font-size: 9px; }
       .viewer-position { gap: 4px; padding: 5px 8px; font-size: 9px; }
-      .viewer-actions { gap: 5px; margin-left: auto; }
+      .viewer-actions { gap: 4px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
       .viewer-actions-divider { height: 18px; margin: 0 1px; }
       .viewer-close { width: 34px; height: 34px; border-radius: 9px; }
+      .viewer-zoom-level { min-width: 44px; height: 34px; padding: 0 6px; border-radius: 9px; font-size: 10px; }
       .viewer-close .icon { width: 16px; height: 16px; }
       .viewer-stage { padding: 0; }
       .viewer-nav { width: 35px; height: 35px; }
       .viewer-nav.previous { left: 3px; }
       .viewer-nav.next { right: 3px; }
       .viewer-bottom { min-height: 48px; gap: 8px; padding: 8px 12px; }
-      .viewer-context { gap: 7px; }
-      .viewer-folder { max-width: 85px; }
-      .viewer-tags, .viewer-keyboard-hint { display: none; }
+      .viewer-context { gap: 7px; flex-wrap: wrap; }
+      .viewer-folder { max-width: 130px; }
+      .viewer-keyboard-hint { display: none; }
     }
     @media (max-width: 460px) {
       .connection-button .btn-text { display: none; }
@@ -573,6 +621,8 @@
     <symbol id="icon-folder-plus" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M12 11.5v5M9.5 14h5"/></symbol>
     <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
     <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="icon-zoom-in" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5M10.8 8v5.6M8 10.8h5.6"/></symbol>
+    <symbol id="icon-zoom-out" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5M8 10.8h5.6"/></symbol>
     <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.36 6.36L3 16"/><path d="M3 21v-5h5"/></symbol>
     <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
     <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/></symbol>
@@ -581,6 +631,10 @@
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m14 5 5 5M4 20l4.5-1 10.2-10.2a2.1 2.1 0 0 0-3-3L5.5 16z"/></symbol>
     <symbol id="icon-tag" viewBox="0 0 24 24"><path d="m20 13-7 7L3 10V4h6z"/><circle cx="7.5" cy="7.5" r="1.2"/></symbol>
+    <symbol id="icon-tag-off" viewBox="0 0 24 24"><path d="m20 13-7 7L3 10V4h6z"/><circle cx="7.5" cy="7.5" r="1.2"/><path d="M3.5 20.5 20.5 3.5"/></symbol>
+    <symbol id="icon-inbox" viewBox="0 0 24 24"><path d="M4 13h4.5l1.5 2.5h4L15.5 13H20"/><path d="M5.5 5h13l2 8v5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-5z"/></symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M5.5 15.5H5a2.5 2.5 0 0 1-2.5-2.5V5A2.5 2.5 0 0 1 5 2.5h8A2.5 2.5 0 0 1 15.5 5v.5"/></symbol>
     <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></symbol>
     <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z"/></symbol>
     <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
@@ -603,6 +657,14 @@
           <div class="nav-label">Explorer</div>
           <button class="nav-item" data-view="folder-index" id="nav-folders" type="button"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-folder"></use></svg></span>Dossiers<span class="nav-count" id="folder-count"></span></button>
           <button class="nav-item" data-view="tag-index" id="nav-tags" type="button"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-tag"></use></svg></span>Tags<span class="nav-count" id="explorer-tag-count"></span></button>
+        </div>
+        <div class="nav-divider" id="smart-folders-divider" role="separator" hidden></div>
+        <div id="smart-folders-nav" hidden>
+          <div class="nav-label">Dossiers intelligents</div>
+          <button class="nav-item" data-view="smart-unclassified" id="nav-smart-unclassified" type="button" title="Médias stockés directement à la racine de Mon Drive, hors dossier"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-inbox"></use></svg></span>Non classés<span class="nav-count" id="smart-unclassified-count"></span></button>
+          <button class="nav-item" data-view="smart-untagged" id="nav-smart-untagged" type="button" title="Médias ne possédant aucun tag"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-tag-off"></use></svg></span>Sans tag<span class="nav-count" id="smart-untagged-count"></span></button>
+          <button class="nav-item" data-view="smart-large" id="nav-smart-large" type="button" title="Médias volumineux de 20 Mo et plus"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-layers"></use></svg></span>Volumineux (≥ 20 Mo)<span class="nav-count" id="smart-large-count"></span></button>
+          <button class="nav-item" data-view="smart-duplicates" id="nav-smart-duplicates" type="button" title="Médias présents plusieurs fois (même nom et même taille)"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#icon-copy"></use></svg></span>Doublons potentiels<span class="nav-count" id="smart-duplicates-count"></span></button>
         </div>
       </nav>
       <div class="sidebar-bottom">
@@ -880,6 +942,8 @@
       }
       $("#explorer-divider").hidden = !megaConnected;
       $("#explorer-nav").hidden = !megaConnected;
+      $("#smart-folders-divider").hidden = !megaConnected;
+      $("#smart-folders-nav").hidden = !megaConnected;
       $("#folder-count").textContent = folders.filter((folder) => !folder.trashed).length || "";
       $("#explorer-tag-count").textContent = tags.length || "";
     }
@@ -1073,9 +1137,23 @@
         all: `${title} ${folder} ${tagsJoined} ${dateTokens} ${ext} ${typeTokens}`
       };
     }
+    const LARGE_MEDIA_THRESHOLD_BYTES = 20 * 1024 * 1024;
     function rebuildSearchIndex() {
+      const activeBySignature = new Map();
       for (const item of media) {
         item._search = buildMediaSearchEntry(item);
+        item._isDuplicate = false;
+        if (!item.trashed && item._search.title && item._search.bytes > 0) {
+          const sig = `${item._search.title}|${item._search.bytes}`;
+          const bucket = activeBySignature.get(sig);
+          if (bucket) bucket.push(item);
+          else activeBySignature.set(sig, [item]);
+        }
+      }
+      for (const bucket of activeBySignature.values()) {
+        if (bucket.length > 1) {
+          for (const dupItem of bucket) dupItem._isDuplicate = true;
+        }
       }
       for (const folder of folders) {
         folder._search = {
@@ -1268,7 +1346,16 @@
             return (idx) => (idx.isGif ? 20 : 0);
           }
           if (flag === "sanstag" || flag === "sans-tag" || flag === "untagged") {
-            return (idx) => (!idx.hasTags ? 18 : 0);
+            return (idx, item) => (!idx.hasTags ? 18 : 0);
+          }
+          if (flag === "racine" || flag === "nonclasse" || flag === "non-classe") {
+            return (idx, item) => (!item?.folderPath ? 18 : 0);
+          }
+          if (flag === "doublon" || flag === "doublons" || flag === "duplicate") {
+            return (idx, item) => (item?._isDuplicate ? 20 : 0);
+          }
+          if (flag === "volumineux" || flag === "lourd" || flag === "lourds") {
+            return (idx) => (idx.bytes >= LARGE_MEDIA_THRESHOLD_BYTES ? 18 : 0);
           }
         }
 
@@ -1437,10 +1524,10 @@
         const valid = branches.filter(Boolean);
         if (!valid.length) return null;
         if (valid.length === 1) return valid[0];
-        return (idx) => {
+        return (idx, item) => {
           let best = 0;
           for (const branch of valid) {
-            const s = branch(idx);
+            const s = branch(idx, item);
             if (s > best) best = s;
           }
           return best;
@@ -1461,10 +1548,10 @@
         }
         if (!factors.length) return null;
         if (factors.length === 1) return factors[0];
-        return (idx) => {
+        return (idx, item) => {
           let total = 0;
           for (const factor of factors) {
-            const s = factor(idx);
+            const s = factor(idx, item);
             if (s <= 0) return 0;
             total += s;
           }
@@ -1481,10 +1568,10 @@
         const valid = options.filter(Boolean);
         if (!valid.length) return null;
         if (valid.length === 1) return valid[0];
-        return (idx) => {
+        return (idx, item) => {
           let best = 0;
           for (const opt of valid) {
-            const s = opt(idx);
+            const s = opt(idx, item);
             if (s > best) best = s;
           }
           return best;
@@ -1498,7 +1585,7 @@
           cursor += 1;
           const operand = parseUnary();
           if (!operand) return null;
-          return (idx) => (operand(idx) > 0 ? 0 : 5);
+          return (idx, item) => (operand(idx, item) > 0 ? 0 : 5);
         }
         if (tok.type === "LPAREN") {
           cursor += 1;
@@ -1530,10 +1617,10 @@
         ? null
         : rootGroups.length === 1
           ? rootGroups[0]
-          : (idx) => {
+          : (idx, item) => {
               let sum = 0;
               for (const g of rootGroups) {
-                const s = g(idx);
+                const s = g(idx, item);
                 if (s <= 0) return 0;
                 sum += s;
               }
@@ -1545,47 +1632,6 @@
       return compiled;
     }
 
-    function matchSimpleEntitySearch(rawQuery, primaryText, secondaryText = "") {
-      const trimmed = String(rawQuery || "").trim();
-      if (!trimmed) return true;
-      const hay = `${normalizeSearchText(primaryText)} ${normalizeSearchText(secondaryText)}`.trim();
-      const tokens = tokenizeSearchQuery(trimmed);
-      let cursor = 0;
-      const evalSimple = () => {
-        const andParts = [];
-        while (cursor < tokens.length) {
-          const tok = tokens[cursor];
-          if (tok.type === "AND" || tok.type === "LPAREN" || tok.type === "RPAREN") { cursor += 1; continue; }
-          if (tok.type === "OR_LOOSE" || tok.type === "OR_TIGHT") {
-            cursor += 1;
-            const right = evalSimple();
-            const leftOk = andParts.every(Boolean);
-            return leftOk || right;
-          }
-          if (tok.type === "NOT") {
-            cursor += 1;
-            const next = tokens[cursor];
-            if (next?.type === "TERM") {
-              cursor += 1;
-              const needle = normalizeSearchText(next.value.replace(/^[#/@]/, ""));
-              if (needle) andParts.push(!hay.includes(needle));
-            }
-            continue;
-          }
-          if (tok.type === "TERM") {
-            cursor += 1;
-            const needle = normalizeSearchText(tok.value.replace(/^[#/@]/, ""));
-            if (needle) {
-              const matcher = createTextPatternMatcher(needle);
-              andParts.push(matcher ? matcher(hay) : true);
-            }
-          }
-        }
-        return andParts.every(Boolean);
-      };
-      return evalSimple();
-    }
-
     function compareMediaByActiveSort(a, b) {
       if (currentSort === "name") return a.title.localeCompare(b.title, "fr");
       const firstTimestamp = Number(a.timestamp) || Date.parse(a.date) || 0;
@@ -1595,32 +1641,42 @@
         : secondTimestamp - firstTimestamp;
     }
 
+    function folderTargetForItem(item) {
+      if (!megaConnected) return item.folder || "";
+      if (item.trashed) return item.folderPath || "__trash__";
+      return item.folderPath || "__root__";
+    }
+
     function visibleMedia() {
       const rawQuery = $("#search").value.trim();
       const compiledQuery = compileSearchQuery(rawQuery);
       const hasActiveQuery = Boolean(compiledQuery);
-      const globalSearch = megaConnected && hasActiveQuery;
       const scored = [];
 
       for (const item of media) {
         const idx = item._search || (item._search = buildMediaSearchEntry(item));
+        if (hasActiveQuery && megaConnected) {
+          if (item.trashed) continue;
+          const score = compiledQuery(idx, item);
+          if (score > 0) scored.push({ item, score });
+          continue;
+        }
         if (currentView === "trash") {
           if (!item.trashed) continue;
-          if (!hasActiveQuery) {
-            const targetParent = currentFolder || "__trash__";
-            if (item.folderPath !== targetParent) continue;
-            scored.push({ item, score: 1 });
-          } else {
-            const score = compiledQuery(idx);
-            if (score > 0) scored.push({ item, score });
-          }
+          const targetParent = currentFolder || "__trash__";
+          if (item.folderPath !== targetParent) continue;
+          scored.push({ item, score: 1 });
           continue;
         }
         if (item.trashed) continue;
-        const matchesView = globalSearch || currentView === "all" ||
+        const matchesView = currentView === "all" ||
           (currentView === "favorites" && item.favorite) ||
           (currentView === "photos" && item.type === "photo") ||
           (currentView === "videos" && item.type === "video") ||
+          (currentView === "smart-unclassified" && !item.folderPath) ||
+          (currentView === "smart-untagged" && !idx.hasTags) ||
+          (currentView === "smart-large" && idx.bytes >= LARGE_MEDIA_THRESHOLD_BYTES) ||
+          (currentView === "smart-duplicates" && Boolean(item._isDuplicate)) ||
           (currentView === "tag" && (item.tags || []).some((tag) =>
             tag.toLocaleLowerCase("fr") === (currentTag || "").toLocaleLowerCase("fr")
           )) ||
@@ -1631,13 +1687,24 @@
         if (!hasActiveQuery) {
           scored.push({ item, score: 1 });
         } else {
-          const score = compiledQuery(idx);
+          const score = compiledQuery(idx, item);
           if (score > 0) scored.push({ item, score });
         }
       }
 
       if (hasActiveQuery) {
         scored.sort((first, second) => (second.score - first.score) || compareMediaByActiveSort(first.item, second.item));
+      } else if (currentView === "smart-duplicates") {
+        scored.sort((first, second) =>
+          first.item.title.localeCompare(second.item.title, "fr", { sensitivity: "base" }) ||
+          ((Number(second.item.bytes) || 0) - (Number(first.item.bytes) || 0)) ||
+          (first.item.folder || "").localeCompare(second.item.folder || "", "fr", { sensitivity: "base" })
+        );
+      } else if (currentView === "smart-large" && currentSort === "recent") {
+        scored.sort((first, second) =>
+          ((Number(second.item.bytes) || 0) - (Number(first.item.bytes) || 0)) ||
+          compareMediaByActiveSort(first.item, second.item)
+        );
       } else {
         scored.sort((first, second) => compareMediaByActiveSort(first.item, second.item));
       }
@@ -1714,8 +1781,7 @@
     function updateSearchBarIndicators(resultCount) {
       const raw = $("#search").value;
       const hasText = raw.trim().length > 0;
-      const isExplorerIndex = currentView === "folder-index" || currentView === "tag-index";
-      const showCount = isExplorerIndex ? hasText : Boolean(compileSearchQuery(raw));
+      const showCount = Boolean(compileSearchQuery(raw));
       const clearBtn = $("#search-clear");
       const countBadge = $("#search-count");
       if (clearBtn) clearBtn.hidden = !hasText;
@@ -1733,24 +1799,24 @@
     function renderMedia() {
       const grid = $("#photo-grid");
       const rawQuery = $("#search").value.trim();
-      if (currentView === "tag-index") {
-        const tags = getTagSummaries().filter((tag) => matchSimpleEntitySearch(rawQuery, tag.name));
-        updateSearchBarIndicators(tags.length);
+      const hasActiveQuery = Boolean(compileSearchQuery(rawQuery));
+      if (!hasActiveQuery && currentView === "tag-index") {
+        const tags = getTagSummaries();
+        updateSearchBarIndicators(0);
         grid.innerHTML = tags.length
           ? renderTagCards(tags)
-          : `<div class="empty-state">${rawQuery ? "Aucun tag ne correspond à cette recherche." : "Aucun tag pour le moment."}</div>`;
+          : `<div class="empty-state">Aucun tag pour le moment.</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
       }
-      if (currentView === "folder-index") {
+      if (!hasActiveQuery && currentView === "folder-index") {
         const rootFolders = folders
           .filter((folder) => !folder.trashed && !folder.parentPath)
-          .sort(compareFoldersByName)
-          .filter((folder) => matchSimpleEntitySearch(rawQuery, folder.name, folder.displayPath));
-        updateSearchBarIndicators(rootFolders.length);
+          .sort(compareFoldersByName);
+        updateSearchBarIndicators(0);
         const folderCards = rootFolders.map((folder) => renderFolderCard(folder)).join("");
-        grid.innerHTML = folderCards || `<div class="empty-state">${rawQuery ? "Aucun dossier ne correspond à cette recherche." : "Aucun dossier trouvé."}</div>`;
+        grid.innerHTML = folderCards || `<div class="empty-state">Aucun dossier trouvé.</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
@@ -1759,14 +1825,28 @@
       const subfolders = visibleSubfolders();
       updateSearchBarIndicators(items.length);
       if (!items.length && !subfolders.length) {
-        grid.innerHTML = `<div class="empty-state">${currentView === "trash" && !rawQuery ? "La corbeille est vide." : "Aucun média trouvé. Essayez par exemple « soleil+montagne », « #tag », « /dossier » ou « @fav »."}</div>`;
+        const smartEmptyMessages = {
+          "smart-unclassified": "Aucun média non classé à la racine de Mon Drive — tout est rangé dans des dossiers.",
+          "smart-untagged": "Tous vos médias possèdent déjà au moins un tag.",
+          "smart-large": "Aucun média volumineux (20 Mo et plus) dans votre bibliothèque.",
+          "smart-duplicates": "Aucun doublon potentiel détecté (même nom et même taille)."
+        };
+        const emptyMessage = !hasActiveQuery && currentView === "trash"
+          ? "La corbeille est vide."
+          : !hasActiveQuery && smartEmptyMessages[currentView]
+            ? smartEmptyMessages[currentView]
+            : "Aucun média trouvé. Essayez par exemple « soleil+montagne », « #tag », « /dossier » ou « @fav ».";
+        grid.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         updateSelectedMediaCards();
         if (megaConnected) window.megaGallery.observeThumbnails(grid);
         return;
       }
       const visibleItems = items.slice(0, "IntersectionObserver" in window ? mediaPageSize : items.length);
       const folderCards = subfolders.map((folder) => renderFolderCard(folder)).join("");
-      grid.innerHTML = `${folderCards}${visibleItems.map((item) => `
+      grid.innerHTML = `${folderCards}${visibleItems.map((item) => {
+        const folderTarget = folderTargetForItem(item);
+        const folderDisplay = item.folder || "MEGA";
+        return `
         <article class="photo-card ${selectedMediaKeys.has(selectionKeyFor(item)) ? "is-selected" : ""}" data-card="${item.id}" data-selection-key="${escapeHtml(selectionKeyFor(item))}">
           <div class="photo-cover" data-open="${item.id}" role="button" tabindex="0" aria-label="${escapeHtml(item.title)}">
             ${megaConnected
@@ -1777,10 +1857,11 @@
           </div>
           <div class="photo-info">
             <div class="photo-title-row"><span class="photo-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>${megaConnected ? `<button type="button" class="more-button" data-menu="${item.id}" title="Actions" aria-label="Actions pour ${escapeHtml(item.title)}">${icon("more")}</button>` : ""}</div>
-            <div class="photo-meta"><span>${escapeHtml(item.folder)}</span><span>${escapeHtml(item.size || "")}</span></div>
-            ${(item.tags || []).length ? `<div class="photo-tags" aria-label="Tags">${item.tags.map((tag) => `<span class="photo-tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+            <div class="photo-meta"><button type="button" class="photo-folder-link" data-open-folder="${escapeHtml(folderTarget)}" title="Ouvrir le dossier ${escapeHtml(folderDisplay)}" aria-label="Ouvrir le dossier ${escapeHtml(folderDisplay)}">${icon("folder")}<span>${escapeHtml(folderDisplay)}</span></button><span class="photo-meta-size">${escapeHtml(item.size || "")}</span></div>
+            ${(item.tags || []).length ? `<div class="photo-tags" aria-label="Tags">${item.tags.map((tag) => `<button type="button" class="photo-tag" data-open-tag="${escapeHtml(tag)}" title="Afficher les médias du tag ${escapeHtml(tag)}" aria-label="Afficher les médias du tag ${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join("")}</div>` : ""}
           </div>
-        </article>`).join("")}${items.length > visibleItems.length ? `<div class="media-load-sentinel" aria-hidden="true"></div>` : ""}`;
+        </article>`;
+      }).join("")}${items.length > visibleItems.length ? `<div class="media-load-sentinel" aria-hidden="true"></div>` : ""}`;
       updateSelectedMediaCards();
       if (megaConnected) window.megaGallery.observeThumbnails(grid);
       const sentinel = grid.querySelector(".media-load-sentinel");
@@ -1803,24 +1884,47 @@
       const photos = activeMedia.filter((item) => item.type === "photo").length;
       const videos = activeMedia.length - photos;
       const favorites = activeMedia.filter((item) => item.favorite).length;
+      const unclassifiedCount = activeMedia.filter((item) => !item.folderPath).length;
+      const untaggedCount = activeMedia.filter((item) => !(item.tags && item.tags.length)).length;
+      const largeCount = activeMedia.filter((item) => (Number(item.bytes) || 0) >= LARGE_MEDIA_THRESHOLD_BYTES).length;
+      const duplicatesCount = activeMedia.filter((item) => item._isDuplicate).length;
       $("#favorite-count").textContent = favorites || "";
       $("#photo-count").textContent = photos || "";
       $("#video-count").textContent = videos || "";
       $("#all-count").textContent = activeMedia.length;
       const trashCountEl = $("#trash-count");
       if (trashCountEl) trashCountEl.textContent = (trashMedia.length + trashFolders.length) || "";
+      const smartUnclassifiedEl = $("#smart-unclassified-count");
+      if (smartUnclassifiedEl) smartUnclassifiedEl.textContent = unclassifiedCount || "";
+      const smartUntaggedEl = $("#smart-untagged-count");
+      if (smartUntaggedEl) smartUntaggedEl.textContent = untaggedCount || "";
+      const smartLargeEl = $("#smart-large-count");
+      if (smartLargeEl) smartLargeEl.textContent = largeCount || "";
+      const smartDuplicatesEl = $("#smart-duplicates-count");
+      if (smartDuplicatesEl) smartDuplicatesEl.textContent = duplicatesCount || "";
       updateExplorerNavigation();
       renderMedia();
       const query = $("#search").value.trim();
-      const isExplorerIndex = currentView === "folder-index" || currentView === "tag-index";
-      const globalSearchActive = megaConnected && Boolean(compileSearchQuery(query)) && !isExplorerIndex && currentView !== "trash";
-      $("#search").placeholder = currentView === "folder-index"
-        ? "Rechercher un dossier (ex. vacances+2025)…"
-        : currentView === "tag-index"
-          ? "Rechercher un tag…"
-          : megaConnected ? "Rechercher : soleil+montagne, #tag, /dossier, @fav…" : "Rechercher un média…";
-      $("#search").setAttribute("aria-label", isExplorerIndex ? $("#search").placeholder : megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
-      const labels = { all: "Récemment ajoutés", favorites: "Favoris", photos: "Photos", videos: "Vidéos", trash: "Corbeille", "folder-index": "Dossiers", "tag-index": "Tags", tag: currentTag || "Tags", folder: currentFolder };
+      const globalSearchActive = megaConnected && Boolean(compileSearchQuery(query));
+      $("#search").placeholder = megaConnected
+        ? "Rechercher : soleil+montagne, #tag, /dossier, @fav…"
+        : "Rechercher un média…";
+      $("#search").setAttribute("aria-label", megaConnected ? "Rechercher dans tout le drive MEGA" : "Rechercher un média");
+      const labels = {
+        all: "Récemment ajoutés",
+        favorites: "Favoris",
+        photos: "Photos",
+        videos: "Vidéos",
+        trash: "Corbeille",
+        "folder-index": "Dossiers",
+        "tag-index": "Tags",
+        "smart-unclassified": "Non classés (racine)",
+        "smart-untagged": "Sans tag",
+        "smart-large": "Volumineux (≥ 20 Mo)",
+        "smart-duplicates": "Doublons potentiels",
+        tag: currentTag || "Tags",
+        folder: currentFolder
+      };
       const isCloudRoot = megaConnected && currentFolder === "__root__";
       const selectedFolder = folders.find((folder) => (
         (megaConnected ? folder.path : folder.name) === currentFolder
@@ -1835,7 +1939,7 @@
           current = folders.find((folder) => folder.path === current.parentPath);
         }
         ancestors.forEach((folder, index) => {
-          const isCurrent = index === ancestors.length - 1;
+          const isCurrent = !globalSearchActive && index === ancestors.length - 1;
           breadcrumbParts.push(
             `<span aria-hidden="true">/</span>${isCurrent
               ? `<span class="breadcrumb-current" aria-current="page">${escapeHtml(folder.name)}</span>`
@@ -1850,14 +1954,14 @@
           ancestors.unshift(current);
           current = folders.find((folder) => folder.path === current.parentPath);
         }
-        const rootCurrent = isCloudRoot || !ancestors.length;
+        const rootCurrent = !globalSearchActive && (isCloudRoot || !ancestors.length);
         breadcrumbParts.push(
           `${rootCurrent
             ? `<span class="breadcrumb-current" aria-current="page">Mon Drive</span>`
             : `<button type="button" class="breadcrumb-link" data-folder="__root__">Mon Drive</button>`}`
         );
         ancestors.forEach((folder, index) => {
-          const isCurrent = !isCloudRoot && index === ancestors.length - 1;
+          const isCurrent = !globalSearchActive && !isCloudRoot && index === ancestors.length - 1;
           breadcrumbParts.push(
             `<span aria-hidden="true">/</span>${isCurrent
               ? `<span class="breadcrumb-current" aria-current="page">${escapeHtml(folder.name)}</span>`
@@ -1865,10 +1969,17 @@
           );
         });
       } else if (currentView === "tag") {
-        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="tag-index">Tags</button><span aria-hidden="true">/</span><span class="breadcrumb-current" aria-current="page">${escapeHtml(currentTag || "Tag")}</span>`);
+        breadcrumbParts.push(`<button type="button" class="breadcrumb-link" data-view="tag-index">Tags</button><span aria-hidden="true">/</span>${globalSearchActive
+          ? `<button type="button" class="breadcrumb-link" data-open-tag="${escapeHtml(currentTag || "")}">${escapeHtml(currentTag || "Tag")}</button>`
+          : `<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentTag || "Tag")}</span>`}`);
       } else {
         const currentLabel = currentView === "folder" ? selectedFolder?.name || "Dossier" : labels[currentView];
-        breadcrumbParts.push(`<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
+        breadcrumbParts.push(globalSearchActive
+          ? `<button type="button" class="breadcrumb-link" data-clear-search>${escapeHtml(currentLabel)}</button>`
+          : `<span class="breadcrumb-current" aria-current="page">${escapeHtml(currentLabel)}</span>`);
+      }
+      if (globalSearchActive) {
+        breadcrumbParts.push(`<span aria-hidden="true">/</span><span class="breadcrumb-current" aria-current="page">Recherche globale</span>`);
       }
       $("#breadcrumb").innerHTML = breadcrumbParts.join("");
       const activeView = currentView === "folder" ? "folder-index" : currentView === "tag" ? "tag-index" : currentView;
@@ -1876,6 +1987,91 @@
         button.classList.toggle("active", !globalSearchActive && button.dataset.view === activeView)
       );
     }
+    const MIN_VIEWER_ZOOM = 1;
+    const MAX_VIEWER_ZOOM = 8;
+    let viewerZoom = 1;
+    let viewerPanX = 0;
+    let viewerPanY = 0;
+    let viewerBaseWidth = 0;
+    let viewerBaseHeight = 0;
+    let suppressNextViewerClick = false;
+
+    function clampViewerPan() {
+      if (viewerZoom <= 1.001 || !viewerBaseWidth || !viewerBaseHeight) {
+        viewerPanX = 0;
+        viewerPanY = 0;
+        return;
+      }
+      const vw = window.innerWidth || viewerBaseWidth;
+      const vh = window.innerHeight || viewerBaseHeight;
+      const scaledW = viewerBaseWidth * viewerZoom;
+      const scaledH = viewerBaseHeight * viewerZoom;
+      const maxPanX = scaledW > vw
+        ? (scaledW - vw) / 2
+        : Math.min((vw - scaledW) / 2, (scaledW - viewerBaseWidth) / 2);
+      const maxPanY = scaledH > vh
+        ? (scaledH - vh) / 2
+        : Math.min((vh - scaledH) / 2, (scaledH - viewerBaseHeight) / 2);
+      viewerPanX = Math.max(-maxPanX, Math.min(maxPanX, viewerPanX));
+      viewerPanY = Math.max(-maxPanY, Math.min(maxPanY, viewerPanY));
+    }
+
+    function applyViewerTransform() {
+      const mediaWrap = $("#viewer-media");
+      const img = $("#viewer-media img");
+      const isZoomed = viewerZoom > 1.001;
+      if (mediaWrap) mediaWrap.classList.toggle("is-zoomed", Boolean(img && isZoomed));
+      if (img) {
+        img.style.transform = isZoomed
+          ? `translate3d(${viewerPanX}px, ${viewerPanY}px, 0) scale(${viewerZoom})`
+          : "";
+      }
+      const zoomOutBtn = $("#viewer-zoom-out");
+      const zoomInBtn = $("#viewer-zoom-in");
+      const zoomResetBtn = $("#viewer-zoom-reset");
+      if (zoomOutBtn) zoomOutBtn.disabled = viewerZoom <= MIN_VIEWER_ZOOM + 0.001;
+      if (zoomInBtn) zoomInBtn.disabled = viewerZoom >= MAX_VIEWER_ZOOM - 0.001;
+      if (zoomResetBtn) {
+        zoomResetBtn.disabled = !isZoomed;
+        zoomResetBtn.textContent = `${Math.round(viewerZoom * 100)}%`;
+      }
+    }
+
+    function resetViewerZoom() {
+      viewerZoom = 1;
+      viewerPanX = 0;
+      viewerPanY = 0;
+      applyViewerTransform();
+    }
+
+    function setViewerZoom(nextZoomRaw, focalClientX = window.innerWidth / 2, focalClientY = window.innerHeight / 2) {
+      const img = $("#viewer-media img");
+      if (!img) return;
+      if (!viewerBaseWidth || !viewerBaseHeight) fitViewerMedia();
+      const prevZoom = viewerZoom;
+      const clampedZoom = Math.max(MIN_VIEWER_ZOOM, Math.min(MAX_VIEWER_ZOOM, Number(nextZoomRaw) || 1));
+      const nextZoom = clampedZoom < 1.03 ? 1 : Math.round(clampedZoom * 1000) / 1000;
+      if (Math.abs(nextZoom - prevZoom) < 0.001) return;
+      if (nextZoom <= 1) {
+        resetViewerZoom();
+        return;
+      }
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const relX = focalClientX - centerX;
+      const relY = focalClientY - centerY;
+      const ratio = nextZoom / prevZoom;
+      viewerPanX = relX - (relX - viewerPanX) * ratio;
+      viewerPanY = relY - (relY - viewerPanY) * ratio;
+      viewerZoom = nextZoom;
+      clampViewerPan();
+      applyViewerTransform();
+    }
+
+    function stepViewerZoom(factor, focalClientX, focalClientY) {
+      setViewerZoom(viewerZoom * factor, focalClientX, focalClientY);
+    }
+
     function fitViewerMedia() {
       const element = $("#viewer-media img, #viewer-media video");
       if (!element) return;
@@ -1883,8 +2079,14 @@
       const height = element instanceof HTMLVideoElement ? element.videoHeight : element.naturalHeight;
       if (!width || !height) return;
       const scale = Math.min(1, window.innerWidth / width, window.innerHeight / height);
-      element.style.width = `${width * scale}px`;
-      element.style.height = `${height * scale}px`;
+      viewerBaseWidth = width * scale;
+      viewerBaseHeight = height * scale;
+      element.style.width = `${viewerBaseWidth}px`;
+      element.style.height = `${viewerBaseHeight}px`;
+      if (!(element instanceof HTMLVideoElement)) {
+        clampViewerPan();
+        applyViewerTransform();
+      }
     }
     function getCurrentViewerItem() {
       if (viewerActiveKey) {
@@ -1902,6 +2104,20 @@
         btn.disabled = busy;
       });
     }
+    function renderViewerTagButtons(tags) {
+      return (tags || []).map((tag) =>
+        `<button type="button" class="viewer-tag" data-open-tag="${escapeHtml(tag)}" title="Afficher les médias du tag ${escapeHtml(tag)}" aria-label="Afficher les médias du tag ${escapeHtml(tag)}">${escapeHtml(tag)}</button>`
+      ).join("");
+    }
+    function renderViewerSubtitleHtml(item) {
+      const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
+      const folderDisplay = item.folder || "MEGA";
+      const folderTarget = folderTargetForItem(item);
+      const videoTagsHtml = item.type === "video" && (item.tags || []).length
+        ? `<span aria-hidden="true">·</span><span class="viewer-top-tags" aria-label="Tags">${renderViewerTagButtons(item.tags)}</span>`
+        : "";
+      return `<button type="button" class="viewer-subtitle-folder" data-open-folder="${escapeHtml(folderTarget)}" title="Ouvrir le dossier ${escapeHtml(folderDisplay)}" aria-label="Ouvrir le dossier ${escapeHtml(folderDisplay)}">${icon("folder")}<span>${escapeHtml(folderDisplay)}</span></button><span aria-hidden="true">·</span><span>${mediaKind}</span>${videoTagsHtml}`;
+    }
     function syncViewerChrome(item) {
       const overlay = $("#viewer-overlay");
       if (!overlay || !item) return;
@@ -1913,9 +2129,8 @@
         titleEl.textContent = item.title;
         titleEl.title = item.title;
       }
-      const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
       const subtitleEl = overlay.querySelector(".viewer-subtitle");
-      if (subtitleEl) subtitleEl.textContent = `${item.folder || "MEGA"} · ${mediaKind}`;
+      if (subtitleEl) subtitleEl.innerHTML = renderViewerSubtitleHtml(item);
       const positionEl = overlay.querySelector(".viewer-position");
       if (positionEl) {
         positionEl.setAttribute("aria-label", `Média ${viewerIndex + 1} sur ${viewerItems.length}`);
@@ -1926,13 +2141,18 @@
       });
       const folderEl = overlay.querySelector(".viewer-folder");
       if (folderEl) {
-        folderEl.textContent = item.folder || "MEGA";
-        folderEl.title = item.folder || "MEGA";
+        const folderDisplay = item.folder || "MEGA";
+        folderEl.dataset.openFolder = folderTargetForItem(item);
+        folderEl.title = `Ouvrir le dossier ${folderDisplay}`;
+        folderEl.setAttribute("aria-label", `Ouvrir le dossier ${folderDisplay}`);
+        const span = folderEl.querySelector("span");
+        if (span) span.textContent = folderDisplay;
+        else folderEl.textContent = folderDisplay;
       }
       const contextEl = overlay.querySelector(".viewer-context");
       if (contextEl) {
         const existingTagsEl = contextEl.querySelector(".viewer-tags");
-        const tagsHtml = (item.tags || []).map((tag) => `<span class="viewer-tag">${escapeHtml(tag)}</span>`).join("");
+        const tagsHtml = renderViewerTagButtons(item.tags);
         if (tagsHtml) {
           if (existingTagsEl) existingTagsEl.innerHTML = tagsHtml;
           else contextEl.insertAdjacentHTML("beforeend", `<div class="viewer-tags" aria-label="Tags">${tagsHtml}</div>`);
@@ -1991,24 +2211,40 @@
         : `<div class="viewer-video"><div>${icon("play")}<strong>${escapeHtml(item.title)}</strong><span>Lecture vidéo disponible dans une version connectée à vos fichiers MEGA.</span></div></div>`;
       const mediaKind = item.type === "video" ? "Vidéo" : "Photo";
       const mediaIcon = item.type === "video" ? "video" : "photo";
-      const tags = (item.tags || []).map((tag) => `<span class="viewer-tag">${escapeHtml(tag)}</span>`).join("");
+      const folderDisplay = item.folder || "MEGA";
+      const folderTarget = folderTargetForItem(item);
+      const tags = renderViewerTagButtons(item.tags);
       const favoriteTitle = item.favorite ? "Retirer des favoris" : "Ajouter aux favoris";
       const deleteTitle = item.trashed ? "Supprimer définitivement" : "Supprimer";
+      const zoomControlsHtml = item.type === "photo"
+        ? `<div class="viewer-zoom-controls" role="group" aria-label="Zoom de la photo">` +
+          `<button class="viewer-close" type="button" data-viewer-zoom="out" id="viewer-zoom-out" title="Dézoomer (-)" aria-label="Dézoomer" disabled>${icon("zoom-out")}</button>` +
+          `<button class="viewer-zoom-level" type="button" data-viewer-zoom="reset" id="viewer-zoom-reset" title="Réinitialiser le zoom (0)" aria-label="Réinitialiser le zoom" disabled>100%</button>` +
+          `<button class="viewer-close" type="button" data-viewer-zoom="in" id="viewer-zoom-in" title="Zoomer (+)" aria-label="Zoomer">${icon("zoom-in")}</button>` +
+          `</div><span class="viewer-actions-divider" aria-hidden="true"></span>`
+        : "";
       const viewerActionsHtml = megaConnected
-        ? `<button class="viewer-close" type="button" data-viewer-action="tags" title="Gérer les tags" aria-label="Gérer les tags">${icon("tag")}</button>` +
+        ? zoomControlsHtml +
+          `<button class="viewer-close" type="button" data-viewer-action="tags" title="Gérer les tags" aria-label="Gérer les tags">${icon("tag")}</button>` +
           `<button class="viewer-close" type="button" data-viewer-action="rename" title="Renommer" aria-label="Renommer">${icon("edit")}</button>` +
           `<button class="viewer-close" type="button" data-viewer-action="move" title="Déplacer" aria-label="Déplacer">${icon("folder")}</button>` +
           `<button class="viewer-close ${item.favorite ? "is-active" : ""}" type="button" data-viewer-action="favorite" title="${favoriteTitle}" aria-label="${favoriteTitle}" aria-pressed="${Boolean(item.favorite)}">${icon("heart")}</button>` +
           `<button class="viewer-close viewer-action-danger" type="button" data-viewer-action="delete" title="${deleteTitle}" aria-label="${deleteTitle}">${icon("trash")}</button>` +
           `<span class="viewer-actions-divider" aria-hidden="true"></span>`
-        : `<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`;
+        : `${zoomControlsHtml}<button class="viewer-close" id="slideshow" type="button" title="Lancer le diaporama" aria-label="Lancer le diaporama">${icon("play")}</button>`;
+      viewerZoom = 1;
+      viewerPanX = 0;
+      viewerPanY = 0;
+      viewerBaseWidth = 0;
+      viewerBaseHeight = 0;
+      suppressNextViewerClick = false;
       $("#modal-root").innerHTML = `<div class="overlay viewer-overlay" id="viewer-overlay">
         <div class="viewer" data-kind="${item.type}" role="dialog" aria-modal="true" aria-label="${escapeHtml(item.title)}">
           <div class="viewer-top">
             <div class="viewer-heading">
               <div class="viewer-title-copy">
                 <span class="viewer-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>
-                <span class="viewer-subtitle">${escapeHtml(item.folder || "MEGA")} · ${mediaKind}</span>
+                <span class="viewer-subtitle">${renderViewerSubtitleHtml(item)}</span>
               </div>
               <span class="viewer-position" aria-label="Média ${viewerIndex + 1} sur ${viewerItems.length}">${viewerIndex + 1}<span>/</span>${viewerItems.length}</span>
             </div>
@@ -2017,7 +2253,7 @@
               <button class="viewer-close" id="viewer-close" type="button" title="Fermer" aria-label="Fermer">${icon("close")}</button>
             </div>
           </div>
-          <div class="viewer-stage">
+          <div class="viewer-stage" id="viewer-stage">
             <button class="viewer-nav previous" type="button" data-viewer-step="-1" aria-label="Média précédent" ${viewerItems.length < 2 ? "disabled" : ""}>${icon("chevron")}</button>
             <div class="viewer-media" id="viewer-media">${content}</div>
             <button class="viewer-nav next" type="button" data-viewer-step="1" aria-label="Média suivant" ${viewerItems.length < 2 ? "disabled" : ""}>${icon("chevron")}</button>
@@ -2025,15 +2261,125 @@
           <div class="viewer-bottom">
             <div class="viewer-context">
               <span class="viewer-kind">${icon(mediaIcon)}${mediaKind}</span>
-              <span class="viewer-folder" title="${escapeHtml(item.folder || "MEGA")}">${escapeHtml(item.folder || "MEGA")}</span>
+              <button type="button" class="viewer-folder" data-open-folder="${escapeHtml(folderTarget)}" title="Ouvrir le dossier ${escapeHtml(folderDisplay)}" aria-label="Ouvrir le dossier ${escapeHtml(folderDisplay)}">${icon("folder")}<span>${escapeHtml(folderDisplay)}</span></button>
               ${tags ? `<div class="viewer-tags" aria-label="Tags">${tags}</div>` : ""}
             </div>
-            <div class="viewer-keyboard-hint"><kbd>←</kbd><kbd>→</kbd> naviguer <kbd>Esc</kbd> fermer</div>
+            <div class="viewer-keyboard-hint"><kbd>←</kbd><kbd>→</kbd> naviguer <kbd>+</kbd><kbd>-</kbd> zoom <kbd>Esc</kbd> fermer</div>
           </div>
         </div>
       </div>`;
       $("#viewer-close").addEventListener("click", () => closeViewer());
+      if (item.type === "photo") {
+        const viewerMediaEl = $("#viewer-media");
+        const activePointers = new Map();
+        let panStart = null;
+        let pinchStart = null;
+
+        viewerMediaEl.addEventListener("wheel", (wheelEvent) => {
+          if (!$("#viewer-media img")) return;
+          wheelEvent.preventDefault();
+          const delta = -wheelEvent.deltaY * (wheelEvent.deltaMode === 1 ? 28 : wheelEvent.deltaMode === 2 ? 240 : 1);
+          const factor = Math.exp(Math.max(-0.45, Math.min(0.45, delta * 0.0022)));
+          stepViewerZoom(factor, wheelEvent.clientX, wheelEvent.clientY);
+        }, { passive: false });
+
+        viewerMediaEl.addEventListener("dblclick", (dblEvent) => {
+          const img = $("#viewer-media img");
+          if (!img || !img.contains(dblEvent.target)) return;
+          dblEvent.preventDefault();
+          if (viewerZoom > 1.02) resetViewerZoom();
+          else setViewerZoom(2.5, dblEvent.clientX, dblEvent.clientY);
+        });
+
+        viewerMediaEl.addEventListener("pointerdown", (ptrEvent) => {
+          const img = $("#viewer-media img");
+          if (!img || (ptrEvent.pointerType === "mouse" && ptrEvent.button !== 0)) return;
+          activePointers.set(ptrEvent.pointerId, { x: ptrEvent.clientX, y: ptrEvent.clientY });
+          if (activePointers.size === 2) {
+            const [p1, p2] = [...activePointers.values()];
+            pinchStart = {
+              dist: Math.max(10, Math.hypot(p2.x - p1.x, p2.y - p1.y)),
+              zoom: viewerZoom
+            };
+            panStart = null;
+            try { viewerMediaEl.setPointerCapture(ptrEvent.pointerId); } catch {}
+          } else if (activePointers.size === 1 && viewerZoom > 1.001) {
+            panStart = {
+              pointerId: ptrEvent.pointerId,
+              startX: ptrEvent.clientX,
+              startY: ptrEvent.clientY,
+              originPanX: viewerPanX,
+              originPanY: viewerPanY,
+              moved: false
+            };
+            viewerMediaEl.classList.add("is-panning");
+            try { viewerMediaEl.setPointerCapture(ptrEvent.pointerId); } catch {}
+          }
+        });
+
+        viewerMediaEl.addEventListener("pointermove", (ptrEvent) => {
+          if (!activePointers.has(ptrEvent.pointerId)) return;
+          activePointers.set(ptrEvent.pointerId, { x: ptrEvent.clientX, y: ptrEvent.clientY });
+          if (activePointers.size === 2 && pinchStart) {
+            const [p1, p2] = [...activePointers.values()];
+            const dist = Math.max(10, Math.hypot(p2.x - p1.x, p2.y - p1.y));
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            suppressNextViewerClick = true;
+            setViewerZoom(pinchStart.zoom * (dist / pinchStart.dist), midX, midY);
+            return;
+          }
+          if (panStart && ptrEvent.pointerId === panStart.pointerId) {
+            const dx = ptrEvent.clientX - panStart.startX;
+            const dy = ptrEvent.clientY - panStart.startY;
+            if (!panStart.moved && Math.hypot(dx, dy) > 3) {
+              panStart.moved = true;
+              suppressNextViewerClick = true;
+            }
+            if (panStart.moved) {
+              viewerPanX = panStart.originPanX + dx;
+              viewerPanY = panStart.originPanY + dy;
+              clampViewerPan();
+              applyViewerTransform();
+            }
+          }
+        });
+
+        const endViewerPointer = (ptrEvent) => {
+          activePointers.delete(ptrEvent.pointerId);
+          if (activePointers.size < 2) pinchStart = null;
+          if (panStart && ptrEvent.pointerId === panStart.pointerId) {
+            panStart = null;
+            viewerMediaEl.classList.remove("is-panning");
+          }
+          try {
+            if (viewerMediaEl.hasPointerCapture(ptrEvent.pointerId)) {
+              viewerMediaEl.releasePointerCapture(ptrEvent.pointerId);
+            }
+          } catch {}
+          if (suppressNextViewerClick && activePointers.size === 0) {
+            window.setTimeout(() => { suppressNextViewerClick = false; }, 40);
+          }
+        };
+        viewerMediaEl.addEventListener("pointerup", endViewerPointer);
+        viewerMediaEl.addEventListener("pointercancel", endViewerPointer);
+      }
       $("#viewer-overlay").addEventListener("click", async (event) => {
+        if (suppressNextViewerClick) {
+          suppressNextViewerClick = false;
+          event.stopPropagation();
+          return;
+        }
+        const zoomBtn = event.target.closest("[data-viewer-zoom]");
+        if (zoomBtn) {
+          event.stopPropagation();
+          if (zoomBtn.disabled) return;
+          const zoomAction = zoomBtn.dataset.viewerZoom;
+          if (zoomAction === "in") stepViewerZoom(1.4);
+          else if (zoomAction === "out") stepViewerZoom(1 / 1.4);
+          else if (zoomAction === "reset") resetViewerZoom();
+          return;
+        }
         const actionBtn = event.target.closest("[data-viewer-action]");
         if (actionBtn) {
           event.stopPropagation();
@@ -2178,6 +2524,12 @@
         megaPreviewUrl = null;
         megaPreviewRevokeOnClose = false;
       }
+      viewerZoom = 1;
+      viewerPanX = 0;
+      viewerPanY = 0;
+      viewerBaseWidth = 0;
+      viewerBaseHeight = 0;
+      suppressNextViewerClick = false;
       $("#modal-root").innerHTML = "";
       if (!keepSlideshow) {
         viewerItems = [];
@@ -2339,8 +2691,6 @@
       menu.setAttribute("role", "menu");
       menu.returnFocusTarget = returnFocusTarget;
       menu.innerHTML = [
-        `<button type="button" role="menuitem" data-folders-nav-action="open-root">${icon("folder")}<span>Ouvrir Mon Drive (racine)</span></button>`,
-        `<div class="context-menu-divider" role="separator"></div>`,
         `<button type="button" role="menuitem" data-folders-nav-action="upload-root">${icon("upload")}<span>Importer des fichiers à la racine</span></button>`,
         `<button type="button" role="menuitem" data-folders-nav-action="create-root">${icon("folder-plus")}<span>Créer un dossier à la racine</span></button>`,
         `<div class="context-menu-divider" role="separator"></div>`,
@@ -2353,18 +2703,7 @@
         closeMenu();
         if (!megaConnected) return;
         try {
-          if (action === "open-root") {
-            mediaPageSize = 120;
-            currentView = "folder";
-            currentFolder = "__root__";
-            currentTag = null;
-            $("#search").value = "";
-            closeSearchPopover();
-            render();
-            $("main").scrollTop = 0;
-            $("#sidebar").classList.remove("open");
-            $("#scrim").classList.remove("visible");
-          } else if (action === "upload-root") {
+          if (action === "upload-root") {
             if (uploadInProgress) {
               showToast("Un envoi de fichiers est déjà en cours.");
               return;
@@ -2405,7 +2744,7 @@
     }
     function openGalleryContextMenu(parentPath, position) {
       closeMenu();
-      const showMediaSort = currentView !== "folder-index" && currentView !== "tag-index";
+      const showMediaSort = (currentView !== "folder-index" && currentView !== "tag-index") || Boolean(compileSearchQuery($("#search").value));
       const menu = document.createElement("div");
       menu.className = "context-menu";
       menu.setAttribute("role", "menu");
@@ -3025,8 +3364,21 @@
         ignoreNextMediaClick = false;
         return;
       }
+      const clearSearchLink = event.target.closest("[data-clear-search]");
+      if (clearSearchLink) {
+        mediaPageSize = 120;
+        $("#search").value = "";
+        closeSearchPopover();
+        render();
+        $("main").scrollTop = 0;
+        return;
+      }
       const nav = event.target.closest("[data-view]");
       if (nav) {
+        if ($("#viewer-overlay")) {
+          viewerReturnFocus = null;
+          closeViewer();
+        }
         mediaPageSize = 120;
         currentView = nav.dataset.view;
         currentFolder = null;
@@ -3041,6 +3393,10 @@
       }
       const tagCard = event.target.closest("[data-open-tag]") || event.target.closest(".folder-card")?.querySelector("[data-open-tag]");
       if (tagCard) {
+        if ($("#viewer-overlay")) {
+          viewerReturnFocus = null;
+          closeViewer();
+        }
         mediaPageSize = 120;
         currentView = "tag";
         currentFolder = null;
@@ -3055,11 +3411,15 @@
       }
       const folder = event.target.closest("[data-folder], [data-open-folder]") || event.target.closest(".folder-card")?.querySelector("[data-open-folder]");
       if (folder) {
+        if ($("#viewer-overlay")) {
+          viewerReturnFocus = null;
+          closeViewer();
+        }
         mediaPageSize = 120;
         const targetPath = folder.dataset.folder || folder.dataset.openFolder;
-        if (currentView === "trash" || targetPath.startsWith("__trash__")) {
+        if (targetPath === "__trash__" || targetPath.startsWith("__trash__/")) {
           currentView = "trash";
-          currentFolder = targetPath;
+          currentFolder = targetPath === "__trash__" ? null : targetPath;
         } else {
           currentView = "folder";
           currentFolder = targetPath;
@@ -3112,6 +3472,23 @@
           event.preventDefault();
           navigateViewer(event.key === "ArrowLeft" ? -1 : 1);
           return;
+        }
+        if (!targetIsVideo && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          if (event.key === "+" || event.key === "=") {
+            event.preventDefault();
+            stepViewerZoom(1.4);
+            return;
+          }
+          if (event.key === "-" || event.key === "_") {
+            event.preventDefault();
+            stepViewerZoom(1 / 1.4);
+            return;
+          }
+          if (event.key === "0") {
+            event.preventDefault();
+            resetViewerZoom();
+            return;
+          }
         }
         if (event.key === "Tab") {
           const focusable = [...viewer.querySelectorAll("button:not(:disabled), video[controls]")];
@@ -3243,7 +3620,7 @@
     function renderSearchPopover() {
       const input = $("#search");
       const popover = $("#search-popover");
-      if (!popover || !megaConnected || document.activeElement !== input || currentView === "tag-index" || currentView === "folder-index") {
+      if (!popover || !megaConnected || document.activeElement !== input) {
         closeSearchPopover();
         return;
       }
@@ -3300,7 +3677,10 @@
           { icon: "photo", label: "@photo", meta: "Photos uniquement", replacement: "@photo" },
           { icon: "video", label: "@video", meta: "Vidéos uniquement", replacement: "@video" },
           { icon: "photo", label: "@gif", meta: "GIF animés uniquement", replacement: "@gif" },
-          { icon: "tag", label: "@sanstag", meta: "Médias sans tag", replacement: "@sanstag" }
+          { icon: "tag-off", label: "@sanstag", meta: "Médias sans tag", replacement: "@sanstag" },
+          { icon: "inbox", label: "@racine", meta: "Médias non classés à la racine", replacement: "@racine" },
+          { icon: "layers", label: "@volumineux", meta: "Médias ≥ 20 Mo", replacement: "@volumineux" },
+          { icon: "copy", label: "@doublon", meta: "Doublons potentiels", replacement: "@doublon" }
         ];
         for (const preset of presets) {
           if (!needle || normalizeSearchText(preset.label).includes(needle) || normalizeSearchText(preset.meta).includes(needle)) {
